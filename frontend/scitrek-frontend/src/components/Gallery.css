@@ -1,0 +1,83 @@
+/* src/components/Gallery.css */
+
+.gallery {
+  position: relative;
+  width: 100%;
+  /* No fixed min-height so it adjusts based on content */
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.gallery-content {
+  display: flex;
+  transition: transform 0.5s ease-in-out;
+}
+
+.gallery-slide {
+  display: flex;
+  box-sizing: border-box;
+  padding: 15px;       /* Increased slightly from 10px for more breathing room */
+  align-items: flex-start; /* Keep top alignment for a compact look */
+}
+
+.gallery-text {
+  flex: 1;
+  padding-right: 15px;  /* Slightly increased horizontal padding */
+}
+
+.gallery-text h2 {
+  font-size: 32px;
+  margin-bottom: 10px;  /* A bit more spacing than before */
+}
+
+.gallery-text p {
+  font-size: 18px;
+  margin-bottom: 10px;  /* A little extra spacing */
+  line-height: 1.4;
+}
+
+.gallery-media {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* Keep media aligned at the top */
+}
+
+/* Constrain the media so it doesn't force the container to be too tall */
+.gallery-media img,
+.gallery-media video {
+  max-width: 100%;
+  max-height: 350px; /* Increased from 300px to 350px for a bit more display area */
+  height: auto;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+/* Indicators (dots) positioned at the bottom center */
+.carousel-indicators {
+  position: absolute;
+  bottom: 15px; /* original value */
+  left: 0;
+  right: 0;
+  text-align: center;
+  transform: translateY(15px);  /* Moves the indicators down by 35px */
+}
+
+
+
+
+.indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background: #ccc;
+  margin: 0 5px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.indicator.active {
+  background: #333;
+}

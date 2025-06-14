@@ -1,0 +1,20 @@
+.ft-resources {
+  padding: 20px;
+  background: #fff;
+}
+
+.ft-resource-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.ft-resource {
+  border: 1px solid #ddd;
+  padding: 10px;
+  flex: 1 1 250px;
+}
+
+.ft-resource-photo img {
+  max-width: 100%;
+}

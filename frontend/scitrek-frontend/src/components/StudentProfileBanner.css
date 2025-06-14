@@ -1,0 +1,106 @@
+/* src/components/StudentProfileBanner.css */
+
+/* Container styles */
+.profile-header {
+  display: flex;
+  align-items: center;
+  background-color: #e39c04; /* Matches your golden color */
+  padding: 10px 20px;
+  color: white;
+  justify-content: space-between;
+}
+
+/* Logo */
+.logo img {
+  height: 50px;
+  cursor: pointer;
+}
+
+/* Navigation styles */
+.profile-nav {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.nav-item {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+  position: relative;
+}
+
+.nav-item:hover {
+  text-decoration: underline;
+}
+
+/* Dropdown container */
+.dropdown {
+  position: relative;
+}
+
+.dropdown-toggle {
+  background: none;
+  border: none;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Hide the dropdown menu by default */
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  background: white;
+  color: black;
+  top: 100%;
+  left: 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  min-width: 120px;
+  padding: 5px 0;
+  z-index: 1000;
+}
+
+/* Links inside the dropdown menu */
+.dropdown-menu a,
+.dropdown-menu button {
+  display: block;
+  padding: 8px 15px;
+  color: #333;
+  text-decoration: none;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dropdown-menu a:hover,
+.dropdown-menu button:hover {
+  background: #f1f1f1;
+}
+
+/* Show the dropdown menu on hover */
+.dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+/* "Hello, Andy" user dropdown */
+.user-dropdown {
+  margin-left: auto; /* pushes it to the far right */
+}
+
+.user-dropdown .drop_button {
+  background: none;
+  border: none;
+  font-weight: bold;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.user-dropdown .drop_button i {
+  margin-left: 5px;
+}

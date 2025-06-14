@@ -1,0 +1,10 @@
+/* Minimal HomePage styles */
+.home-page {
+    padding: 20px;
+    background: #fff;
+  }
+  
+  .home-page > * {
+    margin-bottom: 20px;
+  }
+  

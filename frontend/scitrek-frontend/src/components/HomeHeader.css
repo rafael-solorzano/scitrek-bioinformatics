@@ -1,0 +1,87 @@
+/* src/components/HomeHeader.css */
+
+.home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #e39c04;
+  padding: 10px 20px;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+
+.logo-section img {
+  height: 50px;
+  cursor: pointer;
+}
+
+.home-nav .user-dropdown {
+  position: relative;
+}
+
+/* Greeting button */
+.home-nav .user-dropdown .user-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px;              /* extra padding for easier hover */
+}
+
+/* Hidden by default */
+.home-nav .user-dropdown .user-dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);     /* sits just below the button */
+  background: #fff;
+  color: #333;
+  min-width: 180px;
+  padding: 4px 0;            /* padding so cursor can slip in */
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 200;              /* ensure on top */
+}
+
+/* Keep menu open when hovering anywhere in user-dropdown */
+.home-nav .user-dropdown:hover .user-dropdown-content {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Menu items */
+.home-nav .user-dropdown .user-dropdown-content a,
+.home-nav .user-dropdown .user-dropdown-content button {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;         /* larger click target */
+  color: #333;
+  text-decoration: none;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.home-nav .user-dropdown .user-dropdown-content a:hover,
+.home-nav .user-dropdown .user-dropdown-content button:hover {
+  background: #f0f0f0;
+}
+
+/* Login link (when no user) */
+.login-link {
+  color: white;
+  text-decoration: none;
+  font-size: 18px;
+  padding: 4px 8px;
+}

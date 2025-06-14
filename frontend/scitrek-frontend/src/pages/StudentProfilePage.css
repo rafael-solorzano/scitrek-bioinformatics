@@ -1,0 +1,59 @@
+/* src/pages/StudentProfilePage.css */
+
+/* Make the page container full width */
+.student-profile-page {
+  width: 100%;
+  margin: 0;
+  background: #fff;
+}
+
+/* Header: flex‐center the content */
+.profile-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #e39c04;
+  color: white;
+  padding: 20px;
+}
+
+.profile-header h1 {
+  margin: 0;
+  font-size: 32px;
+}
+
+/* Main content */
+.profile-main {
+  padding: 20px;
+  text-align: center;
+}
+
+/* GIF: centered, but not too wide */
+.bioinfo-gif {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto 20px;
+  display: block;
+}
+
+/* Profile details list: keep it neat */
+.profile-biography {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto;
+  max-width: 600px;
+  text-align: left;
+}
+
+.profile-biography li {
+  margin-bottom: 12px;
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+/* Loading state */
+.loading {
+  text-align: center;
+  padding: 50px;
+  font-size: 20px;
+}

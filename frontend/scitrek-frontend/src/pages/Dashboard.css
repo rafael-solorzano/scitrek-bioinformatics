@@ -1,0 +1,12 @@
+/* Minimal Dashboard styles */
+.dashboard-page {
+    padding: 20px;
+    background: #fff;
+    margin: 20px;
+    border-radius: 8px;
+  }
+  .dashboard-page h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  

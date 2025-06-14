@@ -1,0 +1,19 @@
+/* src/App.css */
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* The routed content sits here and flexes */
+.content {
+  flex: 1;
+  padding: 20px; /* optional, for spacing around pages */
+  box-sizing: border-box;
+}
+
+/* Ensure Footer has no extra margins */
+.app-footer {
+  margin: 0;
+}

@@ -1,0 +1,53 @@
+/* src/components/ModuleList.css */
+
+.module-list {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .module-list h2 {
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+    text-align: center;
+  }
+  
+  .module-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .module-list li {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #eee;
+    transition: background 0.2s;
+  }
+  
+  .module-list li:last-child {
+    border-bottom: none;
+  }
+  
+  .module-list li:hover {
+    background: #f9f9f9;
+  }
+  
+  .module-list a {
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+  }
+  
+  .module-list a:hover {
+    color: #007bff;
+  }
+  
+  .error {
+    color: #c00;
+    text-align: center;
+    margin-top: 1rem;
+  }
+  

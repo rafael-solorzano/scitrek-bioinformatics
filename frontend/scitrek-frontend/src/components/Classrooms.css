@@ -1,0 +1,19 @@
+/* Minimal Classroom styles */
+.classrooms {
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+  }
+  .classrooms h3 {
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+  .classrooms .error {
+    color: red;
+  }
+  .classrooms ul {
+    list-style: none;
+    padding: 0;
+  }
+  

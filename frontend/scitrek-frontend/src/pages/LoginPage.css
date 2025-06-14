@@ -1,0 +1,141 @@
+/* src/pages/LoginPage.css */
+
+.login-page {
+  min-height: 100vh;
+  background-color: #fff7f2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px; /* Reduced overall padding so content isn't pushed downward */
+  position: relative;
+}
+
+.login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px; /* Space between header and login box */
+  /* Remove any additional top margin so the header sits near the top */
+}
+
+.login-logo {
+  height: 150px;  /* Increased logo size */
+  margin-bottom: 10px;
+}
+
+.login-header h1 {
+  font-size: 60px;  /* Increased welcome text size */
+  color: #ff6600;
+  font-weight: bold;
+}
+
+/* Container for the login form */
+.login-container {
+  background: #fff;
+  width: 600px;
+  padding: 40px 50px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  margin-top: 50px;  /* Push login box down to separate it from the header */
+  position: relative;
+  z-index: 1;
+}
+
+.toggle-container {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.toggle-container button {
+  flex: 1;
+  padding: 12px 20px;
+  font-size: 18px;
+  background: #ddd;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  font-weight: bold;
+  transition: background 0.3s ease;
+  min-width: 120px;
+}
+
+.toggle-container button.active {
+  background: #ff6600;
+  color: #fff;
+}
+
+.toggle-container button:hover {
+  background: #ff7f33;
+}
+
+.error {
+  color: red;
+  margin-bottom: 15px;
+  font-weight: bold;
+  text-align: center;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+form h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 28px;
+  color: #ff6600;
+}
+
+.form-field {
+  margin-bottom: 15px;
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #555;
+}
+
+.form-field input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+.forgot-link {
+  text-align: right;
+  margin-bottom: 15px;
+}
+
+.forgot-link a {
+  font-size: 14px;
+  color: #ff6600;
+  text-decoration: none;
+}
+
+.forgot-link a:hover {
+  text-decoration: underline;
+}
+
+form button {
+  background: #ff6600;
+  color: #fff;
+  border: none;
+  padding: 14px 25px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 18px;
+  margin-top: 10px;
+  transition: background 0.3s ease;
+}
+
+form button:hover {
+  background: #ff7f33;
+}

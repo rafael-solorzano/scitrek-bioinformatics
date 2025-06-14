@@ -1,0 +1,28 @@
+/* Wrapper for the iframe, pushes it below the header */
+.quiz-page-content {
+    padding: 80px 20px 40px; /* 80px top to clear banner, 20px sides, 40px bottom */
+    display: flex;
+    justify-content: center;
+    background: #f4f6fa;
+    min-height: calc(100vh - 80px);
+    box-sizing: border-box;
+  }
+  
+  /* The quiz iframe itself */
+  .quiz-iframe {
+    width: 100%;
+    max-width: 640px;
+    height: 1000px;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  
+  /* Loading placeholder */
+  .loading {
+    text-align: center;
+    padding: 50px;
+    font-size: 20px;
+    color: #666;
+  }
+  
