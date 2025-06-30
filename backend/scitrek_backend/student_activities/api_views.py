@@ -4,8 +4,9 @@ from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.generics import RetrieveAPIView
 from django.shortcuts import get_object_or_404
 
 from classroom_admin.models import Student as StudentProfile
@@ -21,27 +22,22 @@ from .serializers import (
     QuizQuestionSerializer
 )
 
-
 # ── 1. Signup ──────────────────────────────────────────────────────────────────────
 class CustomStudentSignupAPIView(generics.CreateAPIView):
     permission_classes = [AllowAny]
     serializer_class   = CustomStudentSignupSerializer
-
 
 # ── 2. Profile (GET + PATCH) ──────────────────────────────────────────────────────
 class StudentProfileUpdateAPIView(generics.RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        # Return the Student profile tied to the authenticated user
         return get_object_or_404(StudentProfile, user=self.request.user)
 
     def get_serializer_class(self):
-        # GET => full detail, PATCH => lean update
         if self.request.method == 'GET':
             return StudentProfileSerializer
         return StudentProfileUpdateSerializer
-
 
 # ── 3. Modules ─────────────────────────────────────────────────────────────────────
 class ModuleListAPIView(generics.ListAPIView):
@@ -52,7 +48,6 @@ class ModuleListAPIView(generics.ListAPIView):
         classroom = get_object_or_404(StudentProfile, user=self.request.user).classroom
         return Module.objects.filter(classroom=classroom).order_by('day')
 
-
 class ModuleDetailAPIView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class   = ModuleSerializer
@@ -61,31 +56,48 @@ class ModuleDetailAPIView(generics.RetrieveAPIView):
         classroom = get_object_or_404(StudentProfile, user=self.request.user).classroom
         return get_object_or_404(Module, pk=self.kwargs['pk'], classroom=classroom)
 
-
 # ── 4. Responses ───────────────────────────────────────────────────────────────────
 class ResponseUpsert(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
-    parser_classes     = [MultiPartParser, FormParser]
+    parser_classes     = [MultiPartParser, FormParser, JSONParser]
     throttle_classes   = [ScopedRateThrottle]
     throttle_scope     = 'response'
     serializer_class   = StudentResponseSerializer
 
     def post(self, request, pk):
+        # Ensure module belongs to this student's classroom
         classroom = get_object_or_404(StudentProfile, user=request.user).classroom
         get_object_or_404(Module, pk=pk, classroom=classroom)
 
-        data = request.data.copy()
-        data['module']  = pk
-        data['student'] = request.user.id
+        # Only include relevant response fields (answers and optional file_upload)
+        allowed_fields = ['answers', 'file_upload']
+        defaults = {field: request.data[field] for field in allowed_fields if field in request.data}
 
         obj, created = StudentResponse.objects.update_or_create(
             student=request.user,
             module_id=pk,
-            defaults=data
+            defaults=defaults
         )
         code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
         return Response(self.get_serializer(obj).data, status=code)
 
+class ResponseDetailAPIView(RetrieveAPIView):
+    """
+    GET /api/student/modules/{pk}/response/detail/
+    Retrieves the existing StudentResponse for this user & module.
+    404 if none exists.
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class   = StudentResponseSerializer
+
+    def get_object(self):
+        classroom = get_object_or_404(StudentProfile, user=self.request.user).classroom
+        module = get_object_or_404(Module, pk=self.kwargs['pk'], classroom=classroom)
+        return get_object_or_404(
+            StudentResponse,
+            student=self.request.user,
+            module=module
+        )
 
 # ── 5. Quiz attempts ────────────────────────────────────────────────────────────────
 class QuizAttemptUpsert(generics.CreateAPIView):
@@ -109,7 +121,6 @@ class QuizAttemptUpsert(generics.CreateAPIView):
         code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
         return Response(self.get_serializer(obj).data, status=code)
 
-
 # ── 6. Quiz questions ─────────────────────────────────────────────────────────────
 class QuizPreQuestionListAPIView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -119,7 +130,6 @@ class QuizPreQuestionListAPIView(generics.ListAPIView):
         classroom = get_object_or_404(StudentProfile, user=self.request.user).classroom
         return QuizQuestion.objects.filter(quiz_type=QuizQuestion.PRE, classroom=classroom)
 
-
 class QuizPostQuestionListAPIView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class   = QuizQuestionSerializer
@@ -127,7 +137,6 @@ class QuizPostQuestionListAPIView(generics.ListAPIView):
     def get_queryset(self):
         classroom = get_object_or_404(StudentProfile, user=self.request.user).classroom
         return QuizQuestion.objects.filter(quiz_type=QuizQuestion.POST, classroom=classroom)
-
 
 # ── 7. Progress ────────────────────────────────────────────────────────────────────
 class ProgressView(APIView):
@@ -137,16 +146,13 @@ class ProgressView(APIView):
         completed = StudentResponse.objects.filter(
             student=request.user
         ).values_list('module__day', flat=True)
-
         pre  = QuizAttempt.objects.filter(student=request.user, quiz_type=QuizAttempt.PRE).first()
         post = QuizAttempt.objects.filter(student=request.user, quiz_type=QuizAttempt.POST).first()
-
         return Response({
             'completed_days': sorted(completed),
             'pre_score':      pre.score  if pre  else None,
             'post_score':     post.score if post else None,
         })
-
 
 # ── 8. Inbox ───────────────────────────────────────────────────────────────────────
 class InboxListView(generics.ListAPIView):
@@ -159,7 +165,6 @@ class InboxListView(generics.ListAPIView):
             sender__username='virtual_scientist',
             recipient=self.request.user
         ).order_by('-timestamp')
-
 
 class InboxReadToggleAPIView(APIView):
     permission_classes = [IsAuthenticated]

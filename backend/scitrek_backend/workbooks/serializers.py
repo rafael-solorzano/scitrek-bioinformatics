@@ -1,41 +1,36 @@
-# workbooks/serializers.py
-
 from rest_framework import serializers
-from .models import Workbook, Section, SectionImage
+from .models import Workbook, Section, SectionImage, Question, StudentAnswer
 
 class SectionImageSerializer(serializers.ModelSerializer):
     class Meta:
-        model = SectionImage
+        model  = SectionImage
         fields = ['id', 'image', 'caption', 'order']
-
 
 class SectionSerializer(serializers.ModelSerializer):
     images = SectionImageSerializer(many=True, read_only=True)
 
     class Meta:
-        model = Section
+        model  = Section
         fields = ['id', 'heading', 'order', 'content_html', 'images']
 
-
 class WorkbookSerializer(serializers.ModelSerializer):
-    sections = SectionSerializer(many=True, read_only=True)
+    sections      = serializers.SerializerMethodField()
     import_status = serializers.SerializerMethodField()
 
     class Meta:
-        model = Workbook
+        model  = Workbook
         fields = [
-            'id',
-            'role',
-            'title',
-            'description',
-            'file',
-            'uploaded_at',
-            'import_started',
-            'import_finished',
-            'import_error',    # newly exposed field
-            'import_status',
-            'sections',
+            'id', 'role', 'title', 'description', 'file',
+            'import_started', 'import_finished', 'import_error',
+            'import_status', 'sections',
         ]
+
+    def get_sections(self, workbook):
+        include_toc = self.context.get('include_toc', False)
+        qs = workbook.sections.all()
+        if not include_toc:
+            qs = qs.exclude(order__lte=8)
+        return SectionSerializer(qs, many=True).data
 
     def get_import_status(self, obj):
         if not obj.import_started:
@@ -44,22 +39,12 @@ class WorkbookSerializer(serializers.ModelSerializer):
             return 'in_progress'
         return 'done'
 
-
-class WorkbookCreateSerializer(serializers.ModelSerializer):
-    file = serializers.FileField(write_only=True)
-
+class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Workbook
-        fields = ['role', 'title', 'description', 'file']
+        model  = Question
+        fields = ['id', 'workbook', 'order', 'prompt', 'input_type']
 
-
-class SectionCreateSerializer(serializers.ModelSerializer):
+class StudentAnswerSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Section
-        fields = ['workbook', 'heading', 'order', 'content_html']
-
-
-class SectionImageCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SectionImage
-        fields = ['section', 'image', 'caption', 'order']
+        model  = StudentAnswer
+        fields = ['id', 'question', 'answer', 'updated_at']

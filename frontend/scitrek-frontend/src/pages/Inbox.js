@@ -92,7 +92,7 @@ const Inbox = () => {
         {selectedMessage && (
           <div className="message-detail">
             <button className="btn-close" onClick={closeMessageDetail}>
-              &times; Close
+              &times;
             </button>
             <h3>{selectedMessage.subject}</h3>
             <p><strong>Date:</strong> {formatDate(selectedMessage.timestamp)}</p>

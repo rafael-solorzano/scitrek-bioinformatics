@@ -22,9 +22,9 @@ const teamMembers = [
   },
   {
     id: 4,
-    name: 'Daniel Wong-Moon',
+    name: 'Katherine Duong',
     title: 'Undergraduate Researcher',
-    image: '/images/daniel-wong-moon.jpeg',
+    image: '/images/508163475_1390561868826848_8944077399625485398_n.jpg',
   },
   {
     id: 5,
@@ -36,7 +36,7 @@ const teamMembers = [
     id: 6,
     name: 'Brian Ngan',
     title: 'Undergraduate Researcher',
-    image: '/images/1663562562136.jpeg',
+    image: '/images/IMG_3708.jpg',
   },
 ];
 

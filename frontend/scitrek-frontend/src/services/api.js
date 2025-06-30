@@ -1,12 +1,8 @@
-// src/services/api.js
 import axios from 'axios';
 import { getAccessToken, getRefreshToken, removeTokens } from '../utils/auth';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-});
+const api = axios.create({ baseURL: API_BASE_URL });
 
 // Attach access token on every request
 api.interceptors.request.use(
@@ -53,7 +49,10 @@ api.interceptors.response.use(
 
 // Sign in, store tokens
 export const loginUser = async (username, password) => {
-  const res = await axios.post(`${API_BASE_URL}/api/token/`, { username, password });
+  const res = await axios.post(`${API_BASE_URL}/api/token/`, {
+    username,
+    password,
+  });
   localStorage.setItem('accessToken', res.data.access);
   localStorage.setItem('refreshToken', res.data.refresh);
   return res.data;
@@ -113,10 +112,36 @@ export const fetchModules = async () => {
   return res.data;
 };
 
-// Fetch one module’s detail (includes HTML `content`)
+// Fetch one module’s detail
 export const fetchModuleDetail = async moduleId => {
   const res = await api.get(`/api/student/modules/${moduleId}/`);
   return res.data;
 };
+
+// — Student Responses —
+
+// Get existing answers for a module
+export const getResponseDetail = moduleId =>
+  api.get(`/api/student/modules/${moduleId}/response/detail/`).then(res => res.data);
+
+// Create or update answers for a module
+export const upsertResponse = (moduleId, answers) =>
+  api
+    .post(`/api/student/modules/${moduleId}/response/`, { answers })
+    .then(res => res.data);
+
+// — Workbooks —
+
+// Fetch all workbooks
+export const getWorkbooks = () =>
+  api.get('/api/workbooks/workbooks/').then(res => res.data.results || []);
+
+// Fetch one workbook with all of its sections
+export const getWorkbookDetail = (workbookId, includeToc = false) =>
+  api
+    .get(`/api/workbooks/workbooks/${workbookId}/`, {
+      params: { include_toc: includeToc }
+    })
+    .then(res => res.data);
 
 export default api;

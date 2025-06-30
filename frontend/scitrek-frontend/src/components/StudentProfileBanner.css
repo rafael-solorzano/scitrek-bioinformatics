@@ -1,106 +1,103 @@
 /* src/components/StudentProfileBanner.css */
 
-/* Container styles */
+/* Container */
 .profile-header {
   display: flex;
   align-items: center;
-  background-color: #e39c04; /* Matches your golden color */
-  padding: 10px 20px;
-  color: white;
   justify-content: space-between;
+  background-color: #e39c04;
+  padding: 1rem 2rem;
 }
 
 /* Logo */
 .logo img {
-  height: 50px;
+  height: 3rem;   /* 48px */
   cursor: pointer;
 }
 
-/* Navigation styles */
+/* Main nav */
 .profile-nav {
   display: flex;
-  gap: 20px;
+  gap: 1.5rem;
   align-items: center;
 }
 
+/* Links */
 .nav-item {
-  color: white;
+  color: #fff;
   text-decoration: none;
-  font-weight: bold;
-  position: relative;
+  font-weight: 700;
+  padding: 0.5rem;
 }
-
 .nav-item:hover {
   text-decoration: underline;
 }
 
-/* Dropdown container */
-.dropdown {
-  position: relative;
-}
-
+/* Dropdown trigger */
 .dropdown-toggle {
   background: none;
   border: none;
-  color: white;
-  font-weight: bold;
+  color: #fff;
+  font-weight: 700;
   cursor: pointer;
+  padding: 0.5rem;
 }
 
-/* Hide the dropdown menu by default */
+/* Dropdown menu */
+.dropdown {
+  position: relative;
+}
 .dropdown-menu {
   display: none;
   position: absolute;
-  background: white;
-  color: black;
-  top: 100%;
+  top: calc(100% + 0.25rem);
   left: 0;
+  background: #fff;
   border: 1px solid #ccc;
   border-radius: 4px;
-  min-width: 120px;
-  padding: 5px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 0.25rem 0;
+  min-width: 10rem;
   z-index: 1000;
 }
-
-/* Links inside the dropdown menu */
-.dropdown-menu a,
-.dropdown-menu button {
-  display: block;
-  padding: 8px 15px;
-  color: #333;
-  text-decoration: none;
-  background: none;
-  border: none;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-}
-
-.dropdown-menu a:hover,
-.dropdown-menu button:hover {
-  background: #f1f1f1;
-}
-
-/* Show the dropdown menu on hover */
 .dropdown:hover .dropdown-menu {
   display: block;
 }
 
-/* "Hello, Andy" user dropdown */
-.user-dropdown {
-  margin-left: auto; /* pushes it to the far right */
+/* Dropdown items */
+.dropdown-menu a,
+.dropdown-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background: none;
+  border: none;
+  color: #333;
+  text-align: left;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.dropdown-menu a:hover,
+.dropdown-menu button:hover {
+  background: #f5f5f5;
 }
 
+/* User dropdown overrides */
+.user-dropdown {
+  margin-left: auto;
+}
 .user-dropdown .drop_button {
   background: none;
   border: none;
-  font-weight: bold;
-  color: white;
+  color: #fff;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
 }
-
-.user-dropdown .drop_button i {
-  margin-left: 5px;
+.user-dropdown .dropdown-menu.user-menu {
+  right: 0;
+  left: auto;
 }

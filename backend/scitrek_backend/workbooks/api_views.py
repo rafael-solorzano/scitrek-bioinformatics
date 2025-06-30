@@ -1,53 +1,69 @@
-# workbooks/api_views.py
-
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
-from .models import Workbook, Section, SectionImage
+from .models import Workbook, Section, Question, StudentAnswer
 from .serializers import (
     WorkbookSerializer,
-    WorkbookCreateSerializer,
     SectionSerializer,
-    SectionCreateSerializer,
-    SectionImageSerializer,
-    SectionImageCreateSerializer,
+    QuestionSerializer,
+    StudentAnswerSerializer,
 )
 from .tasks import parse_workbook_task
 
-
 class WorkbookViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
-    queryset = Workbook.objects.all().order_by('-uploaded_at')
+    """
+    ViewSet for Workbooks. Injects `include_toc` into serializer context
+    so that first 8 TOC sections can be excluded by default.
+    """
+    queryset         = Workbook.objects.all().order_by('id')
     serializer_class = WorkbookSerializer
+    parser_classes   = [MultiPartParser, FormParser]
 
-    def get_serializer_class(self):
-        if self.action in ['create', 'update', 'partial_update']:
-            return WorkbookCreateSerializer
-        return WorkbookSerializer
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['include_toc'] = self.request.query_params.get('include_toc') == 'true'
+        return ctx
 
     def perform_create(self, serializer):
-        workbook = serializer.save()
-        parse_workbook_task.delay(workbook.id)
+        wb = serializer.save()
+        parse_workbook_task.delay(wb.id)
+
+    def perform_update(self, serializer):
+        wb = serializer.save()
+        if 'file' in self.request.data:
+            parse_workbook_task.delay(wb.id)
+
+    @action(detail=True, methods=['get'], url_path='questions')
+    def questions(self, request, pk=None):
+        workbook   = self.get_object()
+        qs         = Question.objects.filter(workbook=workbook).order_by('order')
+        serializer = QuestionSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='progress')
+    def progress(self, request, pk=None):
+        workbook = self.get_object()
+        total    = Question.objects.filter(workbook=workbook).count()
+        answered = StudentAnswer.objects.filter(
+            question__workbook=workbook,
+            student=request.user
+        ).count()
+        return Response({'total_questions': total, 'answered_count': answered})
 
 
 class SectionViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
-    queryset = Section.objects.all().order_by('workbook', 'order')
-    parser_classes = [FormParser, MultiPartParser]
-
-    def get_serializer_class(self):
-        if self.action in ['create', 'update', 'partial_update']:
-            return SectionCreateSerializer
-        return SectionSerializer
+    queryset         = Section.objects.all().order_by('workbook', 'order')
+    serializer_class = SectionSerializer
 
 
-class SectionImageViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
-    queryset = SectionImage.objects.all().order_by('section', 'order')
-    parser_classes = [MultiPartParser, FormParser]
+class QuestionViewSet(viewsets.ModelViewSet):
+    queryset         = Question.objects.all().order_by('workbook', 'order')
+    serializer_class = QuestionSerializer
 
-    def get_serializer_class(self):
-        if self.action in ['create', 'update', 'partial_update']:
-            return SectionImageCreateSerializer
-        return SectionImageSerializer
+
+class StudentAnswerViewSet(viewsets.ModelViewSet):
+    queryset         = StudentAnswer.objects.all()
+    serializer_class = StudentAnswerSerializer
+    parser_classes   = [FormParser, MultiPartParser]

@@ -55,6 +55,9 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True
+
+
 # Update these references to reflect the new project module name.
 ROOT_URLCONF = "scitrek_backend.urls"
 

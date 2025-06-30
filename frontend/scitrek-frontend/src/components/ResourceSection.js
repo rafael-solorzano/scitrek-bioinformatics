@@ -30,21 +30,17 @@ const resources = [
 
 const ResourceSection = () => (
   <section className="ft-resources">
-    <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>
-      Bioinformatics Resources
-    </h2>
+    <h2>Bioinformatics Resources</h2>
     <div className="ft-resource-container">
-      {resources.map((resource) => (
+      {resources.map(resource => (
         <div className="ft-resource" key={resource.id}>
           <div className="ft-resource-photo">
             <img src={resource.image} alt={resource.title} />
           </div>
           <div className="ft-resource-info">
-            <h3>
-              <a href={resource.link} target="_blank" rel="noreferrer">
-                {resource.title}
-              </a>
-            </h3>
+            <a href={resource.link} target="_blank" rel="noreferrer">
+              {resource.title}
+            </a>
             <p>{resource.description}</p>
           </div>
         </div>

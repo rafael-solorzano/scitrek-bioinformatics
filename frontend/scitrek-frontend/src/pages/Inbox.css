@@ -1,14 +1,14 @@
 /* src/pages/Inbox.css */
 
-/* The outer wrapper keeps your normal app background */
+/* Outer wrapper */
 .inbox-page {
   background: #f4f6fa;
   padding: 20px;
   box-sizing: border-box;
-  min-height: calc(100vh - 80px); /* leave space for the top nav/banner */
+  /* remove forced min-height so footer will sit just below content */
 }
 
-/* White boxed card around the inbox */
+/* White card around the inbox list */
 .inbox-card {
   background: #fff;
   border-radius: 8px;
@@ -18,35 +18,13 @@
   max-width: 1000px;
 }
 
-/* Card header with title and button */
+/* Header inside the card */
 .inbox-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
   border-bottom: 1px solid #ececec;
-  background: #fff;
-}
-
-.inbox-header h2 {
-  margin: 0;
-  font-size: 24px;
-}
-
-/* “Add Message” button */
-.btn-add {
-  background-color: #0d6efd;
-  color: #fff;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.btn-add:hover {
-  background-color: #0b5ed7;
 }
 
 /* Table styling */
@@ -73,12 +51,10 @@
   cursor: pointer;
 }
 
-/* Unread rows get a light highlight */
 .inbox-table tr.unread {
   background: #eef5ff;
 }
 
-/* “Unread” badge next to subject */
 .badge-unread {
   background: #dc3545;
   color: #fff;
@@ -90,11 +66,12 @@
 
 /* Detailed message pane */
 .message-detail {
-  position: relative;         /* positioning context for close button */
+  position: relative;
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  padding: 40px 24px 24px;    /* extra top padding to clear close button */
+  /* tighten top padding so close button sits closer */
+  padding: 20px 24px 24px;
   max-width: 800px;
   margin: 20px auto;
   box-sizing: border-box;
@@ -104,23 +81,23 @@
 /* Close button */
 .btn-close {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 8px;       /* moved down a bit */
+  right: 8px;     /* moved left a bit */
   background: transparent;
   border: none;
-  font-size: 24px;      /* larger “×” */
+  font-size: 24px;
   line-height: 1;
-  padding: 4px;         /* bigger hit area */
+  padding: 4px;
   cursor: pointer;
   color: #666;
-  z-index: 2;           /* sits above content */
+  z-index: 2;
 }
 
 .btn-close:hover {
   color: #000;
 }
 
-/* Detailed pane text */
+/* Message detail text */
 .message-detail h3 {
   margin-top: 0;
   font-size: 22px;
@@ -131,9 +108,10 @@
   line-height: 1.5;
 }
 
-/* Loading state */
+/* Loading placeholder */
 .loading {
   text-align: center;
   padding: 50px;
   font-size: 20px;
+  color: #666;
 }

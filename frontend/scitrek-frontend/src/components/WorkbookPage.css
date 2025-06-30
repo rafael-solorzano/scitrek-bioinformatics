@@ -1,0 +1,43 @@
+.workbook-page {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem;
+  }
+  
+  .progress-wrapper {
+    margin-bottom: 1.5rem;
+  }
+  
+  .progress {
+    height: 1.5rem;
+    background: #e9ecef;
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+  
+  .progress-bar {
+    background: #007bff;
+    height: 100%;
+  }
+  
+  .question-block {
+    margin-bottom: 2rem;
+  }
+  
+  .prompt {
+    margin-bottom: 0.5rem;
+  }
+  
+  textarea,
+  input[type="text"],
+  input[type="number"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .error {
+    color: red;
+  }
+  

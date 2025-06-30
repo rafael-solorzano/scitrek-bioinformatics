@@ -1,0 +1,46 @@
+.workbook-list {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem;
+  }
+  
+  .workbook-list ul {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .workbook-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 1rem;
+  }
+  
+  .wb-info {
+    flex: 1;
+  }
+  
+  .wb-desc {
+    margin: 0.25rem 0 0;
+    color: #555;
+  }
+  
+  .start-btn {
+    padding: 0.5rem 1rem;
+    background: #007bff;
+    border: none;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .start-btn:hover {
+    background: #0056b3;
+  }
+  
+  .error {
+    color: red;
+  }
+  

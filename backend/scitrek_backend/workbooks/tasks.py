@@ -1,58 +1,67 @@
 # workbooks/tasks.py
+
 from celery import shared_task
 from django.utils import timezone
-from .models import Workbook, Section, SectionImage
-from pdf2image import convert_from_path
-from bs4 import BeautifulSoup
-import tempfile, os, traceback
+import re
+import pdfplumber
+from django.utils.html import escape, linebreaks
+from .models import Workbook, Section
 
 @shared_task
 def parse_workbook_task(workbook_id):
     """
-    Task to parse uploaded PDF into sections and images.
+    Task to parse an uploaded workbook PDF into logical sections based on predefined headings.
     """
     wb = Workbook.objects.get(id=workbook_id)
-    # mark import started
     wb.import_started = timezone.now()
     wb.import_error = ''
     wb.save()
 
     try:
-        # Convert PDF pages to images
-        pages = convert_from_path(wb.file.path)
-        
-        for idx, page in enumerate(pages, start=1):
-            # Save page image to MEDIA
-            temp_dir = tempfile.mkdtemp()
-            img_path = os.path.join(temp_dir, f"page_{idx}.png")
-            page.save(img_path, 'PNG')
+        # 1) Extract the full text of the PDF
+        with pdfplumber.open(wb.file.path) as pdf:
+            full_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
 
-            # Construct section placeholder
-            heading = f"Section {idx}"
-            content_html = f"<img src='{os.path.relpath(img_path, os.getcwd())}' />"
+        # 2) Locate all of our eight main headings and the spans between them
+        headings = [
+            "Welcome to SciTrek!",
+            "What You’ll Learn in the Bioinformatics Module",
+            "Important Vocabulary",
+            "Day 1",
+            "Day 2",
+            "Day 3",
+            "Day 4",
+            "Day 5"
+        ]
+        # build a big regex that matches any heading exactly
+        pattern = r"(?m)^(" + "|".join(re.escape(h) for h in headings) + r")\s*$"
+        matches = list(re.finditer(pattern, full_text))
 
-            section = Section.objects.create(
+        sections = []
+        for idx, m in enumerate(matches):
+            start = m.end()
+            end = matches[idx+1].start() if idx+1 < len(matches) else len(full_text)
+            heading = m.group(1)
+            body = full_text[start:end].strip()
+            # escape HTML and convert newlines to paragraphs
+            html = linebreaks(escape(body))
+            sections.append((heading, html))
+
+        # 3) Delete existing and re-create
+        wb.sections.all().delete()
+        for order, (heading, content_html) in enumerate(sections, start=1):
+            Section.objects.create(
                 workbook=wb,
+                order=order,
                 heading=heading,
-                order=idx,
-                content_html=content_html
+                content_html=content_html,
             )
-            # Create SectionImage record and point to saved file
-            img_field = SectionImage(
-                section=section,
-                caption='',
-                order=0
-            )
-            with open(img_path, 'rb') as f:
-                img_field.image.save(os.path.basename(img_path), f, save=True)
 
-        # mark import finished
         wb.import_finished = timezone.now()
         wb.save()
+
     except Exception as e:
-        # capture error details
         wb.import_finished = timezone.now()
-        wb.import_error = traceback.format_exc()
+        wb.import_error = str(e)
         wb.save()
-        # re-raise or swallow based on needs
         raise
