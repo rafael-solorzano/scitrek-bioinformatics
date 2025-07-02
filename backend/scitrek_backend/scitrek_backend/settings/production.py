@@ -10,7 +10,8 @@ ALLOWED_HOSTS = [
     "sci-trek.org",
     "www.sci-trek.org",
     "localhost",
-    "0.0.0.0"
+    "0.0.0.0",
+    ".ngrok-free.app",
 ]
 
 # Database configuration for PostgreSQL in production
