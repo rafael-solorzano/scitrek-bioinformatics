@@ -1,28 +1,28 @@
 services:
   web:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: backend/scitrek_backend
+      dockerfile: backend/scitrek_backend/Dockerfile
     command: /entrypoint.sh
     volumes:
       - .:/app
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - backend/scitrek_backend/.env
     depends_on:
       - db
       - redis
 
   worker:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: backend/scitrek_backend
+      dockerfile: backend/scitrek_backend/Dockerfile
     command: celery -A scitrek_backend worker --loglevel=info
     volumes:
       - .:/app
     env_file:
-      - .env
+      - backend/scitrek_backend/.env
     depends_on:
       - db
       - redis
