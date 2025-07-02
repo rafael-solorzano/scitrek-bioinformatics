@@ -1,8 +1,10 @@
+version: '3.9'
+
 services:
   web:
     build:
       context: backend/scitrek_backend
-      dockerfile: backend/scitrek_backend/Dockerfile
+      dockerfile: docker/Dockerfile
     command: /entrypoint.sh
     volumes:
       - .:/app
@@ -17,7 +19,7 @@ services:
   worker:
     build:
       context: backend/scitrek_backend
-      dockerfile: backend/scitrek_backend/Dockerfile
+      dockerfile: docker/Dockerfile
     command: celery -A scitrek_backend worker --loglevel=info
     volumes:
       - .:/app
@@ -38,6 +40,19 @@ services:
 
   redis:
     image: redis:7-alpine
+
+  frontend:
+    build:
+      context: frontend/scitrek-frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/scitrek-frontend:/app
+    working_dir: /app
+    command: ["npm", "start"]
+    depends_on:
+      - web
 
 volumes:
   postgres_data:
