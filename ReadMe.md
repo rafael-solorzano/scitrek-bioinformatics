@@ -1,0 +1,1 @@
+* when creating the AWS EC2 isntance, I selected the AMI Linux 2 because it natively supports Docker. 
