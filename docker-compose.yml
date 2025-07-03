@@ -49,6 +49,7 @@ services:
       - "3000:3000"
     volumes:
       - ./frontend/scitrek-frontend:/app
+      - /app/node_modules  # Use internal volume to prevent host from overriding
     working_dir: /app
     command: ["npm", "start"]
     depends_on:
