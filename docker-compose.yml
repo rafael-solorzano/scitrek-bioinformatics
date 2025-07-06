@@ -5,26 +5,13 @@ services:
     build:
       context: backend/scitrek_backend
       dockerfile: docker/Dockerfile
-    command: /entrypoint.sh
+    command: gunicorn scitrek_backend.wsgi:application --bind 0.0.0.0:8000
     volumes:
-      - .:/app
-    ports:
-      - "8000:8000"
+      - static_data:/app/static
     env_file:
       - backend/scitrek_backend/.env
-    depends_on:
-      - db
-      - redis
-
-  worker:
-    build:
-      context: backend/scitrek_backend
-      dockerfile: docker/Dockerfile
-    command: celery -A scitrek_backend worker --loglevel=info
-    volumes:
-      - .:/app
-    env_file:
-      - backend/scitrek_backend/.env
+    expose:
+      - 8000
     depends_on:
       - db
       - redis
@@ -32,8 +19,8 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_DB:       ${DATABASE_NAME}
-      POSTGRES_USER:     ${DATABASE_USER}
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -45,15 +32,36 @@ services:
     build:
       context: frontend/scitrek-frontend
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
+    command: npm run build
     volumes:
-      - ./frontend/scitrek-frontend:/app
-      - /app/node_modules  # Use internal volume to prevent host from overriding
-    working_dir: /app
-    command: ["npm", "start"]
+      - frontend_build:/app/build
+
+  nginx:
+    build: ./nginx
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - frontend_build:/usr/share/nginx/html
+      - static_data:/app/static
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+    ports:
+      - "80:80"
+      - "443:443"
     depends_on:
       - web
+      - frontend
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 1d & wait $${!}; done'"
 
 volumes:
   postgres_data:
+  frontend_build:
+  static_data:
+  certbot-etc:
+  certbot-var:
+
