@@ -5,7 +5,7 @@ services:
     build:
       context: backend/scitrek_backend
       dockerfile: docker/Dockerfile
-    command: gunicorn scitrek_backend.wsgi:application --bind 0.0.0.0:8000
+    command: /entrypoint.sh
     volumes:
       - static_data:/app/static
     env_file:
