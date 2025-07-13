@@ -6,24 +6,12 @@ services:
       context: backend/scitrek_backend
       dockerfile: Dockerfile
     command: /entrypoint.sh
-    volumes:
-      - static_data:/app/static
     env_file:
       - backend/scitrek_backend/.env
     expose:
       - 8000
     depends_on:
-      - db
       - redis
-
-  db:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: ${DATABASE_NAME}
-      POSTGRES_USER: ${DATABASE_USER}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
@@ -34,22 +22,23 @@ services:
       dockerfile: Dockerfile
     command: npm run build
     volumes:
-      - frontend_build:/app/build
+      - ./frontend/scitrek-frontend/build:/app/build
 
   nginx:
     build: ./nginx
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - frontend_build:/usr/share/nginx/html
-      - static_data:/app/static
-      - certbot-etc:/etc/letsencrypt
-      - certbot-var:/var/lib/letsencrypt
     ports:
       - "80:80"
       - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./frontend/scitrek-frontend/build:/usr/share/nginx/html
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
     depends_on:
-      - web
-      - frontend
+      frontend:
+        condition: service_completed_successfully
+      web:
+        condition: service_started
 
   certbot:
     image: certbot/certbot
@@ -59,9 +48,5 @@ services:
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 1d & wait $${!}; done'"
 
 volumes:
-  postgres_data:
-  frontend_build:
-  static_data:
   certbot-etc:
   certbot-var:
-
