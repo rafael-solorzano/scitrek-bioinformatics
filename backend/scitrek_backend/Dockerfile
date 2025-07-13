@@ -12,14 +12,14 @@ RUN apt-get update && apt-get install -y \
  && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-COPY ../../requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy app code
-COPY ../../ .  # This copies the entire backend context
+# Copy everything in this folder (backend/scitrek_backend)
+COPY . .
 
-# Copy entrypoint
-COPY docker/entrypoint.sh /entrypoint.sh
+# Copy entrypoint script and make it executable
+COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

@@ -4,7 +4,7 @@ services:
   web:
     build:
       context: backend/scitrek_backend
-      dockerfile: docker/Dockerfile
+      dockerfile: Dockerfile
     command: /entrypoint.sh
     volumes:
       - static_data:/app/static
