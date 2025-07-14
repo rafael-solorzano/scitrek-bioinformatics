@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN apt-get update && apt-get install -y curl
+
+
 # Copy everything in this folder (backend/scitrek_backend)
 COPY . .
 
