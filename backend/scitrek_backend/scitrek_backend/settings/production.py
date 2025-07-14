@@ -19,8 +19,8 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.getenv('DATABASE_NAME', 'scitrek_db'),
-        "USER": os.getenv('DATABASE_USER', 'scitrek_db_admin'),
-        "PASSWORD": os.getenv('DATABASE_PASSWORD', 'SciTrek_admin!'),
+        "USER": os.getenv('DATABASE_USER', 'scitrek_admin'),
+        "PASSWORD": os.getenv('DATABASE_PASSWORD', 'SciTrek_admin?'),
         "HOST": os.getenv('DATABASE_HOST', 'scitrek-db-1.cxsmioaa8fet.us-west-1.rds.amazonaws.com'),
         "PORT": os.getenv('DATABASE_PORT', '5432'),
     }
