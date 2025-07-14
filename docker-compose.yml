@@ -8,6 +8,8 @@ services:
     command: /entrypoint.sh
     env_file:
       - backend/scitrek_backend/.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=scitrek_backend.settings.production
     expose:
       - 8000
     depends_on:
