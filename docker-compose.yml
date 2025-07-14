@@ -34,6 +34,7 @@ services:
       - ./frontend/scitrek-frontend/build:/usr/share/nginx/html
       - certbot-etc:/etc/letsencrypt
       - certbot-var:/var/lib/letsencrypt
+      - ./certbot/www:/var/www/certbot       # 🔥 Add this line
     depends_on:
       frontend:
         condition: service_completed_successfully
@@ -45,6 +46,7 @@ services:
     volumes:
       - certbot-etc:/etc/letsencrypt
       - certbot-var:/var/lib/letsencrypt
+      - ./certbot/www:/var/www/certbot       # 🔥 Add this line
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 1d & wait $${!}; done'"
 
 volumes:
