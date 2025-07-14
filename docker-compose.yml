@@ -13,10 +13,16 @@ services:
     expose:
       - 8000
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   redis:
     image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   frontend:
     build:
@@ -25,6 +31,8 @@ services:
     command: npm run build
     volumes:
       - ./frontend/scitrek-frontend/build:/app/build
+    depends_on:
+      - web
 
   nginx:
     build: ./nginx
@@ -36,19 +44,19 @@ services:
       - ./frontend/scitrek-frontend/build:/usr/share/nginx/html
       - certbot-etc:/etc/letsencrypt
       - certbot-var:/var/lib/letsencrypt
-      - ./certbot/www:/var/www/certbot       # 🔥 Add this line
+      - ./certbot/www:/var/www/certbot
     depends_on:
       frontend:
         condition: service_completed_successfully
       web:
-        condition: service_started
+        condition: service_healthy
 
   certbot:
     image: certbot/certbot
     volumes:
       - certbot-etc:/etc/letsencrypt
       - certbot-var:/var/lib/letsencrypt
-      - ./certbot/www:/var/www/certbot       # 🔥 Add this line
+      - ./certbot/www:/var/www/certbot
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 1d & wait $${!}; done'"
 
 volumes:
