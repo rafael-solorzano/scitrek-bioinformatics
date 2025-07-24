@@ -29,15 +29,6 @@ services:
       timeout: 5s
       retries: 5
 
-  frontend:
-    build:
-      context: frontend/scitrek-frontend
-      dockerfile: Dockerfile
-    command: npm run build
-    volumes:
-      - ./frontend/scitrek-frontend/build:/app/build
-    depends_on:
-      - web
 
   nginx:
     build: ./nginx
@@ -46,13 +37,10 @@ services:
       - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./frontend/scitrek-frontend/build:/usr/share/nginx/html
       - certbot-etc:/etc/letsencrypt
       - certbot-var:/var/lib/letsencrypt
       - ./certbot/www:/var/www/certbot
     depends_on:
-      frontend:
-        condition: service_completed_successfully
       web:
         condition: service_healthy
 
