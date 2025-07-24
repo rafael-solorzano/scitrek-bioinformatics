@@ -1,20 +1,12 @@
-# Step 1: Build React app
-FROM node:18 AS build
+# nginx/Dockerfile
 
-WORKDIR /app
-COPY ../frontend/scitrek-frontend/package*.json ./
-RUN npm install
-COPY ../frontend/scitrek-frontend ./
-RUN npm run build
-
-# Step 2: Serve with NGINX
 FROM nginx:alpine
 
 # Copy custom NGINX config
-COPY nginx/conf.d/ /etc/nginx/conf.d
+COPY conf.d/ /etc/nginx/conf.d
 
-# Copy React build files from previous stage
-COPY --from=build /app/build /usr/share/nginx/html
+# Serve React build from frontend build stage
+COPY --from=frontend /app/build /usr/share/nginx/html
 
 EXPOSE 80
 EXPOSE 443
