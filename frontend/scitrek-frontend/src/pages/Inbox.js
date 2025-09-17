@@ -1,4 +1,3 @@
-// src/pages/Inbox.js
 import React, { useState, useEffect } from 'react';
 import StudentProfileBanner from '../components/StudentProfileBanner';
 import Popup from '../components/Popup';
@@ -91,11 +90,18 @@ const Inbox = () => {
 
         {selectedMessage && (
           <div className="message-detail">
-            <button className="btn-close" onClick={closeMessageDetail}>
-              &times;
+            <button
+              type="button"
+              className="inbox-close"
+              onClick={closeMessageDetail}
+              aria-label="Close message"
+            >
+              <i className="fa fa-times" aria-hidden="true" />
             </button>
             <h3>{selectedMessage.subject}</h3>
-            <p><strong>Date:</strong> {formatDate(selectedMessage.timestamp)}</p>
+            <p>
+              <strong>Date:</strong> {formatDate(selectedMessage.timestamp)}
+            </p>
             <p>{selectedMessage.body}</p>
           </div>
         )}
