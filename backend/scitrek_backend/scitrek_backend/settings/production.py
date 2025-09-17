@@ -6,7 +6,7 @@ import os
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    "13.57.59.22",
+    "54.151.22.10",
     "sci-trek.org",
     "www.sci-trek.org",
     "localhost",
