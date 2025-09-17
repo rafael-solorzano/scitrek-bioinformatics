@@ -1,8 +1,21 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Dropdown, Menu, Button } from 'antd';
 import './HomeHeader.css';
 
 const HomeHeader = ({ user, onLogout }) => {
+  const userMenu = (
+    <Menu>
+      <Menu.Item key="profile">
+        <Link to="/student_profile">My Profile</Link>
+      </Menu.Item>
+      <Menu.Divider />
+      <Menu.Item key="logout" onClick={onLogout}>
+        Logout
+      </Menu.Item>
+    </Menu>
+  );
+
   return (
     <header className="home-header">
       <div className="logo-section">
@@ -12,24 +25,18 @@ const HomeHeader = ({ user, onLogout }) => {
       </div>
       <nav className="home-nav">
         {user ? (
-          <div className="user-dropdown">
-            <button className="user-btn">
-              Hello, {user.first_name || user.username}! {/* fallback to username */}
-              <i className="fa fa-caret-down"></i>
-            </button>
-            <div className="user-dropdown-content">
-              <Link to="/student_profile">My Profile</Link>
-              <button
-                onClick={onLogout}
-                className="logout-button"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
+          <Dropdown
+            overlay={userMenu}
+            trigger={['hover', 'click']}
+            placement="bottomRight"
+          >
+            <Button type="text" className="user-btn">
+              Hello, {user.first_name || user.username}!
+            </Button>
+          </Dropdown>
         ) : (
           <Link to="/login" className="login-link">
-            Student Login / Sign-Up
+            Student Login / Sign‑Up
           </Link>
         )}
       </nav>

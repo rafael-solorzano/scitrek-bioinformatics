@@ -1,13 +1,22 @@
-/* src/index.css */
+/* Tailwind layers first */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
+/* Your global reset */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+/* Base body styles */
 body {
-  font-family: 'Montserrat', sans-serif;
+  font-family: 'Inter', sans-serif; /* or 'Montserrat' if you prefer */
   background-color: #f1f3f4;
   color: #202124;
 }
+
+/* Hide scrollbars like in your HTML sample */
+::-webkit-scrollbar { display: none; }
+html, body { -ms-overflow-style: none; scrollbar-width: none; }

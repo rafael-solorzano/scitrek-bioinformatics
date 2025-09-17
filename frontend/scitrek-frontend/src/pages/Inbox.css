@@ -1,11 +1,8 @@
-/* src/pages/Inbox.css */
-
 /* Outer wrapper */
 .inbox-page {
   background: #f4f6fa;
   padding: 20px;
   box-sizing: border-box;
-  /* remove forced min-height so footer will sit just below content */
 }
 
 /* White card around the inbox list */
@@ -70,7 +67,6 @@
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  /* tighten top padding so close button sits closer */
   padding: 20px 24px 24px;
   max-width: 800px;
   margin: 20px auto;
@@ -79,21 +75,26 @@
 }
 
 /* Close button */
-.btn-close {
+.inbox-close {
   position: absolute;
-  top: 8px;       /* moved down a bit */
-  right: 8px;     /* moved left a bit */
+  top: 8px;
+  right: 8px;
   background: transparent;
   border: none;
-  font-size: 24px;
-  line-height: 1;
   padding: 4px;
   cursor: pointer;
-  color: #666;
   z-index: 2;
+  background-image: none !important;
+  opacity: 1;
 }
 
-.btn-close:hover {
+.inbox-close i {
+  font-size: 24px;
+  color: #666;
+  line-height: 1;
+}
+
+.inbox-close:hover i {
   color: #000;
 }
 
