@@ -27,16 +27,8 @@ urlpatterns = [
     path('modules/<int:pk>/', ModuleDetailAPIView.as_view(),    name='api-module-detail'),
 
     # 4. Responses
-    path(
-      'modules/<int:pk>/response/',
-      ResponseUpsert.as_view(),
-      name='api-module-response'
-    ),
-    path(
-      'modules/<int:pk>/response/detail/',
-      ResponseDetailAPIView.as_view(),
-      name='api-module-response-detail'
-    ),
+    path('modules/<int:day>/response/', ResponseUpsert.as_view(), name='api-module-response'),
+    path('modules/<int:day>/response/detail/', ResponseDetailAPIView.as_view(), name='api-module-response-detail'),
 
     # 5. Quiz questions
     path('quiz/pre/',  QuizPreQuestionListAPIView.as_view(),    name='api-quiz-pre'),

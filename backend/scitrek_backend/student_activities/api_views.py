@@ -59,15 +59,15 @@ class ModuleDetailAPIView(generics.RetrieveAPIView):
 # ── 4. Responses ───────────────────────────────────────────────────────────────────
 class ResponseUpsert(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
-    parser_classes     = [MultiPartParser, FormParser, JSONParser]
-    throttle_classes   = [ScopedRateThrottle]
-    throttle_scope     = 'response'
-    serializer_class   = StudentResponseSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'response'
+    serializer_class = StudentResponseSerializer
 
-    def post(self, request, pk):
-        # Ensure module belongs to this student's classroom
+    def post(self, request, day):
+        # Ensure module belongs to this student's classroom by day
         classroom = get_object_or_404(StudentProfile, user=request.user).classroom
-        get_object_or_404(Module, pk=pk, classroom=classroom)
+        module = get_object_or_404(Module, day=day, classroom=classroom)
 
         # Only include relevant response fields (answers and optional file_upload)
         allowed_fields = ['answers', 'file_upload']
@@ -75,29 +75,28 @@ class ResponseUpsert(generics.CreateAPIView):
 
         obj, created = StudentResponse.objects.update_or_create(
             student=request.user,
-            module_id=pk,
+            module=module,
             defaults=defaults
         )
+
         code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
         return Response(self.get_serializer(obj).data, status=code)
 
+
 class ResponseDetailAPIView(RetrieveAPIView):
     """
-    GET /api/student/modules/{pk}/response/detail/
+    GET /api/student/modules/{day}/response/detail/
     Retrieves the existing StudentResponse for this user & module.
     404 if none exists.
     """
     permission_classes = [IsAuthenticated]
-    serializer_class   = StudentResponseSerializer
+    serializer_class = StudentResponseSerializer
 
     def get_object(self):
         classroom = get_object_or_404(StudentProfile, user=self.request.user).classroom
-        module = get_object_or_404(Module, pk=self.kwargs['pk'], classroom=classroom)
-        return get_object_or_404(
-            StudentResponse,
-            student=self.request.user,
-            module=module
-        )
+        module = get_object_or_404(Module, day=self.kwargs['day'], classroom=classroom)
+        return get_object_or_404(StudentResponse, student=self.request.user, module=module)
+
 
 # ── 5. Quiz attempts ────────────────────────────────────────────────────────────────
 class QuizAttemptUpsert(generics.CreateAPIView):
