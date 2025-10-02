@@ -1,189 +1,81 @@
-* when creating the AWS EC2 isntance, I selected the AMI Linux 2 because it natively supports Docker. 
+# 🌟 Sci-Trek Bioinformatics Website  
 
-
-
-------
-
-# ✅ SciTrek Website Deployment with HTTPS (EC2 + Docker + Certbot)
-
-This document summarizes the **steps taken to deploy the SciTrek website** on a new EC2 instance with Docker, serve it over HTTP initially, obtain HTTPS certificates using Certbot, and then configure NGINX to serve the site securely.
+> **Empowering students to explore science through inquiry-based virtual research experiences.**  
+> _Developed at UC Santa Barbara | SciTrek Program_
 
 ---
 
-## 🛠️ Initial Deployment Steps
+## SciTrek Bioinformatics Module
 
-1. **Clone Repo & SSH into EC2**:
-
-   ```bash
-   git clone <your-repo-url>
-   cd scitrek-bioinformatics
-   ```
-
-2. **Set up `.env` and data volumes (if needed)**
-
-3. **Ensure NGINX default config is set for HTTP only** (e.g. `nginx/conf.d/default.conf`):
-
-   ```nginx
-   server {
-       listen 80;
-       server_name sci-trek.org www.sci-trek.org;
-
-       location /.well-known/acme-challenge/ {
-           root /var/www/certbot;
-       }
-
-       location /api/ {
-           proxy_pass http://web:8000/;
-           proxy_set_header Host $host;
-           proxy_set_header X-Real-IP $remote_addr;
-           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-           proxy_set_header X-Forwarded-Proto $scheme;
-       }
-
-       location /static/ {
-           alias /usr/share/nginx/html/static/;
-           try_files $uri =404;
-       }
-
-       location / {
-           root /usr/share/nginx/html;
-           index index.html;
-           try_files $uri /index.html;
-       }
-   }
-   ```
-
-4. **Build and start containers**:
-
-   ```bash
-   docker-compose up -d --build
-   ```
-
-5. **Verify website is accessible via HTTP**:
-
-   ```bash
-   curl http://sci-trek.org
-   ```
+Welcome to the **Sci-Trek Bioinformatics** learning platform — an interactive website designed to bring real-world research into the classroom.  
+Students step into the role of a scientist, guided through daily missions that connect **genomics**, **bioinformatics**, and **cancer biology** in an engaging, accessible way.
 
 ---
 
-## 🔐 Obtaining HTTPS Certificate
+## 🧰 Tech Stack
 
-1. **Ensure NGINX is running and serving HTTP** (specifically the ACME challenge route):
-
-   ```bash
-   echo "ok" > certbot/www/.well-known/acme-challenge/test
-   curl http://sci-trek.org/.well-known/acme-challenge/test  # should return "ok"
-   ```
-
-2. **Run Certbot**:
-
-   ```bash
-   docker-compose run --rm --entrypoint "" certbot \
-     certbot certonly --webroot --webroot-path=/var/www/certbot \
-     -d sci-trek.org -d www.sci-trek.org \
-     --agree-tos --email your@email.com --no-eff-email -v
-   ```
-
-3. **Confirm certificate exists** in `certbot-etc` volume:
-
-   ```bash
-   docker exec -it <nginx-container-name> ls /etc/letsencrypt/live/sci-trek.org/
-   ```
+![Django](https://img.shields.io/badge/Backend-Django-092E20?style=for-the-badge&logo=django&logoColor=white)
+![React](https://img.shields.io/badge/Frontend-React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![AWS](https://img.shields.io/badge/Deployment-AWS-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)
+![Docker](https://img.shields.io/badge/Containerized-Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![NGINX](https://img.shields.io/badge/Server-NGINX-009639?style=for-the-badge&logo=nginx&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 
 ---
 
-## ✅ Update NGINX to Use HTTPS
+## 🚀 Getting Started
 
-Replace `default.conf` with:
+Students can join their classroom using a **unique access code** provided by the teacher.  
 
-```nginx
-server {
-    listen 80;
-    server_name sci-trek.org www.sci-trek.org;
+For example, use code **1001** to enter the demo classroom.  
 
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
+### 🔑 Login Page Example  
+Here’s how a student signs up using their classroom code:
 
-    location / {
-        return 301 https://$host$request_uri;
-    }
-}
-
-server {
-    listen 443 ssl;
-    server_name sci-trek.org www.sci-trek.org;
-
-    ssl_certificate /etc/letsencrypt/live/sci-trek.org/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/sci-trek.org/privkey.pem;
-
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-
-    location /api/ {
-        proxy_pass http://web:8000/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /static/ {
-        alias /usr/share/nginx/html/static/;
-        try_files $uri =404;
-    }
-
-    location / {
-        root /usr/share/nginx/html;
-        index index.html;
-        try_files $uri /index.html;
-    }
-}
-```
-
-Then restart NGINX:
-
-```bash
-docker-compose restart nginx
-```
+<p align="center">
+  <img src="github_resources/website_capture_login.png" alt="Student Login Example" width="400"/>
+</p>
 
 ---
 
-## 🔁 Redeployment on New EC2 Instance
+## 🔬 Inside the Module
 
-1. Pull repo and `.env`
-2. Ensure `default.conf` is in HTTP-only mode (see above)
-3. Run:
+Each day unveils a new step in a student’s virtual research journey — from understanding genes and mutations to exploring cancer biology and interpreting gene expression data.
 
-   ```bash
-   docker-compose up -d --build
-   ```
-4. Run Certbot (as before)
-5. Swap NGINX config to HTTPS mode
-6. Restart NGINX:
+### 🌿 Day 3 Glimpse  
+Here’s a snapshot of **Day 3**, where students compare healthy vs. cancer cells and analyze bioinformatics results:
 
-   ```bash
-   docker-compose restart nginx
-   ```
+<p align="center">
+  <img src="github_resources/website_capture_day_2.png" alt="Day 3 Glimpse" width="500"/>
+</p>
 
 ---
 
-## 📌 Common Issues
+## 💡 About Sci-Trek
 
-* Port 80/443 must be open on EC2
-* Domain DNS must point to EC2 instance (use `dig sci-trek.org` to check)
-* NGINX must serve `.well-known/acme-challenge` for Certbot to validate
-* Use `--entrypoint ""` in the Certbot run command to avoid infinite loop trap
+The **Sci-Trek Bioinformatics** platform is a first-of-its-kind interactive web module that combines:  
+
+- 🧠 **Simplified real-world datasets**  
+- 🧩 **Daily guided inquiry**  
+- 🎓 **Virtual scientist storytelling**  
+
+Teachers and mentors can launch entire lessons **instantly**, with **no setup, supplies, or specialized training required.**
 
 ---
 
-## ✅ Done
+## 🌍 Mission
 
-Your website should now be accessible securely via:
+Our goal is to make authentic research experiences **accessible to every student**, regardless of resources — inspiring the next generation of scientists to think critically, explore boldly, and engage with real data.
 
-```
-https://sci-trek.org
-```
+---
+## 👩‍💻 Developed By
 
+| Name                        | Role                                        | GitHub                                                   |
+|-----------------------------|---------------------------------------------|----------------------------------------------------------|
+| Rafael Solorzano            | Software Engineer & PhD Researcher          | [@rafael-solorzano](https://github.com/rafael-solorzano) |
+| Siddhant (Andy) Subramanian | Software Engineer & Undegraduate Researcher | [@Siddhant-Subramanian](https://github.com/Anteater10)   |
+
+
+---
+© 2025 **SciTrek Research Group | UC Santa Barbara**  
 
