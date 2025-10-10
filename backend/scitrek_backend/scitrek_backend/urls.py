@@ -3,7 +3,8 @@ from django.contrib import admin
 from django.urls import path, include 
 from django.conf import settings
 from django.conf.urls.static import static
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
+from student_activities.auth_views import MyTokenObtainPairView
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from rest_framework import permissions
@@ -22,14 +23,13 @@ urlpatterns = [
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('admin/', admin.site.urls),
 
-    # JWT auth
-    path('api/token/',    TokenObtainPairView.as_view(),   name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # JWT auth (custom obtain, stock refresh)
+    path('api/token/',         MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(),      name='token_refresh'),
 
     # App endpoints
     path('api/classroom/', include('classroom_admin.api_urls')),
     path('api/student/',   include('student_activities.api_urls')),
-
     path('api/workbooks/', include('workbooks.api_urls')),
 ]
 

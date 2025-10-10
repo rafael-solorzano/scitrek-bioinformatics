@@ -5,25 +5,33 @@ from classroom_admin.models import CustomUser, Classroom
 
 class Message(models.Model):
     sender      = models.ForeignKey(
-                      CustomUser,
-                      on_delete=models.CASCADE,
-                      related_name='sent_messages'
-                  )
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='sent_messages'
+    )
     recipient   = models.ForeignKey(
-                      CustomUser,
-                      on_delete=models.CASCADE,
-                      related_name='received_messages'
-                  )
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='received_messages'
+    )
     subject     = models.CharField(max_length=255)
     body        = models.TextField()
     timestamp   = models.DateTimeField(auto_now_add=True)
 
     # — Inbox enhancements —
     is_read     = models.BooleanField(default=False)
-    attachment  = models.FileField(
-                      upload_to='inbox_attachments/',
-                      blank=True, null=True
-                  )
+    attachment  = models.FileField(upload_to='inbox_attachments/', blank=True, null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["sender", "recipient", "subject"],
+                name="uniq_sender_recipient_subject",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["recipient", "is_read", "timestamp"]),
+        ]
 
     def __str__(self):
         return self.subject
