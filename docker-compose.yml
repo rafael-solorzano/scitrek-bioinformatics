@@ -1,3 +1,4 @@
+# docker-compose.yml
 version: '3.9'
 
 services:
@@ -10,21 +11,58 @@ services:
       - backend/scitrek_backend/.env
     environment:
       - DJANGO_SETTINGS_MODULE=scitrek_backend.settings.production
+      # Celery URLs so Django can enqueue tasks
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
     expose:
       - 8000
     depends_on:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # Celery worker
+  worker:
+    build:
+      context: backend/scitrek_backend
+      dockerfile: Dockerfile
+    command: celery -A scitrek_backend worker -l info --concurrency=2
+    env_file:
+      - backend/scitrek_backend/.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=scitrek_backend.settings.production
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Celery beat (optional: only if you have periodic tasks)
+  beat:
+    build:
+      context: backend/scitrek_backend
+      dockerfile: Dockerfile
+    command: celery -A scitrek_backend beat -l info
+    env_file:
+      - backend/scitrek_backend/.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=scitrek_backend.settings.production
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,7 +70,7 @@ services:
   nginx:
     build:
       context: .
-      dockerfile: nginx/Dockerfile
+    #   dockerfile: nginx/Dockerfile   # (keep if you have custom Dockerfile)
     ports:
       - "80:80"
       - "443:443"
