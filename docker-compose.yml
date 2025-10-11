@@ -1,7 +1,7 @@
 services:
   web:
     build:
-      context: backend            # Dockerfile is backend/Dockerfile
+      context: backend/scitrek_backend      # <-- Dockerfile lives here
       dockerfile: Dockerfile
     command: /entrypoint.sh
     env_file:
@@ -10,8 +10,7 @@ services:
       - DJANGO_SETTINGS_MODULE=scitrek_backend.settings.production
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
-    expose:
-      - "8000"
+    expose: ["8000"]
     depends_on:
       redis:
         condition: service_healthy
@@ -24,7 +23,7 @@ services:
 
   worker:
     build:
-      context: backend
+      context: backend/scitrek_backend
       dockerfile: Dockerfile
     command: celery -A scitrek_backend worker -l info --concurrency=2
     env_file:
@@ -40,7 +39,7 @@ services:
 
   beat:
     build:
-      context: backend
+      context: backend/scitrek_backend
       dockerfile: Dockerfile
     command: celery -A scitrek_backend beat -l info
     env_file:
@@ -66,7 +65,7 @@ services:
   nginx:
     build:
       context: .
-      dockerfile: nginx/Dockerfile
+      dockerfile: nginx/Dockerfile          # ensure this file exists
     ports:
       - "80:80"
       - "443:443"
