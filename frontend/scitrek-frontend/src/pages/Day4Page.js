@@ -537,7 +537,12 @@ const Day4Page = () => {
 
           {/* Mini-lesson: Methods (qPCR, IHC, RNA-seq) — background only */}
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
-            <h3 className="text-2xl font-semibold mb-4">Mini-Lesson: How Do We Measure Expression?</h3>
+            <h3 className="text-2xl font-semibold mb-2">Mini-Lesson: How Do We Measure Expression?</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Read the method summaries, then answer the scenarios below. For each scenario: (1) pick the best method, (2) explain why,
+              and (3) say why at least one other method is less ideal.
+            </p>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="bg-primary-50 border border-primary-200 rounded-xl p-4">
                 <h4 className="font-semibold mb-1">qPCR</h4>
@@ -565,46 +570,70 @@ const Day4Page = () => {
               </div>
             </div>
 
-            {/* Quick checks (students supply answers) */}
+            {/* Scenario-based quick checks */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">qPCR is best when…</label>
+                <label className="text-sm font-medium mb-1 block">
+                  Scenario 1: You already suspect <b>Gene X</b> changes after treatment. You need a <b>fast</b>, <b>low-cost</b> check
+                  across <b>20 samples</b>. What method would you use, and why?
+                </label>
                 <textarea
-                  value={answersData.methods.qPCRuse}
-                  onChange={e => setField('methods.qPCRuse', e.target.value)}
+                  value={answersData.methods.scenario1}
+                  onChange={e => setField('methods.scenario1', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
-                  rows={3}
-                  placeholder="Describe a situation where qPCR fits."
+                  rows={5}
+                  placeholder={`Example format:
+                  Best method: ___
+                  Why: ___
+                  Why another method is less ideal: ___`}
                 />
               </div>
+
               <div>
-                <label className="text-sm font-medium mb-1 block">IHC is best when…</label>
+                <label className="text-sm font-medium mb-1 block">
+                  Scenario 2: You need to know <b>where in the tissue</b> a protein is found (tumor core vs edges), not just how much
+                  RNA is present. What method would you use, and why?
+                </label>
                 <textarea
-                  value={answersData.methods.IHCuse}
-                  onChange={e => setField('methods.IHCuse', e.target.value)}
+                  value={answersData.methods.scenario2}
+                  onChange={e => setField('methods.scenario2', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
-                  rows={3}
-                  placeholder="Describe a situation where IHC fits."
-                />
+                  rows={5}
+                  placeholder={`Example format:
+                  Best method: ___
+                  Why: ___
+                  Why another method is less ideal: ___`}
+                  />
               </div>
+
               <div>
-                <label className="text-sm font-medium mb-1 block">RNA-seq is best when…</label>
+                <label className="text-sm font-medium mb-1 block">
+                  Scenario 3: You <b>don’t know</b> which genes change between healthy and cancer samples. You want a broad scan to
+                  discover unexpected differences. What method would you use, and why?
+                </label>
                 <textarea
-                  value={answersData.methods.RNAseqUse}
-                  onChange={e => setField('methods.RNAseqUse', e.target.value)}
+                  value={answersData.methods.scenario3}
+                  onChange={e => setField('methods.scenario3', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
-                  rows={3}
-                  placeholder="Describe a situation where RNA-seq fits."
+                  rows={5}
+                  placeholder={`Example format:
+                    Best method: ___
+                    Why: ___
+                    Why another method is less ideal: ___`}
                 />
               </div>
             </div>
 
             <div className="flex justify-end mt-6">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+              <button
+                onClick={handleSave}
+                className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+              >
                 Save Section
               </button>
             </div>
           </section>
+
         </section>
 
         {/* Inquiry & Discussion */}

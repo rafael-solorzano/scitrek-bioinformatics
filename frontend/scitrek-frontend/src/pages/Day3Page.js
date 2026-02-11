@@ -329,7 +329,7 @@ const Day3Page = () => {
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">What Does Gene Expression Look Like?</h3>
             <p className="text-gray-700 mb-4">
-              Review your Day 2 notes on oncogenes, tumor suppressors, and DNA repair genes. Then answer:
+              Review your Day 1 and 2 notes on oncogenes, tumor suppressors, and DNA repair genes. Then answer:
             </p>
             <label className="block text-sm font-medium mb-2">
               If a gene is too “loud” (high expression) or too “quiet” (low expression), what might that mean? (Connect to
@@ -558,7 +558,7 @@ const Day3Page = () => {
 
           {/* Optional teacher-swappable video */}
           <div className="mt-6">
-            <h4 className="font-semibold mb-2">Short explainer (optional)</h4>
+            <h4 className="font-semibold mb-2">Short explainer</h4>
             <div className="rounded-xl overflow-hidden">
               <iframe
                 className="w-full h-64 md:h-80 rounded-xl"
