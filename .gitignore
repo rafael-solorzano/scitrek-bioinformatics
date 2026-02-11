@@ -2,8 +2,15 @@
 .venv/
 venv/
 
+# Python cache
+__pycache__/
+*.py[cod]
+
 # sqlite
 /backend/scitrek_backend/db.sqlite3sudo
 
 # npm
 node_modules/
+
+# Mac junk
+.DS_Store
