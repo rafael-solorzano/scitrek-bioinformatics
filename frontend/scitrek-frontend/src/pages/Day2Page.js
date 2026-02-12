@@ -757,6 +757,7 @@ const Day2Page = () => {
           <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 mb-4">
             <h4 className="font-semibold mb-2">How to navigate this simulation</h4>
             <ol className="list-decimal list-inside text-sm text-gray-800 space-y-1">
+              <li>Click <b>Open in new tab</b>. The simulation currently does not run when embedded.</li>
               <li>Click <b>Start Interactive</b>. Use the <b>top tabs</b> (Overview, Phases, Regulators, Overview of Cancer).</li>
               <li>As you open each tab, read the short panels on the left; some have animations or interactive toggles.</li>
               <li>Answer the questions below labelled with the section (e.g., “Cell Cycle Phases”).</li>
@@ -773,18 +774,18 @@ const Day2Page = () => {
 
           <div className="border border-gray-200 rounded-2xl p-4 md:p-6 space-y-5 text-sm mt-6">
             <div>
-              <p className="font-medium mb-1">Overview — “Cells <b>divide</b>, <b>differentiate</b>, or <b>die</b>.” Fill the two blanks.</p>
+            <p className="font-medium mb-1"> Overview — Molecular signals can cause cells to <b>divide</b>, ________, or ________. Fill the two blanks.</p>
               <input
                 value={answersData.cycleSim.cellsDo[0]}
                 onChange={e => setField('cycleSim.cellsDo[0]', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
-                placeholder='First blank (e.g., differentiate)…'
+                placeholder='First blank'
               />
               <input
                 value={answersData.cycleSim.cellsDo[1]}
                 onChange={e => setField('cycleSim.cellsDo[1]', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2 mt-2"
-                placeholder='Second blank (e.g., die/apoptosis)…'
+                placeholder='Second blank'
               />
               <p className="text-xs text-gray-500 mt-1">Slide numbers are shown in the simulation sidebar.</p>
             </div>
@@ -839,7 +840,7 @@ const Day2Page = () => {
                 onChange={e => setField('cycleSim.phasesNotes', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
                 rows={2}
-                placeholder="Type your notes…"
+                placeholder="After exploring the simulation, type your notes here. This is important for Day 3 and 4"
               />
             </div>
 
@@ -850,7 +851,7 @@ const Day2Page = () => {
                 onChange={e => setField('cycleSim.regulatorsNotes', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
                 rows={2}
-                placeholder="Type your notes…"
+                placeholder="After exploring the simulation, type your notes here. This is important for Day 3 and 4"
               />
             </div>
 
