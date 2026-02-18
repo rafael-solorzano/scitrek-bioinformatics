@@ -1,3 +1,6 @@
 .venv
 /backend/venv
 /backend/scitrek_backend/db.sqlite3sudo
+/backend/scitrek_backend/db.sqlite3
+/backend/scitrek_backend/.env.dev
+/backend/scitrek_backend/.devdata/

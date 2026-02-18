@@ -1,4 +1,60 @@
-FROM ubuntu:latest
-LABEL authors="rafael"
+services:
+  web:
+    build:
+      context: backend/scitrek_backend
+      dockerfile: Dockerfile
+    env_file:
+      - backend/scitrek_backend/.env.dev
+    environment:
+      - DJANGO_SETTINGS_MODULE=scitrek_backend.settings.development
+    volumes:
+      - ./backend/scitrek_backend:/app
+    entrypoint: []
+    command: sh -lc "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
 
-ENTRYPOINT ["top", "-b"]
+  worker:
+    build:
+      context: backend/scitrek_backend
+      dockerfile: Dockerfile
+    env_file:
+      - backend/scitrek_backend/.env.dev
+    environment:
+      - DJANGO_SETTINGS_MODULE=scitrek_backend.settings.development
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    entrypoint: []
+    command: celery -A scitrek_backend worker -l info --concurrency=1
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  beat:
+    build:
+      context: backend/scitrek_backend
+      dockerfile: Dockerfile
+    env_file:
+      - backend/scitrek_backend/.env.dev
+    environment:
+      - DJANGO_SETTINGS_MODULE=scitrek_backend.settings.development
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    entrypoint: []
+    command: celery -A scitrek_backend beat -l info
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
