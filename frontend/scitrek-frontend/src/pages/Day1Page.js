@@ -895,9 +895,9 @@ const Day1Page = () => {
                   <div className="p-4">
                     <h5 className="font-medium mb-2">Gene 1</h5>
                     <p className="text-gray-700 text-sm mb-2">
-                      Plan the first five parts you’ll need (e.g., positive TF at promoter → RNA polymerase → mRNA → ribosome → protein).
+                      Plan the <b>three</b> you’ll need.
                     </p>
-                    {['i.', 'ii.', 'iii.', 'iv.', 'v.'].map((label, idx) => (
+                    {['i.', 'ii.', 'iii.'].map((label, idx) => (
                       <div key={label} className="flex items-center mb-2 text-sm">
                         <span className="font-medium mr-2 w-6">{label}</span>
                         <input
@@ -946,9 +946,9 @@ const Day1Page = () => {
                   {/* Gene 3 */}
                   <div className="p-4">
                     <h5 className="font-medium mb-2">Gene 3</h5>
-                    <p className="text-gray-700 text-sm mb-2">List the six parts used here, in order:</p>
+                    <p className="text-gray-700 text-sm mb-2">List the <b>four</b> parts used here, in order:</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                      {['i', 'ii', 'iii', 'iv', 'v', 'vi'].map((label, idx) => (
+                      {['i', 'ii', 'iii', 'iv'].map((label, idx) => (
                         <div key={label} className="flex items-center">
                           <span className="font-medium mr-2 w-6">{label}.</span>
                           <input

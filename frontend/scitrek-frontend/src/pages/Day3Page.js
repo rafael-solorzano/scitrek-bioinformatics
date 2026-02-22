@@ -626,18 +626,6 @@ const Day3Page = () => {
             placeholder="Type your plan…"
           />
 
-          <label className="block text-sm font-medium mb-1">D) Sketch your experiment (describe or drop a link)</label>
-          <p className="text-xs text-gray-600 mb-2">
-            You can link a drawing (Drive/Docs) or describe your setup briefly (diagram, groups, arrows for workflow).
-          </p>
-          <input
-            value={answersData.detective.experimentSketch}
-            onChange={e => setField('detective.experimentSketch', e.target.value)}
-            onPaste={warnOnPaste}
-            className="w-full border border-gray-300 rounded px-3 py-2"
-            placeholder="Link or short description"
-          />
-
           <div className="flex justify-end mt-6">
             <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
               Save Section

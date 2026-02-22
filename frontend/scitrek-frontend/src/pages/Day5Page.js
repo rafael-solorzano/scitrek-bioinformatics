@@ -182,9 +182,9 @@ const Day5Page = () => {
       <main className="container mx-auto px-4 py-8 space-y-16">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-3">Day 5: Poster Perfect — Showcasing Your Scientific Journey!</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-3">Day 5: Poster Presentation — Showcasing Your Scientific Journey!</h1>
           <h2 className="text-xl md:text-2xl text-gray-600">
-            Build a slideshow in the style of a research poster about one gene’s behavior in breast cancer
+            Create a slideshow (research-poster style) explaining how ONE gene behaves differently during breast cancer progression
           </h2>
         </div>
 
@@ -196,17 +196,18 @@ const Day5Page = () => {
               Objective
             </h2>
             <p className="text-gray-700 mb-4">
-              Create an engaging slideshow (research-poster style) explaining how ONE specific gene is expressed differently
-              during breast cancer progression compared with typical cells. Use visuals + evidence to support your story.
+              You will create a slideshow in the style of a research poster that explains how one specific gene behaves differently
+              during the growth of breast cancer. Your slideshow should include: a title, research explanation, procedure,
+              visual data representation (bar graph/heat map/etc.), results, and conclusion.
             </p>
 
-            <label className="block text-sm font-medium mb-1">Why present science with posters/slides?</label>
+            <label className="block text-sm font-medium mb-1">Why do scientists use research posters/slides to share findings?</label>
             <textarea
               value={answersData.intro.whyPoster}
               onChange={(e) => setField('intro.whyPoster', e.target.value)}
               className="w-full border border-gray-300 rounded p-3"
               rows={3}
-              placeholder="Jot your thoughts here…"
+              placeholder="Explain the purpose of research posters (sharing results clearly, visuals, evidence, quick communication to others, etc.)…"
             />
             <div className="flex justify-end mt-4">
               <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
@@ -221,18 +222,34 @@ const Day5Page = () => {
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h2 className="text-2xl font-bold mb-6 flex items-center">
               <i className="fa-solid fa-list-check text-primary-500 mr-3" />
-              What's the Plan?
+              What You’ll Do Today
             </h2>
+
+            <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 text-sm text-gray-700 mb-6">
+              <div className="font-semibold text-primary-800 mb-1">Slideshow Template (optional, recommended)</div>
+              <div>
+                Use this as inspiration for your design:
+                <a
+                  href="https://docs.google.com/presentation/d/1v-u2kytUM2MXvtG2qnFLdON0U4pX2Ey0y1cVEgj6zFY/edit?usp=sharing"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="text-primary-700 underline ml-1"
+                >
+                  Google Slides Template Link
+                </a>
+              </div>
+            </div>
+
             <ul className="space-y-4">
               {[
-                'Step 1: Pick a clear, interesting title',
-                'Step 2: Write a one-sentence explanation of your research',
-                'Step 3: Summarize your procedure & list 3–5 top sources',
-                'Step 4: Create/attach a visual (chart/heatmap) with a caption',
-                'Step 5: Summarize your results',
-                'Step 6: Draw conclusions + note challenges & improvements',
-                'Step 7: Assemble your slideshow with good design',
-                'Step 8: Present & collect peer feedback',
+                'Step 1: Create a clear, descriptive title for your project',
+                'Step 2: Write a one-sentence research explanation (your main conclusion)',
+                'Step 3: Describe your procedure and list your top 3–5 sources',
+                'Step 4: Add a visual (bar graph/heat map/etc.) comparing healthy vs cancer expression + caption',
+                'Step 5: Summarize your results (normal function, what changes in cancer, why it matters)',
+                'Step 6: Write your conclusion and reflect on challenges and improvements',
+                'Step 7: Assemble and design your slideshow (creative but readable and focused)',
+                'Step 8: Present your slideshow and collect peer feedback',
               ].map((item, idx) => (
                 <li key={idx} className="flex items-start">
                   <div className="bg-primary-100 rounded-full p-1 mr-3 mt-1">
@@ -247,18 +264,20 @@ const Day5Page = () => {
 
         {/* 3) Activities */}
         <section id="activities-section" className="space-y-10">
-          <h2 className="text-3xl font-bold text-center">Activities</h2>
+          <h2 className="text-3xl font-bold text-center">Slideshow Creation (SciTrek-Led)</h2>
 
           {/* Step 1: Title */}
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 1: Title</h3>
-            <p className="text-gray-700 mb-2">Pick a clear, interesting title that reflects your project.</p>
+            <p className="text-gray-700 mb-2">
+              Create a clear, descriptive title for your project (example: “BRCA-1 Gene & Breast Cancer: Causes & Conclusions”).
+            </p>
             <label className="block text-sm font-medium mb-1">Your project title</label>
             <input
               value={answersData.step1.title}
               onChange={(e) => setField('step1.title', e.target.value)}
               className="w-full border border-gray-300 rounded p-3"
-              placeholder='e.g., “BRCA1 & Breast Cancer: Causes & Clues”'
+              placeholder='Example: “BRCA-1 Gene & Breast Cancer: Causes & Conclusions”'
             />
             <div className="flex justify-end mt-4">
               <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">Save</button>
@@ -267,14 +286,17 @@ const Day5Page = () => {
 
           {/* Step 2: Research Explanation (one-liner) */}
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
-            <h3 className="text-2xl font-semibold mb-4">Step 2: Research Explanation (One Sentence)</h3>
-            <label className="block text-sm font-medium mb-1">Write your one-sentence explanation</label>
+            <h3 className="text-2xl font-semibold mb-4">Step 2: Research Explanation</h3>
+            <p className="text-gray-700 mb-2">
+              Write your main conclusion in one sentence. What does your gene do, and how does it relate to breast cancer progression?
+            </p>
+            <label className="block text-sm font-medium mb-1">One-sentence research explanation</label>
             <textarea
               value={answersData.step2.oneLineExplanation}
               onChange={(e) => setField('step2.oneLineExplanation', e.target.value)}
               className="w-full border border-gray-300 rounded p-3"
               rows={3}
-              placeholder='“Gene XYZ contributes to breast cancer by ____ which affects ____.”'
+              placeholder='Example: “Gene XYZ contributes to breast cancer through a mutation that disables ABC, which normally regulates cell growth in breast tissue.”'
             />
             <div className="flex justify-end mt-4">
               <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">Save</button>
@@ -284,17 +306,20 @@ const Day5Page = () => {
           {/* Step 3: Procedure + Sources */}
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 3: Description of Procedure</h3>
-            <label className="block text-sm font-medium mb-1">Briefly explain your research process</label>
+            <p className="text-gray-700 mb-2">
+              Write a short explanation of your research process. Emphasize the top 3–5 sources you used.
+            </p>
+            <label className="block text-sm font-medium mb-1">Procedure summary</label>
             <textarea
               value={answersData.step3.procedureSummary}
               onChange={(e) => setField('step3.procedureSummary', e.target.value)}
               className="w-full border border-gray-300 rounded p-3 mb-4"
               rows={4}
-              placeholder="What did you look up? How did you compare expression between healthy vs cancer?"
+              placeholder="What did you look up or analyze? How did you compare expression between typical (healthy) vs cancer cells?"
             />
 
             <h4 className="font-medium mb-2">Top 3–5 Sources</h4>
-            <label className="block text-xs text-gray-600 mb-2">List titles or links</label>
+            <label className="block text-xs text-gray-600 mb-2">List titles or links to your strongest sources</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {answersData.step3.topSources.map((src, i) => (
                 <input
@@ -317,20 +342,20 @@ const Day5Page = () => {
 
           {/* Step 4: Visual Representation of Data */}
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
-            <h3 className="text-2xl font-semibold mb-4">Step 4: Visual Representation of Data</h3>
+            <h3 className="text-2xl font-semibold mb-4">Step 4: Visual Data Representation</h3>
             <div className="bg-gray-100 rounded-xl p-4 mb-4">
               <p className="text-sm text-gray-700">
-                Create or paste a link to a bar chart / heatmap comparing expression of your gene in healthy vs cancer samples.
-                Label which samples are healthy vs cancerous.
+                Draw or find a visual (bar graph, heat map, etc.) showing gene expression for your gene in a cancer cell AND in a typical (healthy) cell.
+                Upload the visual to your slide. Label which samples are healthy and which are cancerous.
               </p>
             </div>
 
-            <label className="block text-sm font-medium mb-1">Link to your visual</label>
+            <label className="block text-sm font-medium mb-1">Link to your visual (or where it’s uploaded)</label>
             <input
               value={answersData.step4.visualLink}
               onChange={(e) => setField('step4.visualLink', e.target.value)}
               className="w-full border border-gray-300 rounded p-3 mb-3"
-              placeholder="Link (Slides/Drive/image, etc.)"
+              placeholder="Paste a link to your chart/heatmap (Slides/Drive/image, etc.)"
             />
 
             <label className="block text-sm font-medium mb-1">Caption (1–2 sentences)</label>
@@ -339,7 +364,7 @@ const Day5Page = () => {
               onChange={(e) => setField('step4.caption', e.target.value)}
               className="w-full border border-gray-300 rounded p-3"
               rows={3}
-              placeholder="What does your figure show?"
+              placeholder="Explain what your visual shows (healthy vs cancer expression) and what the key takeaway is."
             />
             <div className="flex justify-end mt-4">
               <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">Save</button>
@@ -349,13 +374,17 @@ const Day5Page = () => {
           {/* Step 5: Results */}
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 5: Results</h3>
-            <label className="block text-sm font-medium mb-1">Summarize your findings</label>
+            <p className="text-gray-700 mb-2">
+              Summarize your results. Include: the normal function of the gene, how it may behave differently in a mutated cancer cell,
+              why it matters for doctors/patients (clinical relevance), and any unexpected findings.
+            </p>
+            <label className="block text-sm font-medium mb-1">Results summary</label>
             <textarea
               value={answersData.step5.resultsSummary}
               onChange={(e) => setField('step5.resultsSummary', e.target.value)}
               className="w-full border border-gray-300 rounded p-3"
               rows={4}
-              placeholder="Normal function; what changes in cancer; clinical relevance; any surprises."
+              placeholder="Normal function → change in cancer → why it matters → any surprises."
             />
             <div className="flex justify-end mt-4">
               <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">Save</button>
@@ -366,23 +395,29 @@ const Day5Page = () => {
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 6: Conclusion</h3>
 
-            <label className="block text-sm font-medium mb-1">What does it all mean?</label>
+            <p className="text-gray-700 mb-3">
+              Write a conclusion explaining what your findings mean. Discuss whether what you observed was the normal function of the gene,
+              and how changes in this gene (expression or mutation) could contribute to how a cell becomes cancerous.
+            </p>
+
+            <label className="block text-sm font-medium mb-1">Conclusion</label>
             <textarea
               value={answersData.step6.conclusion}
               onChange={(e) => setField('step6.conclusion', e.target.value)}
               className="w-full border border-gray-300 rounded p-3 mb-3"
               rows={3}
-              placeholder="Connect typical gene function to cancer changes."
+              placeholder="What do your results mean? How could this gene’s behavior contribute to cancer progression?"
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-1">Challenges or possible sources of error</label>
+                <label className="block text-sm font-medium mb-1">Challenges / possible sources of error</label>
                 <textarea
                   value={answersData.step6.challenges}
                   onChange={(e) => setField('step6.challenges', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
                   rows={3}
+                  placeholder="What was difficult? What might have limited accuracy or clarity?"
                 />
               </div>
               <div>
@@ -392,6 +427,7 @@ const Day5Page = () => {
                   onChange={(e) => setField('step6.improvements', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
                   rows={3}
+                  placeholder="What would you change or add to make your research/visuals stronger next time?"
                 />
               </div>
             </div>
@@ -404,6 +440,12 @@ const Day5Page = () => {
           {/* Step 7: Assemble the Slideshow */}
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 7: Assemble the Slideshow</h3>
+
+            <p className="text-gray-700 mb-3">
+              Use the guidelines above to assemble neat slides for each part. Organize your information logically and make sure everything is clear and easy to read.
+              Then add creative design elements (photos, transitions, animations, colors, or music) to make it visually appealing while staying focused on the science.
+            </p>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium mb-1">Slide order & structure checklist</label>
@@ -412,23 +454,25 @@ const Day5Page = () => {
                   onChange={(e) => setField('step7.assemblyNotes', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
                   rows={3}
-                  placeholder="Title → One-liner → Data → Results → Conclusion…"
+                  placeholder="List your slide order (Title → Research Explanation → Procedure/Sources → Visual/Caption → Results → Conclusion → etc.)"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Design notes</label>
+                <label className="block text-sm font-medium mb-1">Design notes (readable + creative)</label>
                 <textarea
                   value={answersData.step7.designNotes}
                   onChange={(e) => setField('step7.designNotes', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
                   rows={3}
-                  placeholder="Colors, readability, labeling, accessibility…"
+                  placeholder="Colors, fonts, spacing, labeling, accessibility, and what creative elements you’re adding."
                 />
               </div>
             </div>
+
             <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 mt-4 text-sm">
-              Hint: Add a QR code to your slide deck or share link so others can view it easily.
+              Hint: Add a QR code or share link on your slides so others can view your presentation easily.
             </div>
+
             <div className="flex justify-end mt-4">
               <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">Save</button>
             </div>
@@ -437,14 +481,21 @@ const Day5Page = () => {
           {/* Step 8: Presentation & Peer Feedback */}
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 8: Presentation & Peer Feedback</h3>
+
+            <p className="text-gray-700 mb-3">
+              Present your finished slideshow to the class (or in groups). Everyone should respectfully review each presentation and provide
+              positive feedback and constructive comments.
+            </p>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-1">Presentation notes / timing / handoff</label>
+                <label className="block text-sm font-medium mb-1">Presentation notes</label>
                 <textarea
                   value={answersData.step8.presentationNotes}
                   onChange={(e) => setField('step8.presentationNotes', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
                   rows={3}
+                  placeholder="How did your presentation go? Timing, clarity, what you emphasized."
                 />
               </div>
               <div>
@@ -454,6 +505,7 @@ const Day5Page = () => {
                   onChange={(e) => setField('step8.peerFeedbackGiven', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
                   rows={3}
+                  placeholder="Write 1 positive note + 1 constructive suggestion you gave."
                 />
               </div>
               <div>
@@ -463,6 +515,7 @@ const Day5Page = () => {
                   onChange={(e) => setField('step8.peerFeedbackReceived', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
                   rows={3}
+                  placeholder="What feedback did you receive? What will you change based on it?"
                 />
               </div>
             </div>
@@ -526,8 +579,13 @@ const Day5Page = () => {
         <section id="wrap-up-section" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
           <h3 className="text-2xl font-semibold mb-4 flex items-center">
             <i className="fa-solid fa-flag-checkered text-primary-500 mr-3" />
-            Wrap-Up & Reflection
+            Conclusion & Reflection
           </h3>
+
+          <p className="text-gray-700 mb-4">
+            Reflect on the process of creating your slideshow and why communicating scientific findings effectively matters.
+          </p>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Why is communicating scientific findings effectively important?</label>
@@ -536,15 +594,17 @@ const Day5Page = () => {
                 onChange={(e) => setField('wrap.whyCommMatters', e.target.value)}
                 className="w-full border border-gray-300 rounded p-3"
                 rows={3}
+                placeholder="Why do clear visuals + clear writing matter in science?"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">How will you use these skills in future projects?</label>
+              <label className="block text-sm font-medium mb-1">How can you use these skills in future projects (or everyday life)?</label>
               <textarea
                 value={answersData.wrap.lookingAhead}
                 onChange={(e) => setField('wrap.lookingAhead', e.target.value)}
                 className="w-full border border-gray-300 rounded p-3"
                 rows={3}
+                placeholder="Future science projects, presentations, communicating evidence, etc."
               />
             </div>
           </div>
@@ -556,6 +616,7 @@ const Day5Page = () => {
               onChange={(e) => setField('wrap.finalReflection', e.target.value)}
               className="w-full border border-gray-300 rounded p-3"
               rows={4}
+              placeholder="What went well? What would you do differently next time?"
             />
           </div>
 

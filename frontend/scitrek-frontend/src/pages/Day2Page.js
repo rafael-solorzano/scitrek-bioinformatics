@@ -941,39 +941,57 @@ const Day2Page = () => {
 
         {/* Wrap-Up & Reflection */}
         <section id="wrap-up-section" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
-          <h3 className="text-2xl font-semibold mb-4 flex items-center">
-            <i className="fa-solid fa-flag-checkered text-primary-500 mr-3" />
-            Wrap-Up & Reflection
-          </h3>
+  <h3 className="text-2xl font-semibold mb-4 flex items-center">
+    <i className="fa-solid fa-flag-checkered text-primary-500 mr-3" />
+    Wrap-Up & Reflection
+  </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              { key: 'healthyDivision', ph: 'What does healthy cellular division typically look like? What are the two main phases?' },
-              { key: 'cancerVsNormal', ph: 'How does cancer differ from normal cell growth?' },
-              { key: 'threeGeneTypes', ph: 'What are oncogenes, tumor suppressor genes, and DNA repair genes? Why are they important?' },
-              { key: 'p53Normal', ph: 'What is the normal function of p53 in a healthy cell?' },
-              { key: 'mdm2OnP53', ph: 'What is the effect of Mdm2 on p53?' },
-              { key: 'whatIfRan', ph: 'Describe one “what-if” you tested. What did you observe?' },
-              { key: 'favVideo', ph: 'Which video was your favorite and why?' },
-              { key: 'favSim', ph: 'Which simulation was your favorite and why?' },
-            ].map(({ key, ph }) => (
-              <AutoResizeTextarea
-                key={key}
-                value={answersData.wrap[key]}
-                onChange={e => setField(`wrap.${key}`, e.target.value)}
-                className="w-full border border-gray-300 rounded p-3"
-                rows={3}
-                placeholder={ph}
-              />
-            ))}
-          </div>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {[
+      {
+        key: "healthyDivision",
+        q: "What does healthy cellular division typically look like? What are the two main phases?",
+      },
+      { key: "cancerVsNormal", q: "How does cancer differ from normal cell growth?" },
+      {
+        key: "threeGeneTypes",
+        q: "What are oncogenes, tumor suppressor genes, and DNA repair genes? Why are they important?",
+      },
+      { key: "p53Normal", q: "What is the normal function of p53 in a healthy cell?" },
+      { key: "mdm2OnP53", q: "What is the effect of Mdm2 on p53?" },
+      { key: "whatIfRan", q: "Describe one “what-if” you tested. What did you observe?" },
+      { key: "favVideo", q: "Which video was your favorite and why?" },
+      { key: "favSim", q: "Which simulation was your favorite and why?" },
+    ].map(({ key, q }) => {
+      const id = `wrap-${key}`;
+      return (
+        <div key={key} className="space-y-2">
+          <label htmlFor={id} className="block text-sm font-medium text-gray-800">
+            {q}
+          </label>
 
-          <div className="flex justify-end mt-6">
-            <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
-              Save Reflection
-            </button>
-          </div>
-        </section>
+          <AutoResizeTextarea
+            id={id}
+            value={answersData.wrap[key] ?? ""}
+            onChange={(e) => setField(`wrap.${key}`, e.target.value)}
+            className="w-full border border-gray-300 rounded p-3"
+            rows={3}
+            placeholder="Type your answer…"
+          />
+        </div>
+      );
+    })}
+  </div>
+
+  <div className="flex justify-end mt-6">
+    <button
+      onClick={handleSave}
+      className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+    >
+      Save Reflection
+    </button>
+  </div>
+</section>
 
         {/* Global Save */}
         <div className="flex justify-center">
