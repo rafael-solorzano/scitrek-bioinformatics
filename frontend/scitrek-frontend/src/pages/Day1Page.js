@@ -1,10 +1,178 @@
 // src/pages/Day1Page.jsx
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Link, useParams } from 'react-router-dom';
 import StudentProfileBanner from '../components/StudentProfileBanner';
 import Popup from '../components/Popup';
 import { getCurrentUser, getResponseDetail, upsertResponse } from '../services/api';
+
+// -----------------------------------------------------------------------------
+// Pacing Mode (Floating Pacing Dashboard)
+// -----------------------------------------------------------------------------
+const DAY1_PACING_STEPS = [
+  { label: 'Intro & Objective', duration: 5, target: 'welcome-section' },
+  { label: 'Core Concepts', duration: 8, target: 'content-blocks-section' },
+  { label: 'Amoeba Sisters Video', duration: 12, target: 'video-section' },
+  { label: 'Expression vs Regulation (DnD + Q)', duration: 8, target: 'gene-expression-section' },
+  { label: 'PhET Simulation', duration: 15, target: 'simulation-section' },
+  { label: 'Inquiry & Discussion', duration: 6, target: 'inquiry-section' },
+  { label: 'Wrap-up', duration: 6, target: 'wrap-up-section' }
+];
+
+
+/**
+ * FloatingPacingDashboard
+ * - Start/Pause/Reset
+ * - Shows current step, time remaining in step, total progress
+ * - Jump link scrolls to section id
+ */
+function FloatingPacingDashboard({ steps, defaultActive = false }) {
+  const totalMinutes = useMemo(
+    () => steps.reduce((acc, s) => acc + (Number(s.duration) || 0), 0),
+    [steps]
+  );
+
+  const [isActive, setIsActive] = useState(defaultActive);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  // ticking timer
+  useEffect(() => {
+    if (!isActive) return;
+    const t = setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [isActive]);
+
+  const elapsedMins = elapsedSeconds / 60;
+
+  // compute current step + per-step timing
+  let cumulative = 0;
+  let currentIndex = steps.findIndex((step) => {
+    cumulative += step.duration;
+    return elapsedMins < cumulative;
+  });
+
+  if (currentIndex === -1) currentIndex = steps.length; // finished
+
+  const isFinished = currentIndex >= steps.length;
+  const currentStep = !isFinished ? steps[currentIndex] : { label: 'Finished!', target: 'footer', duration: 0 };
+
+  const stepStartMins = steps.slice(0, currentIndex).reduce((acc, s) => acc + s.duration, 0);
+  const stepElapsedMins = Math.max(0, elapsedMins - stepStartMins);
+  const stepRemainingMins = !isFinished ? Math.max(0, currentStep.duration - stepElapsedMins) : 0;
+
+  const totalRemainingMins = Math.max(0, totalMinutes - elapsedMins);
+  const pct = Math.min(100, Math.max(0, (elapsedMins / Math.max(1, totalMinutes)) * 100));
+
+  const formatMMSS = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${String(s).padStart(2, '0')}`;
+  };
+
+  const scrollTo = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  return (
+    <div className="fixed bottom-4 left-4 z-40 w-[92vw] max-w-sm">
+      <div className="rounded-2xl shadow-2xl border border-slate-700 bg-slate-900/95 backdrop-blur text-white p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
+              Pacing Mode • {totalMinutes} min plan
+            </div>
+            <div className="mt-1 text-lg font-bold">
+              {currentStep.label}
+            </div>
+            <div className="mt-1 text-xs text-slate-300 flex flex-wrap gap-x-3 gap-y-1">
+              <span className="font-mono">Elapsed: {formatMMSS(elapsedSeconds)}</span>
+              <span className="font-mono">Remaining: {Math.max(0, Math.ceil(totalRemainingMins))}m</span>
+              {!isFinished ? (
+                <span className="font-mono">
+                  This step: {Math.max(0, Math.ceil(stepRemainingMins))}m left
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 shrink-0">
+            {!isActive ? (
+              <button
+                onClick={() => setIsActive(true)}
+                className="px-3 py-2 rounded-xl bg-primary-500 hover:bg-primary-600 text-sm font-bold"
+              >
+                Start
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsActive(false)}
+                className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-bold"
+              >
+                Pause
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                setIsActive(false);
+                setElapsedSeconds(0);
+              }}
+              className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-bold"
+              title="Reset timer to 0"
+            >
+              Reset
+            </button>
+
+            <button
+              onClick={() => scrollTo(currentStep.target)}
+              className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-bold"
+              title="Scroll to the current section"
+            >
+              Jump
+            </button>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-[11px] text-slate-300">
+            <span>{Math.min(100, Math.floor(pct))}%</span>
+            <span className="text-slate-400">
+              {isFinished ? 'Done' : `Step ${currentIndex + 1} of ${steps.length}`}
+            </span>
+          </div>
+          <div className="mt-1 h-2 w-full rounded-full bg-slate-700 overflow-hidden">
+            <div
+              className="h-full bg-primary-500 transition-all duration-1000"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Optional: quick jump list (collapsed) */}
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs text-slate-300 hover:text-white select-none">
+            Jump to any section
+          </summary>
+          <div className="mt-2 grid grid-cols-1 gap-2">
+            {steps.map((s) => (
+              <button
+                key={s.label}
+                type="button"
+                onClick={() => scrollTo(s.target)}
+                className="text-left text-xs px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10"
+              >
+                <span className="font-semibold">{s.label}</span>
+                <span className="text-slate-400"> • {s.duration}m</span>
+              </button>
+            ))}
+          </div>
+        </details>
+      </div>
+    </div>
+  );
+}
 
 // ---- helpers: UI chips for click-to-answer ---------------------------------
 // (Kept in case you reuse elsewhere)
@@ -177,16 +345,24 @@ const Day1Page = () => {
               };
             } else {
               next.sim.gene1 = Array.isArray(next.sim.gene1)
-                ? next.sim.gene1.slice(0, 5).concat(Array(Math.max(0, 5 - next.sim.gene1.length)).fill(''))
+                ? next.sim.gene1
+                    .slice(0, 5)
+                    .concat(Array(Math.max(0, 5 - next.sim.gene1.length)).fill(''))
                 : Array(5).fill('');
               next.sim.gene2 = Array.isArray(next.sim.gene2)
-                ? next.sim.gene2.slice(0, 4).concat(Array(Math.max(0, 4 - next.sim.gene2.length)).fill(''))
+                ? next.sim.gene2
+                    .slice(0, 4)
+                    .concat(Array(Math.max(0, 4 - next.sim.gene2.length)).fill(''))
                 : Array(4).fill('');
               next.sim.gene3 = Array.isArray(next.sim.gene3)
-                ? next.sim.gene3.slice(0, 6).concat(Array(Math.max(0, 6 - next.sim.gene3.length)).fill(''))
+                ? next.sim.gene3
+                    .slice(0, 6)
+                    .concat(Array(Math.max(0, 6 - next.sim.gene3.length)).fill(''))
                 : Array(6).fill('');
               next.sim.reflections = Array.isArray(next.sim.reflections)
-                ? next.sim.reflections.slice(0, 4).concat(Array(Math.max(0, 4 - next.sim.reflections.length)).fill(''))
+                ? next.sim.reflections
+                    .slice(0, 4)
+                    .concat(Array(Math.max(0, 4 - next.sim.reflections.length)).fill(''))
                 : Array(4).fill('');
             }
 
@@ -303,7 +479,6 @@ const Day1Page = () => {
       const fillBlanks = [...a.fillBlanks];
       fillBlanks[idx] = val;
       const next = { ...a, fillBlanks };
-      // mark dirty after state calculation to avoid stale closure
       Promise.resolve().then(markDirtyAndDebounce);
       return next;
     });
@@ -397,6 +572,9 @@ const Day1Page = () => {
 
   return (
     <div className="font-sans bg-gray-50 text-gray-800">
+      {/* Pacing Mode dashboard */}
+      <FloatingPacingDashboard steps={DAY1_PACING_STEPS} />
+
       {/* autosave status badge (same UX as Day5) */}
       <div className="fixed bottom-4 right-4 z-40">
         <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
@@ -658,7 +836,7 @@ const Day1Page = () => {
         </section>
 
         {/* Section 5: Gene Expression vs. Regulation (DnD + Q1) */}
-        <section className="border border-gray-200 rounded-2xl p-6 md:p-8 bg-white">
+        <section id="gene-expression-section" className="border border-gray-200 rounded-2xl p-6 md:p-8 bg-white">
           <h4 className="text-xl font-semibold mb-4">Gene Expression vs Gene Regulation</h4>
           <p className="text-gray-700 mb-6">
             What’s the relationship between expression and regulation, and why does it matter for our health?
@@ -823,7 +1001,6 @@ const Day1Page = () => {
                   </li>
                 </ol>
 
-                {/* Optional mini reference to reduce confusion */}
                 <details className="mt-3">
                   <summary className="cursor-pointer text-sm font-medium text-primary-800">
                     Mini reference (what the parts do)
@@ -909,11 +1086,7 @@ const Day1Page = () => {
                               ? 'First part (e.g., positive TF at promoter)'
                               : label === 'ii.'
                               ? 'Second part'
-                              : label === 'iii.'
-                              ? 'Third part'
-                              : label === 'iv.'
-                              ? 'Fourth part'
-                              : 'Fifth part'
+                              : 'Third part'
                           }
                           className="border border-gray-300 rounded px-3 py-1 flex-grow"
                         />
@@ -964,7 +1137,7 @@ const Day1Page = () => {
                   </div>
                 </div>
 
-                {/* Reflections (clarified, de-duplicated) */}
+                {/* Reflections */}
                 <div className="p-4 bg-gray-50">
                   <h5 className="font-medium mb-4">Reflection Questions</h5>
                   {[
