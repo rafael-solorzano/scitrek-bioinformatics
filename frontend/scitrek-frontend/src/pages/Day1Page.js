@@ -202,10 +202,12 @@ function Chip({ active, children, onClick }) {
  * - native select ensures keyboard & screen reader support
  */
 function InlineChoice({ idx, value, setFill, options }) {
+  const id = `day1-inline-${idx}`;
   return (
-    <label className="inline-flex items-center align-baseline">
+    <label className="inline-flex items-center align-baseline" htmlFor={id}>
       <span className="sr-only">{`Blank ${idx + 1}`}</span>
       <select
+        id={id}
         value={value || ''}
         onChange={(e) => setFill(idx, e.target.value)}
         className={[
@@ -841,7 +843,9 @@ const Day1Page = () => {
           <p className="text-gray-700 mb-6">
             What’s the relationship between expression and regulation, and why does it matter for our health?
           </p>
+          <label htmlFor="day1-gene-q1" className="sr-only">Gene expression vs regulation response</label>
           <textarea
+            id="day1-gene-q1"
             value={answersData.geneQ1}
             onChange={(e) => setGeneQ1(e.target.value)}
             className="w-full border border-gray-300 rounded-lg p-3 text-sm mb-8"
@@ -1076,8 +1080,9 @@ const Day1Page = () => {
                     </p>
                     {['i.', 'ii.', 'iii.'].map((label, idx) => (
                       <div key={label} className="flex items-center mb-2 text-sm">
-                        <span className="font-medium mr-2 w-6">{label}</span>
+                        <label className="font-medium mr-2 w-6" htmlFor={`day1-sim-gene1-${idx}`}>{label}</label>
                         <input
+                          id={`day1-sim-gene1-${idx}`}
                           value={answersData.sim.gene1[idx] || ''}
                           onChange={(e) => setSimGene('gene1', idx, e.target.value)}
                           type="text"
@@ -1103,8 +1108,9 @@ const Day1Page = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                       {['i', 'ii', 'iii', 'iv'].map((label, idx) => (
                         <div key={label} className="flex items-center">
-                          <span className="font-medium mr-2 w-6">{label}.</span>
+                          <label className="font-medium mr-2 w-6" htmlFor={`day1-sim-gene2-${idx}`}>{label}.</label>
                           <input
+                            id={`day1-sim-gene2-${idx}`}
                             value={answersData.sim.gene2[idx] || ''}
                             onChange={(e) => setSimGene('gene2', idx, e.target.value)}
                             type="text"
@@ -1123,8 +1129,9 @@ const Day1Page = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                       {['i', 'ii', 'iii', 'iv'].map((label, idx) => (
                         <div key={label} className="flex items-center">
-                          <span className="font-medium mr-2 w-6">{label}.</span>
+                          <label className="font-medium mr-2 w-6" htmlFor={`day1-sim-gene3-${idx}`}>{label}.</label>
                           <input
+                            id={`day1-sim-gene3-${idx}`}
                             value={answersData.sim.gene3[idx] || ''}
                             onChange={(e) => setSimGene('gene3', idx, e.target.value)}
                             type="text"
@@ -1147,8 +1154,9 @@ const Day1Page = () => {
                     'Missing component: Pick one part (e.g., ribosome or RNA polymerase). What happened when that part was missing, and why?'
                   ].map((q, i) => (
                     <div key={i} className="mb-4">
-                      <p className="text-sm font-medium mb-2">{q}</p>
+                      <label className="text-sm font-medium mb-2 block" htmlFor={`day1-sim-reflection-${i}`}>{q}</label>
                       <textarea
+                        id={`day1-sim-reflection-${i}`}
                         value={answersData.sim.reflections[i] || ''}
                         onChange={(e) => setSimReflection(i, e.target.value)}
                         className="w-full border border-gray-300 rounded-lg p-3 text-sm"
@@ -1226,7 +1234,9 @@ const Day1Page = () => {
               <p className="text-gray-700 mb-4">
                 A cell is exposed to extreme heat. Predict how heat shock might change transcription factor activity and protein production.
               </p>
+              <label htmlFor="day1-inquiry-think" className="sr-only">Think and respond</label>
               <textarea
+                id="day1-inquiry-think"
                 value={answersData.inquiry.think}
                 onChange={(e) => setInquiryThink(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg p-3"
@@ -1280,8 +1290,9 @@ const Day1Page = () => {
               <div>
                 <h3 className="text-xl font-semibold mb-4">Reflection Journal</h3>
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <p className="text-gray-700 mb-3">Reflect: What surprised you most today?</p>
+                  <label className="text-gray-700 mb-3 block" htmlFor="day1-wrap-reflection">Reflect: What surprised you most today?</label>
                   <textarea
+                    id="day1-wrap-reflection"
                     value={answersData.wrap.reflection}
                     onChange={(e) =>
                       setAnswersData((a) => {

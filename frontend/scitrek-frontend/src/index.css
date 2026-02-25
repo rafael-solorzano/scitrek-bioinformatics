@@ -3,6 +3,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* WCAG 2 AA compliant theme variables (optional central reference) */
+:root {
+  --color-text: #202124;
+  --color-text-muted: #404040;
+  --color-primary: #c2410c;
+  --color-primary-hover: #ea580c;
+  --color-error: #b91c1c;
+  --color-bg: #f1f3f4;
+}
+
 /* Your global reset */
 * {
   margin: 0;

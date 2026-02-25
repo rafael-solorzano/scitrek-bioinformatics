@@ -25,7 +25,7 @@
 
 .login-header h1 {
   font-size: 60px;  /* Increased welcome text size */
-  color: #ff6600;
+  color: #c2410c; /* WCAG 2 AA: 4.5:1 on #fff7f2 / white */
   font-weight: bold;
 }
 
@@ -53,6 +53,7 @@
   padding: 12px 20px;
   font-size: 18px;
   background: #ddd;
+  color: #333; /* WCAG 2 AA: text on #ddd */
   border: none;
   cursor: pointer;
   border-radius: 8px;
@@ -62,16 +63,16 @@
 }
 
 .toggle-container button.active {
-  background: #ff6600;
+  background: #c2410c; /* WCAG 2 AA: 4.5:1 on white */
   color: #fff;
 }
 
 .toggle-container button:hover {
-  background: #ff7f33;
+  background: #ea580c;
 }
 
 .error {
-  color: red;
+  color: #b91c1c; /* WCAG 2 AA: 4.5:1 on white */
   margin-bottom: 15px;
   font-weight: bold;
   text-align: center;
@@ -86,7 +87,7 @@ form h2 {
   text-align: center;
   margin-bottom: 20px;
   font-size: 28px;
-  color: #ff6600;
+  color: #c2410c; /* WCAG 2 AA */
 }
 
 .form-field {
@@ -97,7 +98,7 @@ form h2 {
   display: block;
   margin-bottom: 5px;
   font-weight: bold;
-  color: #555;
+  color: #404040; /* WCAG 2 AA: 4.5:1 on white */
 }
 
 .form-field input {
@@ -115,7 +116,7 @@ form h2 {
 
 .forgot-link a {
   font-size: 14px;
-  color: #ff6600;
+  color: #c2410c; /* WCAG 2 AA */
   text-decoration: none;
 }
 
@@ -124,7 +125,7 @@ form h2 {
 }
 
 form button {
-  background: #ff6600;
+  background: #c2410c; /* WCAG 2 AA */
   color: #fff;
   border: none;
   padding: 14px 25px;
@@ -137,5 +138,5 @@ form button {
 }
 
 form button:hover {
-  background: #ff7f33;
+  background: #ea580c;
 }

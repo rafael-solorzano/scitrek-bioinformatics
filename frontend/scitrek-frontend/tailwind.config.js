@@ -10,7 +10,7 @@ module.exports = {
           200: "#fed7aa",
           300: "#fdba74",
           400: "#fb923c",
-          500: "#f97316",
+          500: "#c2410c", /* WCAG 2 AA: 4.5:1 with white text */
           600: "#ea580c",
           700: "#c2410c",
           800: "#9a3412",

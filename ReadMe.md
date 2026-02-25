@@ -23,6 +23,39 @@ Students step into the role of a scientist, guided through daily missions that c
 
 ---
 
+## ⚙️ Setup
+
+**Clone** (GitHub → Code → HTTPS, copy link):
+
+```bash
+git clone https://github.com/rafael-solorzano/scitrek-bioinformatics.git
+cd scitrek-bioinformatics
+```
+
+**Backend** (Terminal A):
+
+```bash
+cd backend
+python3 -m venv venv && source venv/bin/activate
+cd scitrek_backend
+pip install -r requirements.txt
+mkdir -p .devdata
+touch .devdata/db.sqlite3
+python manage.py makemigrations && python manage.py migrate
+python manage.py runserver
+```
+
+**Frontend** (new terminal):
+
+```bash
+cd scitrek-bioinformatics/frontend/scitrek-frontend
+npm install && npm start
+```
+
+Backend: [http://localhost:8000](http://localhost:8000) · Frontend: [http://localhost:3000](http://localhost:3000)
+
+---
+
 ## 🚀 Getting Started
 
 Students can join their classroom using a **unique access code** provided by the teacher.  
@@ -79,3 +112,4 @@ Our goal is to make authentic research experiences **accessible to every student
 ---
 © 2025 **SciTrek Research Group | UC Santa Barbara**  
 
+---

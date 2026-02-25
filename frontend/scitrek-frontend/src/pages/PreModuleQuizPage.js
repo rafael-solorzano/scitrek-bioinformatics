@@ -25,13 +25,17 @@ const PreModuleQuizPage = () => {
     window.location.href = '/login';
   };
 
-  if (!user) return <div className="loading">Loading…</div>;
+  if (!user) return (
+    <main className="quiz-page-content" aria-busy="true">
+      <div className="loading">Loading…</div>
+    </main>
+  );
 
   return (
     <>
       <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />
 
-      <div className="quiz-page-content">
+      <main className="quiz-page-content">
         <iframe
           className="quiz-iframe"
           title="Pre-Module Quiz"
@@ -39,7 +43,7 @@ const PreModuleQuizPage = () => {
         >
           Loading…
         </iframe>
-      </div>
+      </main>
 
       {popupVisible && (
         <Popup

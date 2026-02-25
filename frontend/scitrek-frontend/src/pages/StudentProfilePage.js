@@ -30,14 +30,20 @@ const StudentProfilePage = () => {
 
   if (error) {
     return (
-      <div className="loading">
-        Unable to load profile. Please try logging in again.
-      </div>
+      <main className="student-profile-page" aria-busy="true">
+        <div className="loading">
+          Unable to load profile. Please try logging in again.
+        </div>
+      </main>
     );
   }
 
   if (!user) {
-    return <div className="loading">Loading…</div>;
+    return (
+      <main className="student-profile-page" aria-busy="true">
+        <div className="loading">Loading…</div>
+      </main>
+    );
   }
 
   const displayName = user.first_name || user.username;
@@ -48,10 +54,11 @@ const StudentProfilePage = () => {
     'N/A';
 
   return (
-    <div className="student-profile-page">
+    <>
       <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />
 
-      <div className="profile-header">
+      <main className="student-profile-page">
+        <div className="profile-header">
         <h1>Welcome to SciTrek, {displayName}!</h1>
       </div>
 
@@ -82,7 +89,8 @@ const StudentProfilePage = () => {
           onConfirm={handleLogout}
         />
       )}
-    </div>
+    </main>
+    </>
   );
 };
 

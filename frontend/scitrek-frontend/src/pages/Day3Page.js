@@ -331,11 +331,12 @@ const Day3Page = () => {
             <p className="text-gray-700 mb-4">
               Review your Day 1 and 2 notes on oncogenes, tumor suppressors, and DNA repair genes. Then answer:
             </p>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-2" htmlFor="day3-intro-loud-quiet">
               If a gene is too “loud” (high expression) or too “quiet” (low expression), what might that mean? (Connect to
               oncogenes = often dangerous when <em>too loud</em>; tumor suppressors/repair = dangerous when <em>too quiet</em>.)
             </label>
             <textarea
+              id="day3-intro-loud-quiet"
               value={answersData.intro.loudQuietMeaning}
               onChange={e => setField('intro.loudQuietMeaning', e.target.value)}
               onPaste={warnOnPaste}
@@ -351,11 +352,12 @@ const Day3Page = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
-                <h4 className="font-medium mb-2">Describe expression in healthy cells</h4>
+                <label className="font-medium mb-2 block" htmlFor="day3-compare-healthy">Describe expression in healthy cells</label>
                 <p className="text-xs text-gray-600 mb-1">
                   Hint: housekeeping steady; cancer-linked genes within normal ranges and responding to signals.
                 </p>
                 <textarea
+                  id="day3-compare-healthy"
                   value={answersData.compare.healthyDesc}
                   onChange={e => setField('compare.healthyDesc', e.target.value)}
                   onPaste={warnOnPaste}
@@ -365,11 +367,12 @@ const Day3Page = () => {
                 />
               </div>
               <div>
-                <h4 className="font-medium mb-2">Describe expression in cancerous cells</h4>
+                <label className="font-medium mb-2 block" htmlFor="day3-compare-cancer">Describe expression in cancerous cells</label>
                 <p className="text-xs text-gray-600 mb-1">
                   Hint: examples of over/under-expression (e.g., MYC high; TP53 low) and why those matter.
                 </p>
                 <textarea
+                  id="day3-compare-cancer"
                   value={answersData.compare.cancerDesc}
                   onChange={e => setField('compare.cancerDesc', e.target.value)}
                   onPaste={warnOnPaste}
@@ -396,6 +399,8 @@ const Day3Page = () => {
                     <tr key={`${row.gene}-${idx}`} className="border-t">
                       <td className="px-4 py-2">
                         <input
+                          id={`day3-compare-gene-${idx}`}
+                          aria-label={`Gene ${idx + 1} name`}
                           value={row.gene}
                           onChange={e => {
                             const next = [...answersData.compare.table];
@@ -408,6 +413,8 @@ const Day3Page = () => {
                       </td>
                       <td className="px-4 py-2">
                         <select
+                          id={`day3-compare-category-${idx}`}
+                          aria-label={`Category for ${row.gene}`}
                           value={row.category || ''}
                           onChange={e => {
                             const next = [...answersData.compare.table];
@@ -423,6 +430,8 @@ const Day3Page = () => {
                       </td>
                       <td className="px-4 py-2">
                         <input
+                          id={`day3-compare-notes-${idx}`}
+                          aria-label={`Notes for ${row.gene}`}
                           value={row.notes || ''}
                           onChange={e => {
                             const next = [...answersData.compare.table];
@@ -441,11 +450,13 @@ const Day3Page = () => {
             </div>
 
             <div className="mt-4">
-              <h4 className="font-medium mb-2">Patterns you noticed</h4>
+              <h4 className="font-medium mb-2" id="day3-patterns-label">Patterns you noticed</h4>
               <p className="text-xs text-gray-600 mb-1">
                 Hint: trends across healthy vs cancerous; housekeeping vs candidates; “too loud/too quiet” pairs.
               </p>
               <textarea
+                id="day3-compare-patterns"
+                aria-labelledby="day3-patterns-label"
                 value={answersData.compare.patterns}
                 onChange={e => setField('compare.patterns', e.target.value)}
                 onPaste={warnOnPaste}
@@ -612,12 +623,13 @@ const Day3Page = () => {
             placeholder="Type your hypothesis…"
           />
 
-          <label className="block text-sm font-medium mb-1">C) Describe a simple experiment to test it.</label>
+          <label className="block text-sm font-medium mb-1" htmlFor="day3-detective-experiment">C) Describe a simple experiment to test it.</label>
           <p className="text-xs text-gray-600 mb-2">
             Mention <em>samples</em> (e.g., tumor vs matched normal), <em>method</em> (qPCR/RNA-seq/IHC), <em>control</em> (housekeeping gene), and a
             <em> decision rule</em> (what result would support your hypothesis?).
           </p>
           <textarea
+            id="day3-detective-experiment"
             value={answersData.detective.experimentPlan}
             onChange={e => setField('detective.experimentPlan', e.target.value)}
             onPaste={warnOnPaste}
@@ -695,6 +707,8 @@ const Day3Page = () => {
                 Write one hypothesis and one measurement you’d use to test it (e.g., “qPCR of MYC and TP53 vs housekeeping gene”).
               </p>
               <textarea
+                id="day3-inquiry-think"
+                aria-label="Think and respond: hypothesis and measurement for MYC and TP53 expression"
                 value={answersData.inquiry.think}
                 onChange={e => setField('inquiry.think', e.target.value)}
                 onPaste={warnOnPaste}
@@ -725,8 +739,9 @@ const Day3Page = () => {
               { key: 'preBiopsyMethods', label: 'Before biopsy, what other methods might detect cancer presence?' },
             ].map(({ key, label }) => (
               <div key={key} className="flex flex-col">
-                <label className="text-sm font-medium mb-1">{label}</label>
+                <label className="text-sm font-medium mb-1" htmlFor={`day3-wrap-${key}`}>{label}</label>
                 <textarea
+                  id={`day3-wrap-${key}`}
                   value={answersData.wrap[key]}
                   onChange={e => setField(`wrap.${key}`, e.target.value)}
                   onPaste={warnOnPaste}

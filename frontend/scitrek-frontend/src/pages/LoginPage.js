@@ -62,7 +62,8 @@ const LoginPage = () => {
         <h1>Welcome to SciTrek</h1>
       </header>
 
-      <div className="login-container">
+      <main className="login-main">
+        <div className="login-container">
         <div className="toggle-container">
           <button
             onClick={() => setIsSignUp(false)}
@@ -84,8 +85,9 @@ const LoginPage = () => {
           <form onSubmit={handleSignIn}>
             <h2>Sign In to Your SciTrek Account</h2>
             <div className="form-field">
-              <label>Username:</label>
+              <label htmlFor="login-username">Username:</label>
               <input
+                id="login-username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -93,8 +95,9 @@ const LoginPage = () => {
               />
             </div>
             <div className="form-field">
-              <label>Password:</label>
+              <label htmlFor="login-password">Password:</label>
               <input
+                id="login-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -110,8 +113,9 @@ const LoginPage = () => {
           <form onSubmit={handleSignUp}>
             <h2>Create Your SciTrek Account</h2>
             <div className="form-field">
-              <label>Username:</label>
+              <label htmlFor="signup-username">Username:</label>
               <input
+                id="signup-username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -119,8 +123,9 @@ const LoginPage = () => {
               />
             </div>
             <div className="form-field">
-              <label>Password:</label>
+              <label htmlFor="signup-password">Password:</label>
               <input
+                id="signup-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -128,8 +133,9 @@ const LoginPage = () => {
               />
             </div>
             <div className="form-field">
-              <label>Confirm Password:</label>
+              <label htmlFor="signup-confirm-password">Confirm Password:</label>
               <input
+                id="signup-confirm-password"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -137,8 +143,9 @@ const LoginPage = () => {
               />
             </div>
             <div className="form-field">
-              <label>First Name:</label>
+              <label htmlFor="signup-first-name">First Name:</label>
               <input
+                id="signup-first-name"
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
@@ -146,8 +153,9 @@ const LoginPage = () => {
               />
             </div>
             <div className="form-field">
-              <label>Last Name:</label>
+              <label htmlFor="signup-last-name">Last Name:</label>
               <input
+                id="signup-last-name"
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
@@ -155,8 +163,9 @@ const LoginPage = () => {
               />
             </div>
             <div className="form-field">
-              <label>Classroom Name:</label>
+              <label htmlFor="signup-classroom-name">Classroom Name:</label>
               <input
+                id="signup-classroom-name"
                 type="text"
                 value={classroomName}
                 onChange={(e) => setClassroomName(e.target.value)}
@@ -165,7 +174,8 @@ const LoginPage = () => {
             <button type="submit">Sign Up</button>
           </form>
         )}
-      </div>
+        </div>
+      </main>
     </div>
   );
 };

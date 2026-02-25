@@ -23,11 +23,11 @@ const WorkbookPage = () => {
     load();
   }, [workbookId]);
 
-  if (error) return <p className="error">{error}</p>;
-  if (!workbook) return <div>Loading…</div>;
+  if (error) return <main className="workbook-page"><p className="error">{error}</p></main>;
+  if (!workbook) return <main className="workbook-page" aria-busy="true"><div>Loading…</div></main>;
 
   return (
-    <div className="workbook-page">
+    <main className="workbook-page">
       <h2>{workbook.title}</h2>
 
       {workbook.sections.map(section => (
@@ -49,7 +49,7 @@ const WorkbookPage = () => {
           )}
         </div>
       ))}
-    </div>
+    </main>
   );
 };
 

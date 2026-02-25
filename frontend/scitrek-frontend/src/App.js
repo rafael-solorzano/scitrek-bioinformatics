@@ -53,7 +53,7 @@ function App() {
     fetchUser();
   }, []);
 
-  if (loading) return <div>Loading&hellip;</div>;
+  if (loading) return <main className="content" aria-busy="true">Loading&hellip;</main>;
 
   return (
     <Router>

@@ -28,6 +28,6 @@
     cursor: pointer;
   }
   .cancel_btn { background: #2980b9; color: #fff; }
-  .logout_btn { background: red; color: #fff; }
-  .logout_btn:hover { background: deeppink; }
+  .logout_btn { background: #b91c1c; color: #fff; } /* WCAG 2 AA */
+  .logout_btn:hover { background: #991b1b; }
   

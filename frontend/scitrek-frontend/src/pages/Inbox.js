@@ -30,7 +30,7 @@ const Inbox = () => {
     })();
   }, []);
 
-  if (!user) return <div className="loading">Loading…</div>;
+  if (!user) return <main className="inbox-page" aria-busy="true"><div className="loading">Loading…</div></main>;
 
   const unreadCount = messages.filter(m => !m.is_read).length;
 
@@ -57,7 +57,7 @@ const Inbox = () => {
     <>
       <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />
 
-      <div className="inbox-page">
+      <main className="inbox-page">
         <div className="inbox-card">
           <div className="inbox-header">
             <h2>SciTrek Inbox ({unreadCount} Unread)</h2>
@@ -105,7 +105,7 @@ const Inbox = () => {
             <p>{selectedMessage.body}</p>
           </div>
         )}
-      </div>
+      </main>
 
       {popupVisible && (
         <Popup

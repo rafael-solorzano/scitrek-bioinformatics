@@ -34,11 +34,11 @@ const HomePage = () => {
 
   // If user isn’t loaded yet, you can show a loading state:
   if (user === null) {
-    return <div>Loading…</div>;
+    return <main className="home-page" aria-busy="true"><div>Loading…</div></main>;
   }
 
   return (
-    <div className="home-page">
+    <main className="home-page">
       <HomeHeader user={user} onLogout={() => setPopupVisible(true)} />
       <Gallery />
       <TeamSection />
@@ -51,7 +51,7 @@ const HomePage = () => {
           onConfirm={handleLogout}
         />
       )}
-    </div>
+    </main>
   );
 };
 

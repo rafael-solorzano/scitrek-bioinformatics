@@ -56,7 +56,7 @@
 .day1-subtitle {
   text-align: center;
   font-size: 16px;
-  color: #555;
+  color: #404040; /* WCAG 2 AA */
   margin-bottom: 24px;
 }
 
@@ -133,7 +133,7 @@
 
 .photo-caption {
   font-size: 14px;
-  color: #666;
+  color: #404040; /* WCAG 2 AA */
   margin-top: 4px;
 }
 
@@ -173,12 +173,12 @@
   text-align: center;
   padding: 50px;
   font-size: 20px;
-  color: #666;
+  color: #404040; /* WCAG 2 AA */
 }
 
 .error {
   text-align: center;
-  color: red;
+  color: #b91c1c; /* WCAG 2 AA */
   margin: 20px;
   font-weight: bold;
 }

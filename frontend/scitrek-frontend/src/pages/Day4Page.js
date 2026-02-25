@@ -386,8 +386,9 @@ const Day4Page = () => {
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Recap & Review</h3>
 
-            <label className="text-sm font-medium mb-1 block">What might cause gene regulation to go wrong?</label>
+            <label className="text-sm font-medium mb-1 block" htmlFor="day4-recap-reg-wrong">What might cause gene regulation to go wrong?</label>
             <textarea
+              id="day4-recap-reg-wrong"
               value={answersData.recap.regWrong}
               onChange={e => setField('recap.regWrong', e.target.value)}
               className="w-full border border-gray-300 rounded p-3 mb-3"
@@ -395,8 +396,9 @@ const Day4Page = () => {
               placeholder="e.g., mutations, epigenetic changes, signaling errors…"
             />
 
-            <label className="text-sm font-medium mb-1 block">How is cancer growth different from typical cells?</label>
+            <label className="text-sm font-medium mb-1 block" htmlFor="day4-recap-cancer-typical">How is cancer growth different from typical cells?</label>
             <textarea
+              id="day4-recap-cancer-typical"
               value={answersData.recap.cancerVsTypical}
               onChange={e => setField('recap.cancerVsTypical', e.target.value)}
               className="w-full border border-gray-300 rounded p-3 mb-3"
@@ -405,8 +407,10 @@ const Day4Page = () => {
             />
 
             <label className="text-sm font-medium mb-1 block">Housekeeping vs cancer-linked gene expression: one example of each “too loud / too quiet”.</label>
-            <textarea
-              value={answersData.recap.detectHousekeeping}
+              <textarea
+                id="day4-recap-detect-housekeeping"
+                aria-label="Housekeeping vs cancer-linked gene expression: one example of each too loud or too quiet"
+                value={answersData.recap.detectHousekeeping}
               onChange={e => setField('recap.detectHousekeeping', e.target.value)}
               className="w-full border border-gray-300 rounded p-3"
               rows={3}
@@ -445,6 +449,8 @@ const Day4Page = () => {
                       <tr key={`${row.gene || idx}-${idx}`} className="border-t">
                         <td className="px-4 py-2">
                           <input
+                            id={`day4-viz-gene-${idx}`}
+                            aria-label={`Gene symbol row ${idx + 1}`}
                             value={remapLegacyGene(row.gene)}
                             onChange={e => {
                               const next = [...answersData.viz.geneTable];
@@ -457,6 +463,8 @@ const Day4Page = () => {
                         </td>
                         <td className="px-4 py-2">
                           <input
+                            id={`day4-viz-normal-${idx}`}
+                            aria-label={`Normal function for row ${idx + 1}`}
                             value={row.normalFunction}
                             onChange={e => {
                               const next = [...answersData.viz.geneTable];
@@ -469,6 +477,8 @@ const Day4Page = () => {
                         </td>
                         <td className="px-4 py-2">
                           <input
+                            id={`day4-viz-why-${idx}`}
+                            aria-label={`Why it matters for row ${idx + 1}`}
                             value={row.whyMatters}
                             onChange={e => {
                               const next = [...answersData.viz.geneTable];
@@ -501,11 +511,12 @@ const Day4Page = () => {
             {/* Key Questions — clarified wording */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">1) Function → Aggression</label>
+                <label className="text-sm font-medium mb-1 block" htmlFor="day4-viz-q1">1) Function → Aggression</label>
                 <p className="text-xs text-gray-600 mb-1">
                   Here “aggressive” = more likely to cause fast growth or resist control if mis-regulated.
                 </p>
                 <textarea
+                  id="day4-viz-q1"
                   value={answersData.viz.q1FunctionToAggression}
                   onChange={e => setField('viz.q1FunctionToAggression', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -519,6 +530,7 @@ const Day4Page = () => {
                   Compare any two genes you studied. Justify your reasoning.
                 </p>
                 <textarea
+                  id="day4-viz-q2"
                   value={answersData.viz.q2AggressivenessByFunction}
                   onChange={e => setField('viz.q2AggressivenessByFunction', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -573,11 +585,12 @@ const Day4Page = () => {
             {/* Scenario-based quick checks */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">
+                <label className="text-sm font-medium mb-1 block" htmlFor="day4-methods-scenario1">
                   Scenario 1: You already suspect <b>Gene X</b> changes after treatment. You need a <b>fast</b>, <b>low-cost</b> check
                   across <b>20 samples</b>. What method would you use, and why?
                 </label>
                 <textarea
+                  id="day4-methods-scenario1"
                   value={answersData.methods.scenario1}
                   onChange={e => setField('methods.scenario1', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -590,11 +603,12 @@ const Day4Page = () => {
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-1 block">
+                <label className="text-sm font-medium mb-1 block" htmlFor="day4-methods-scenario2">
                   Scenario 2: You need to know <b>where in the tissue</b> a protein is found (tumor core vs edges), not just how much
                   RNA is present. What method would you use, and why?
                 </label>
                 <textarea
+                  id="day4-methods-scenario2"
                   value={answersData.methods.scenario2}
                   onChange={e => setField('methods.scenario2', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -612,6 +626,7 @@ const Day4Page = () => {
                   discover unexpected differences. What method would you use, and why?
                 </label>
                 <textarea
+                  id="day4-methods-scenario3"
                   value={answersData.methods.scenario3}
                   onChange={e => setField('methods.scenario3', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -656,7 +671,9 @@ const Day4Page = () => {
               <p className="text-xs text-gray-600 mb-3">
                 Write one hypothesis and one measurement to test it (choose: qPCR, IHC, or RNA-seq). State the result that would support your claim.
               </p>
+              <label htmlFor="day4-inquiry-think" className="sr-only">Think and respond</label>
               <textarea
+                id="day4-inquiry-think"
                 value={answersData.inquiry.think}
                 onChange={e => setField('inquiry.think', e.target.value)}
                 className="w-full border border-gray-300 rounded-lg p-3"
@@ -680,8 +697,9 @@ const Day4Page = () => {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium mb-1 block">How did visuals help you notice patterns between healthy and cancerous cells?</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="day4-wrap-patterns">How did visuals help you notice patterns between healthy and cancerous cells?</label>
               <textarea
+                id="day4-wrap-patterns"
                 value={answersData.wrap.patternsFromVisuals}
                 onChange={e => setField('wrap.patternsFromVisuals', e.target.value)}
                 className="w-full border border-gray-300 rounded p-3"
@@ -698,8 +716,9 @@ const Day4Page = () => {
               />
             </div>
             <div className="md:col-span-2">
-              <label className="text-sm font-medium mb-1 block">One new thing you learned about gene expression differences today</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="day4-wrap-new">One new thing you learned about gene expression differences today</label>
               <textarea
+                id="day4-wrap-new"
                 value={answersData.wrap.newThingLearned}
                 onChange={e => setField('wrap.newThingLearned', e.target.value)}
                 className="w-full border border-gray-300 rounded p-3"

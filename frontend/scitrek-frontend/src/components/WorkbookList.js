@@ -16,7 +16,7 @@ const WorkbookList = () => {
   }, []);
 
   return (
-    <div className="workbook-list">
+    <main className="workbook-list">
       <h2>Available Workbooks</h2>
       {error && <p className="error">{error}</p>}
       <ul>
@@ -34,7 +34,7 @@ const WorkbookList = () => {
           </li>
         ))}
       </ul>
-    </div>
+    </main>
   );
 };
 

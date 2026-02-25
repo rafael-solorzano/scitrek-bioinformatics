@@ -90,7 +90,7 @@
 
 .inbox-close i {
   font-size: 24px;
-  color: #666;
+  color: #404040; /* WCAG 2 AA */
   line-height: 1;
 }
 
@@ -114,5 +114,5 @@
   text-align: center;
   padding: 50px;
   font-size: 20px;
-  color: #666;
+  color: #404040; /* WCAG 2 AA */
 }

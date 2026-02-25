@@ -201,8 +201,9 @@ const Day5Page = () => {
               visual data representation (bar graph/heat map/etc.), results, and conclusion.
             </p>
 
-            <label className="block text-sm font-medium mb-1">Why do scientists use research posters/slides to share findings?</label>
+            <label className="block text-sm font-medium mb-1" htmlFor="day5-intro-why-poster">Why do scientists use research posters/slides to share findings?</label>
             <textarea
+              id="day5-intro-why-poster"
               value={answersData.intro.whyPoster}
               onChange={(e) => setField('intro.whyPoster', e.target.value)}
               className="w-full border border-gray-300 rounded p-3"
@@ -272,8 +273,9 @@ const Day5Page = () => {
             <p className="text-gray-700 mb-2">
               Create a clear, descriptive title for your project (example: “BRCA-1 Gene & Breast Cancer: Causes & Conclusions”).
             </p>
-            <label className="block text-sm font-medium mb-1">Your project title</label>
+            <label className="block text-sm font-medium mb-1" htmlFor="day5-step1-title">Your project title</label>
             <input
+              id="day5-step1-title"
               value={answersData.step1.title}
               onChange={(e) => setField('step1.title', e.target.value)}
               className="w-full border border-gray-300 rounded p-3"
@@ -290,8 +292,9 @@ const Day5Page = () => {
             <p className="text-gray-700 mb-2">
               Write your main conclusion in one sentence. What does your gene do, and how does it relate to breast cancer progression?
             </p>
-            <label className="block text-sm font-medium mb-1">One-sentence research explanation</label>
+            <label className="block text-sm font-medium mb-1" htmlFor="day5-step2-oneline">One-sentence research explanation</label>
             <textarea
+              id="day5-step2-oneline"
               value={answersData.step2.oneLineExplanation}
               onChange={(e) => setField('step2.oneLineExplanation', e.target.value)}
               className="w-full border border-gray-300 rounded p-3"
@@ -309,8 +312,9 @@ const Day5Page = () => {
             <p className="text-gray-700 mb-2">
               Write a short explanation of your research process. Emphasize the top 3–5 sources you used.
             </p>
-            <label className="block text-sm font-medium mb-1">Procedure summary</label>
+            <label className="block text-sm font-medium mb-1" htmlFor="day5-step3-procedure">Procedure summary</label>
             <textarea
+              id="day5-step3-procedure"
               value={answersData.step3.procedureSummary}
               onChange={(e) => setField('step3.procedureSummary', e.target.value)}
               className="w-full border border-gray-300 rounded p-3 mb-4"
@@ -319,11 +323,13 @@ const Day5Page = () => {
             />
 
             <h4 className="font-medium mb-2">Top 3–5 Sources</h4>
-            <label className="block text-xs text-gray-600 mb-2">List titles or links to your strongest sources</label>
+            <label className="block text-xs text-gray-600 mb-2" htmlFor="day5-step3-source-0">List titles or links to your strongest sources</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {answersData.step3.topSources.map((src, i) => (
                 <input
                   key={i}
+                  id={`day5-step3-source-${i}`}
+                  aria-label={`Source ${i + 1}`}
                   value={src}
                   onChange={(e) => {
                     const next = [...answersData.step3.topSources];
@@ -352,14 +358,16 @@ const Day5Page = () => {
 
             <label className="block text-sm font-medium mb-1">Link to your visual (or where it’s uploaded)</label>
             <input
+              id="day5-step4-visual"
               value={answersData.step4.visualLink}
               onChange={(e) => setField('step4.visualLink', e.target.value)}
               className="w-full border border-gray-300 rounded p-3 mb-3"
               placeholder="Paste a link to your chart/heatmap (Slides/Drive/image, etc.)"
             />
 
-            <label className="block text-sm font-medium mb-1">Caption (1–2 sentences)</label>
+            <label className="block text-sm font-medium mb-1" htmlFor="day5-step4-caption">Caption (1–2 sentences)</label>
             <textarea
+              id="day5-step4-caption"
               value={answersData.step4.caption}
               onChange={(e) => setField('step4.caption', e.target.value)}
               className="w-full border border-gray-300 rounded p-3"
@@ -378,8 +386,9 @@ const Day5Page = () => {
               Summarize your results. Include: the normal function of the gene, how it may behave differently in a mutated cancer cell,
               why it matters for doctors/patients (clinical relevance), and any unexpected findings.
             </p>
-            <label className="block text-sm font-medium mb-1">Results summary</label>
+            <label className="block text-sm font-medium mb-1" htmlFor="day5-step5-results">Results summary</label>
             <textarea
+              id="day5-step5-results"
               value={answersData.step5.resultsSummary}
               onChange={(e) => setField('step5.resultsSummary', e.target.value)}
               className="w-full border border-gray-300 rounded p-3"
@@ -400,8 +409,9 @@ const Day5Page = () => {
               and how changes in this gene (expression or mutation) could contribute to how a cell becomes cancerous.
             </p>
 
-            <label className="block text-sm font-medium mb-1">Conclusion</label>
+            <label className="block text-sm font-medium mb-1" htmlFor="day5-step6-conclusion">Conclusion</label>
             <textarea
+              id="day5-step6-conclusion"
               value={answersData.step6.conclusion}
               onChange={(e) => setField('step6.conclusion', e.target.value)}
               className="w-full border border-gray-300 rounded p-3 mb-3"
@@ -411,8 +421,9 @@ const Day5Page = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-1">Challenges / possible sources of error</label>
+                <label className="block text-sm font-medium mb-1" htmlFor="day5-step6-challenges">Challenges / possible sources of error</label>
                 <textarea
+                  id="day5-step6-challenges"
                   value={answersData.step6.challenges}
                   onChange={(e) => setField('step6.challenges', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -421,8 +432,9 @@ const Day5Page = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Improvements for next time</label>
+                <label className="block text-sm font-medium mb-1" htmlFor="day5-step6-improvements">Improvements for next time</label>
                 <textarea
+                  id="day5-step6-improvements"
                   value={answersData.step6.improvements}
                   onChange={(e) => setField('step6.improvements', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -448,8 +460,9 @@ const Day5Page = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-1">Slide order & structure checklist</label>
+                <label className="block text-sm font-medium mb-1" htmlFor="day5-step7-assembly">Slide order & structure checklist</label>
                 <textarea
+                  id="day5-step7-assembly"
                   value={answersData.step7.assemblyNotes}
                   onChange={(e) => setField('step7.assemblyNotes', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -458,8 +471,9 @@ const Day5Page = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Design notes (readable + creative)</label>
+                <label className="block text-sm font-medium mb-1" htmlFor="day5-step7-design">Design notes (readable + creative)</label>
                 <textarea
+                  id="day5-step7-design"
                   value={answersData.step7.designNotes}
                   onChange={(e) => setField('step7.designNotes', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -489,8 +503,9 @@ const Day5Page = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-1">Presentation notes</label>
+                <label className="block text-sm font-medium mb-1" htmlFor="day5-step8-presentation">Presentation notes</label>
                 <textarea
+                  id="day5-step8-presentation"
                   value={answersData.step8.presentationNotes}
                   onChange={(e) => setField('step8.presentationNotes', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -499,8 +514,9 @@ const Day5Page = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Feedback you gave others</label>
+                <label className="block text-sm font-medium mb-1" htmlFor="day5-step8-feedback-given">Feedback you gave others</label>
                 <textarea
+                  id="day5-step8-feedback-given"
                   value={answersData.step8.peerFeedbackGiven}
                   onChange={(e) => setField('step8.peerFeedbackGiven', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -509,8 +525,9 @@ const Day5Page = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Feedback you received</label>
+                <label className="block text-sm font-medium mb-1" htmlFor="day5-step8-feedback-received">Feedback you received</label>
                 <textarea
+                  id="day5-step8-feedback-received"
                   value={answersData.step8.peerFeedbackReceived}
                   onChange={(e) => setField('step8.peerFeedbackReceived', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -558,8 +575,9 @@ const Day5Page = () => {
               <p className="text-gray-700 mb-2">
                 Imagine a classmate challenges your claim: “Your gene isn’t actually over-expressed; it’s just sample bias.”
               </p>
-              <label className="block text-sm font-medium mb-1">What extra evidence or analysis would you add to strengthen your conclusion?</label>
+              <label className="block text-sm font-medium mb-1" htmlFor="day5-inquiry-think">What extra evidence or analysis would you add to strengthen your conclusion?</label>
               <textarea
+                id="day5-inquiry-think"
                 value={answersData.inquiry.think}
                 onChange={(e) => setField('inquiry.think', e.target.value)}
                 className="w-full border border-gray-300 rounded-lg p-3"
@@ -588,8 +606,9 @@ const Day5Page = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Why is communicating scientific findings effectively important?</label>
+              <label className="block text-sm font-medium mb-1" htmlFor="day5-wrap-why-comm">Why is communicating scientific findings effectively important?</label>
               <textarea
+                id="day5-wrap-why-comm"
                 value={answersData.wrap.whyCommMatters}
                 onChange={(e) => setField('wrap.whyCommMatters', e.target.value)}
                 className="w-full border border-gray-300 rounded p-3"
@@ -598,8 +617,9 @@ const Day5Page = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">How can you use these skills in future projects (or everyday life)?</label>
+              <label className="block text-sm font-medium mb-1" htmlFor="day5-wrap-looking-ahead">How can you use these skills in future projects (or everyday life)?</label>
               <textarea
+                id="day5-wrap-looking-ahead"
                 value={answersData.wrap.lookingAhead}
                 onChange={(e) => setField('wrap.lookingAhead', e.target.value)}
                 className="w-full border border-gray-300 rounded p-3"
@@ -610,8 +630,9 @@ const Day5Page = () => {
           </div>
 
           <div className="mt-4">
-            <label className="block text-sm font-medium mb-1">Final Reflection: What did you learn from making your slideshow?</label>
+            <label className="block text-sm font-medium mb-1" htmlFor="day5-wrap-final">Final Reflection: What did you learn from making your slideshow?</label>
             <textarea
+              id="day5-wrap-final"
               value={answersData.wrap.finalReflection}
               onChange={(e) => setField('wrap.finalReflection', e.target.value)}
               className="w-full border border-gray-300 rounded p-3"

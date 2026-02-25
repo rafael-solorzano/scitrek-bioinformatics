@@ -488,15 +488,18 @@ const Day2Page = () => {
 
             <div className="space-y-6 text-sm">
               <div>
-                <p className="font-medium mb-2">1) What are the two phases of the cell cycle?</p>
+                <label className="font-medium mb-2 block" htmlFor="day2-cell-phases-0">1) What are the two phases of the cell cycle?</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <input
+                    id="day2-cell-phases-0"
                     value={answersData.cellCycle.phasesTwo[0]}
                     onChange={e => setField('cellCycle.phasesTwo[0]', e.target.value)}
                     className="border-b-2 border-primary-300 focus:border-primary-500 outline-none px-2 py-1"
                     placeholder="Type here…"
                   />
                   <input
+                    id="day2-cell-phases-1"
+                    aria-label="Second phase of the cell cycle"
                     value={answersData.cellCycle.phasesTwo[1]}
                     onChange={e => setField('cellCycle.phasesTwo[1]', e.target.value)}
                     className="border-b-2 border-primary-300 focus:border-primary-500 outline-none px-2 py-1"
@@ -506,8 +509,9 @@ const Day2Page = () => {
               </div>
 
               <div>
-                <p className="font-medium mb-2">2) Describe the three subphases of interphase.</p>
+                <label className="font-medium mb-2 block" htmlFor="day2-cell-interphase-g1">2) Describe the three subphases of interphase.</label>
                 <AutoResizeTextarea
+                  id="day2-cell-interphase-g1"
                   value={answersData.cellCycle.interphaseG1}
                   onChange={e => setField('cellCycle.interphaseG1', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2 mb-2"
@@ -515,6 +519,8 @@ const Day2Page = () => {
                   placeholder="G1 (Gap/Growth 1)…"
                 />
                 <AutoResizeTextarea
+                  id="day2-cell-interphase-s"
+                  aria-label="S (Synthesis) subphase"
                   value={answersData.cellCycle.interphaseS}
                   onChange={e => setField('cellCycle.interphaseS', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2 mb-2"
@@ -522,6 +528,8 @@ const Day2Page = () => {
                   placeholder="S (Synthesis)…"
                 />
                 <AutoResizeTextarea
+                  id="day2-cell-interphase-g2"
+                  aria-label="G2 (Gap/Growth 2) subphase"
                   value={answersData.cellCycle.interphaseG2}
                   onChange={e => setField('cellCycle.interphaseG2', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2"
@@ -531,11 +539,13 @@ const Day2Page = () => {
               </div>
 
               <div>
-                <p className="font-medium mb-2">3) Describe the four phases of mitosis:</p>
+                <label className="font-medium mb-2 block">3) Describe the four phases of mitosis:</label>
                 {['prophase','metaphase','anaphase','telophase'].map(phase => (
                   <div key={phase} className="grid grid-cols-1 gap-3 mb-3">
                     {/* Removed the drawing/link input per request */}
                     <AutoResizeTextarea
+                      id={`day2-cell-mitosis-${phase}`}
+                      aria-label={`${phase[0].toUpperCase() + phase.slice(1)} — describe what you see`}
                       value={answersData.cellCycle.mitosisSketch[phase].desc}
                       onChange={e => setField(`cellCycle.mitosisSketch.${phase}.desc`, e.target.value)}
                       className="border border-gray-300 rounded px-3 py-2"
@@ -547,10 +557,11 @@ const Day2Page = () => {
               </div>
 
               <div>
-                <p className="font-medium mb-2">4) Describe a cell in cytokinesis.</p>
+                <label className="font-medium mb-2 block" htmlFor="day2-cell-cytokinesis">4) Describe a cell in cytokinesis.</label>
                 <div className="grid grid-cols-1 gap-3">
                   {/* Removed the drawing input per request */}
                   <AutoResizeTextarea
+                    id="day2-cell-cytokinesis"
                     value={answersData.cellCycle.cytokinesis.desc}
                     onChange={e => setField('cellCycle.cytokinesis.desc', e.target.value)}
                     className="border border-gray-300 rounded px-3 py-2"
@@ -561,8 +572,9 @@ const Day2Page = () => {
               </div>
 
               <div>
-                <p className="font-medium mb-2">5) When cells no longer need to divide, what stage do they enter? Describe.</p>
+                <label className="font-medium mb-2 block" htmlFor="day2-cell-post-division">5) When cells no longer need to divide, what stage do they enter? Describe.</label>
                 <AutoResizeTextarea
+                  id="day2-cell-post-division"
                   value={answersData.cellCycle.postDivisionStage}
                   onChange={e => setField('cellCycle.postDivisionStage', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2"
@@ -604,8 +616,9 @@ const Day2Page = () => {
             <h4 className="text-xl font-semibold mb-4">After the video</h4>
             <div className="space-y-5 text-sm">
               <div>
-                <p className="font-medium mb-1">1) How does cancer differ from normal cell growth?</p>
+                <label className="font-medium mb-1 block" htmlFor="day2-cancer-how-differs">1) How does cancer differ from normal cell growth?</label>
                 <AutoResizeTextarea
+                  id="day2-cancer-how-differs"
                   value={answersData.cancerBasics.howDiffers}
                   onChange={e => setField('cancerBasics.howDiffers', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -614,8 +627,9 @@ const Day2Page = () => {
                 />
               </div>
               <div>
-                <p className="font-medium mb-1">2) Name & describe two hallmarks of cancer from the video.</p>
+                <label className="font-medium mb-1 block" htmlFor="day2-cancer-two-hallmarks">2) Name & describe two hallmarks of cancer from the video.</label>
                 <AutoResizeTextarea
+                  id="day2-cancer-two-hallmarks"
                   value={answersData.cancerBasics.twoHallmarks}
                   onChange={e => setField('cancerBasics.twoHallmarks', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -624,8 +638,9 @@ const Day2Page = () => {
                 />
               </div>
               <div>
-                <p className="font-medium mb-1">3) What role do mutations play in cancer development?</p>
+                <label className="font-medium mb-1 block" htmlFor="day2-cancer-mutations">3) What role do mutations play in cancer development?</label>
                 <AutoResizeTextarea
+                  id="day2-cancer-mutations"
                   value={answersData.cancerBasics.mutationsRole}
                   onChange={e => setField('cancerBasics.mutationsRole', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -634,10 +649,11 @@ const Day2Page = () => {
                 />
               </div>
               <div>
-                <p className="font-medium mb-1">
+                <label className="font-medium mb-1 block" htmlFor="day2-cancer-early-detection">
                   4) Stretch (beyond this video): Why is <em>early detection</em> important?
-                </p>
+                </label>
                 <AutoResizeTextarea
+                  id="day2-cancer-early-detection"
                   value={answersData.cancerBasics.earlyDetection}
                   onChange={e => setField('cancerBasics.earlyDetection', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -684,8 +700,9 @@ const Day2Page = () => {
 
           <div className="border border-gray-200 rounded-2xl p-4 md:p-6 space-y-4 text-sm mt-6">
             <div>
-              <p className="font-medium mb-1">Slide 2 — What are <b>oncogenes</b>?</p>
+              <label className="font-medium mb-1 block" htmlFor="day2-p53-oncogenes">Slide 2 — What are <b>oncogenes</b>?</label>
               <input
+                id="day2-p53-oncogenes"
                 value={answersData.p53Sim.oncogenes}
                 onChange={e => setField('p53Sim.oncogenes', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
@@ -693,8 +710,9 @@ const Day2Page = () => {
               />
             </div>
             <div>
-              <p className="font-medium mb-1">Slide 2 — What are <b>tumor suppressor genes</b>?</p>
+              <label className="font-medium mb-1 block" htmlFor="day2-p53-tumor-suppressors">Slide 2 — What are <b>tumor suppressor genes</b>?</label>
               <input
+                id="day2-p53-tumor-suppressors"
                 value={answersData.p53Sim.tumorSuppressors}
                 onChange={e => setField('p53Sim.tumorSuppressors', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
@@ -702,8 +720,9 @@ const Day2Page = () => {
               />
             </div>
             <div>
-              <p className="font-medium mb-1">Slide 2 — What are <b>DNA repair genes</b>?</p>
+              <label className="font-medium mb-1 block" htmlFor="day2-p53-dna-repair">Slide 2 — What are <b>DNA repair genes</b>?</label>
               <input
+                id="day2-p53-dna-repair"
                 value={answersData.p53Sim.dnaRepair}
                 onChange={e => setField('p53Sim.dnaRepair', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
@@ -711,8 +730,9 @@ const Day2Page = () => {
               />
             </div>
             <div>
-              <p className="font-medium mb-1">Slide 3 — Normal function of <b>p53</b> in a healthy cell?</p>
+              <label className="font-medium mb-1 block" htmlFor="day2-p53-function">Slide 3 — Normal function of <b>p53</b> in a healthy cell?</label>
               <input
+                id="day2-p53-function"
                 value={answersData.p53Sim.p53Function}
                 onChange={e => setField('p53Sim.p53Function', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
@@ -722,6 +742,8 @@ const Day2Page = () => {
             <div>
               <p className="font-medium mb-1">Slide 5 — “p53 functions primarily as a ________.”</p>
               <input
+                id="day2-p53-tf-blank"
+                aria-label='Slide 5 — p53 functions primarily as a blank (fill the blank)'
                 value={answersData.p53Sim.p53TFBlank}
                 onChange={e => setField('p53Sim.p53TFBlank', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
@@ -729,8 +751,9 @@ const Day2Page = () => {
               />
             </div>
             <div>
-              <p className="font-medium mb-1">Slide 6 — Effect of <b>Mdm2</b> on p53?</p>
+              <label className="font-medium mb-1 block" htmlFor="day2-p53-mdm2">Slide 6 — Effect of <b>Mdm2</b> on p53?</label>
               <input
+                id="day2-p53-mdm2"
                 value={answersData.p53Sim.mdm2Effect}
                 onChange={e => setField('p53Sim.mdm2Effect', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
@@ -774,14 +797,17 @@ const Day2Page = () => {
 
           <div className="border border-gray-200 rounded-2xl p-4 md:p-6 space-y-5 text-sm mt-6">
             <div>
-            <p className="font-medium mb-1"> Overview — Molecular signals can cause cells to <b>divide</b>, ________, or ________. Fill the two blanks.</p>
+            <label className="font-medium mb-1 block" htmlFor="day2-cycle-cells-do-0"> Overview — Molecular signals can cause cells to <b>divide</b>, ________, or ________. Fill the two blanks.</label>
               <input
+                id="day2-cycle-cells-do-0"
                 value={answersData.cycleSim.cellsDo[0]}
                 onChange={e => setField('cycleSim.cellsDo[0]', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
                 placeholder='First blank'
               />
               <input
+                id="day2-cycle-cells-do-1"
+                aria-label="Second blank"
                 value={answersData.cycleSim.cellsDo[1]}
                 onChange={e => setField('cycleSim.cellsDo[1]', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2 mt-2"
@@ -791,8 +817,9 @@ const Day2Page = () => {
             </div>
 
             <div>
-              <p className="font-medium mb-1">Overview — What is <b>apoptosis</b>, and why is it beneficial?</p>
+              <label className="font-medium mb-1 block" htmlFor="day2-cycle-apoptosis">Overview — What is <b>apoptosis</b>, and why is it beneficial?</label>
               <AutoResizeTextarea
+                id="day2-cycle-apoptosis"
                 value={answersData.cycleSim.apoptosis}
                 onChange={e => setField('cycleSim.apoptosis', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
@@ -814,8 +841,9 @@ const Day2Page = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <p className="font-medium mb-1">Give one issue that arises with <b>too few</b> cells.</p>
+                <label className="font-medium mb-1 block" htmlFor="day2-cycle-too-few">Give one issue that arises with <b>too few</b> cells.</label>
                 <input
+                  id="day2-cycle-too-few"
                   value={answersData.cycleSim.tooFewCells}
                   onChange={e => setField('cycleSim.tooFewCells', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2"
@@ -823,8 +851,9 @@ const Day2Page = () => {
                 />
               </div>
               <div>
-                <p className="font-medium mb-1">Give one issue that arises with <b>too many</b> cells.</p>
+                <label className="font-medium mb-1 block" htmlFor="day2-cycle-too-many">Give one issue that arises with <b>too many</b> cells.</label>
                 <input
+                  id="day2-cycle-too-many"
                   value={answersData.cycleSim.tooManyCells}
                   onChange={e => setField('cycleSim.tooManyCells', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2"
@@ -834,8 +863,9 @@ const Day2Page = () => {
             </div>
 
             <div>
-              <p className="font-medium mb-1">Cell Cycle Phases — Notes (G1, S, G2, M + checkpoints)</p>
+              <label className="font-medium mb-1 block" htmlFor="day2-cycle-phases-notes">Cell Cycle Phases — Notes (G1, S, G2, M + checkpoints)</label>
               <AutoResizeTextarea
+                id="day2-cycle-phases-notes"
                 value={answersData.cycleSim.phasesNotes}
                 onChange={e => setField('cycleSim.phasesNotes', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
@@ -845,8 +875,9 @@ const Day2Page = () => {
             </div>
 
             <div>
-              <p className="font-medium mb-1">Regulators & Cancer — Notes</p>
+              <label className="font-medium mb-1 block" htmlFor="day2-cycle-regulators-notes">Regulators & Cancer — Notes</label>
               <AutoResizeTextarea
+                id="day2-cycle-regulators-notes"
                 value={answersData.cycleSim.regulatorsNotes}
                 onChange={e => setField('cycleSim.regulatorsNotes', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
@@ -857,8 +888,9 @@ const Day2Page = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <p className="font-medium mb-1">What-if scenario (e.g., turn p53 off, overexpress cyclin D, disable G2/M arrest):</p>
+                <label className="font-medium mb-1 block" htmlFor="day2-cycle-what-if">What-if scenario (e.g., turn p53 off, overexpress cyclin D, disable G2/M arrest):</label>
                 <AutoResizeTextarea
+                  id="day2-cycle-what-if"
                   value={answersData.cycleSim.whatIf}
                   onChange={e => setField('cycleSim.whatIf', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2"
@@ -867,8 +899,9 @@ const Day2Page = () => {
                 />
               </div>
               <div>
-                <p className="font-medium mb-1">Observation — what happened?</p>
+                <label className="font-medium mb-1 block" htmlFor="day2-cycle-observe">Observation — what happened?</label>
                 <AutoResizeTextarea
+                  id="day2-cycle-observe"
                   value={answersData.cycleSim.whatIfObservation}
                   onChange={e => setField('cycleSim.whatIfObservation', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2"
@@ -920,10 +953,11 @@ const Day2Page = () => {
 
             <div className="bg-white rounded-xl p-6 shadow-sm relative z-10">
               <h3 className="text-xl font-semibold mb-4 text-primary-700">Think & Respond</h3>
-              <p className="text-gray-700 mb-4">
+              <label className="text-gray-700 mb-4 block" htmlFor="day2-inquiry-think">
                 Scenario: A cell has severe DNA damage, p53 is mutated, and cyclin D is overexpressed. Predict what happens at the G1/S checkpoint.
-              </p>
+              </label>
               <AutoResizeTextarea
+                id="day2-inquiry-think"
                 value={answersData.inquiry.think}
                 onChange={e => setField('inquiry.think', e.target.value)}
                 className="w-full border border-gray-300 rounded-lg p-3"
