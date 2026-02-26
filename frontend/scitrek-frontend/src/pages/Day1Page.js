@@ -617,6 +617,7 @@ const Day1Page = () => {
                   className="w-full max-w-xs h-48 object-cover rounded-xl shadow-md"
                   src="https://storage.googleapis.com/uxpilot-auth.appspot.com/7571bd2468-b274dc1a8a8148360b21.png"
                   alt="DNA double helix illustration"
+                  title="DNA double helix illustration"
                 />
               </div>
             </div>
@@ -1367,7 +1368,8 @@ const Day1Page = () => {
             <img
               className="w-full h-auto object-contain"
               src="https://storage.googleapis.com/uxpilot-auth.appspot.com/83ad216047-58dd7cda2076e1890e82.png"
-              alt="gene regulation diagram large"
+              alt="Gene regulation diagram showing how genes are turned on and off"
+              title="Gene regulation diagram"
             />
             <div className="text-right mt-3">
               <button

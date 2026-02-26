@@ -47,7 +47,7 @@ const TeamSection = () => (
       {teamMembers.map((member) => (
         <div className="team-member" key={member.id}>
           <div className="team-photo">
-            <img src={member.image} alt={member.name} />
+            <img src={member.image} alt={member.name || 'Team member'} />
           </div>
           <div className="team-info">
             <h3>{member.name}</h3>

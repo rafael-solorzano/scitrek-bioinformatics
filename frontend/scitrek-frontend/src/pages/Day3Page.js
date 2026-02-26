@@ -258,13 +258,13 @@ const Day3Page = () => {
       {!honestyAck && (
         <div className="bg-amber-50 border-b border-amber-200 text-amber-900">
           <div className="container mx-auto px-4 py-3 text-sm flex items-start gap-3">
-            <i className="fa-solid fa-hand text-amber-600 mt-0.5" />
+            <i className="fa-solid fa-hand text-amber-800 mt-0.5" aria-hidden="true" />
             <div className="flex-1">
               <b>Heads up:</b> This activity is about your thinking. Please do your own work (don’t paste AI-generated answers).
               We’ll give you examples and scaffolds below.
             </div>
             <button
-              className="ml-2 px-3 py-1 rounded border bg-white hover:bg-amber-100"
+              className="ml-2 px-3 py-1 rounded border border-amber-700 bg-white text-gray-900 hover:bg-amber-100"
               onClick={() => setHonestyAck(true)}
             >
               I understand
@@ -673,8 +673,8 @@ const Day3Page = () => {
         {/* Inquiry & Discussion */}
         <section id="inquiry-section" className="mb-16">
           <div className="bg-primary-100 rounded-2xl shadow-md p-6 md:p-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 -mt-10 -mr-10 text-primary-200">
-              <i className="fa-solid fa-quote-right text-9xl opacity-30" />
+            <div className="absolute top-0 right-0 w-32 h-32 -mt-10 -mr-10 text-primary-400 opacity-20" aria-hidden="true">
+              <i className="fa-solid fa-quote-right text-9xl" />
             </div>
 
             <h2 className="text-2xl font-bold mb-6 text-primary-800 relative z-10">
@@ -821,7 +821,7 @@ const Day3Page = () => {
             </button>
             <img
               src={lightbox.src}
-              alt={lightbox.alt}
+              alt={lightbox.alt || 'Enlarged image'}
               className="max-w-full max-h-[85vh] w-auto h-auto object-contain rounded-xl shadow-2xl bg-white"
             />
           </div>

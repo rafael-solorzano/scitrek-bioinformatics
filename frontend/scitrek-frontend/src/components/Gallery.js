@@ -128,7 +128,7 @@ const Gallery = () => {
               ) : (
                 <img
                   src={slide.mediaSrc}
-                  alt={slide.title}
+                  alt={slide.title || 'Gallery slide'}
                   style={{ maxWidth: '100%' }}
                 />
               )}

@@ -12,7 +12,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #e39c04;
+  background: #c2410c; /* Dark orange (primary-500): matches page accents, WCAG 2 AA with white */
   color: white;
   padding: 20px;
 }

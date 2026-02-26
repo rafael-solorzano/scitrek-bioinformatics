@@ -35,7 +35,7 @@ const ResourceSection = () => (
       {resources.map(resource => (
         <div className="ft-resource" key={resource.id}>
           <div className="ft-resource-photo">
-            <img src={resource.image} alt={resource.title} />
+            <img src={resource.image} alt={resource.title || 'Resource'} />
           </div>
           <div className="ft-resource-info">
             <a href={resource.link} target="_blank" rel="noreferrer">

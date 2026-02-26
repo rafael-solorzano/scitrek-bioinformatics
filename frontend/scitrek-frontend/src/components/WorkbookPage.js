@@ -41,7 +41,7 @@ const WorkbookPage = () => {
             <div className="section-images">
               {section.images.map(img => (
                 <figure key={img.id}>
-                  <img src={img.image} alt={img.caption} />
+                  <img src={img.image} alt={img.caption || 'Workbook image'} />
                   {img.caption && <figcaption>{img.caption}</figcaption>}
                 </figure>
               ))}

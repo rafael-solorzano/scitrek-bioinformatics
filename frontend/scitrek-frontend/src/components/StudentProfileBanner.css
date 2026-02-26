@@ -1,11 +1,11 @@
 /* src/components/StudentProfileBanner.css */
 
-/* Container - WCAG 2 AA: white text on #b45309 meets 4.5:1 */
+/* Container - dark orange (primary-500): matches page, WCAG 2 AA with white */
 .profile-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #b45309;
+  background-color: #c2410c;
   padding: 1rem 2rem;
 }
 

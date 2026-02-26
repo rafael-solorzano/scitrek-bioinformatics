@@ -2,7 +2,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #e39c04;
+  background: #c2410c; /* Dark orange (primary-500): matches page accents, WCAG 2 AA with white */
   padding: 10px 20px;
   color: white;
   font-family: Arial, sans-serif;

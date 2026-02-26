@@ -27,6 +27,7 @@ const StudentProfileBanner = ({ user, onLogout }) => {
           <img
             src="/images/scitrek_logo.png"
             alt="SciTrek Logo"
+            title="SciTrek Logo"
             style={{ height: 50 }}
           />
         </Link>
