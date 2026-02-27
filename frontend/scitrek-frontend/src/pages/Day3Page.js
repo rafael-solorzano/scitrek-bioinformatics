@@ -590,8 +590,8 @@ const Day3Page = () => {
           <div className="flex items-start justify-between gap-3">
             <h3 className="text-2xl font-semibold mb-4">Gene Detective — Formulate a Hypothesis</h3>
             <div className="flex gap-3 mt-1">
-              <a href="#gene-cards" className="text-primary-600 underline text-sm">Jump to cards ↑</a>
-              <a href="#background-hypothesis" className="text-primary-600 underline text-sm">Jump to background ↑</a>
+              <a href="#gene-cards" className="text-primary-700 underline text-sm hover:text-primary-800">Jump to cards ↑</a>
+              <a href="#background-hypothesis" className="text-primary-700 underline text-sm hover:text-primary-800">Jump to background ↑</a>
             </div>
           </div>
 
