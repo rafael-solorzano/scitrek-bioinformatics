@@ -26,10 +26,12 @@ const WorkbookList = () => {
               <strong>{wb.title}</strong>
               <p className="wb-desc">{wb.description}</p>
             </div>
-            <Link to={`/workbooks/${wb.id}`}>
-              <button className="start-btn">
-                {wb.sections && wb.sections.length ? 'Continue' : 'Start'}
-              </button>
+            <Link
+              to={`/workbooks/${wb.id}`}
+              className="start-btn"
+              aria-label={wb.sections && wb.sections.length ? `Continue ${wb.title}` : `Start ${wb.title}`}
+            >
+              {wb.sections && wb.sections.length ? 'Continue' : 'Start'}
             </Link>
           </li>
         ))}

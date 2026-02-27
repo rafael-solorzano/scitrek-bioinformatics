@@ -244,7 +244,7 @@ const Day3Page = () => {
 
       {/* autosave status badge (matches Day 5) */}
       <div className="fixed bottom-4 right-4 z-40">
-        <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
+        <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-800">
           {saving
             ? 'Autosaving…'
             : lastSavedAt
@@ -277,17 +277,17 @@ const Day3Page = () => {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-3">Day 3: Seeing Static — Gene Signals & Cancer Detection</h1>
-          <h2 className="text-xl md:text-2xl text-gray-600">How expression levels hint at disease</h2>
+          <h2 className="text-xl md:text-2xl text-gray-800">How expression levels hint at disease</h2>
         </div>
 
         {/* Objective */}
         <section id="objective-section">
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border-l-4 border-primary-500">
-            <h2 className="text-2xl font-bold mb-4 flex items-center text-primary-700">
+            <h2 className="text-2xl font-bold mb-4 flex items-center text-primary-800">
               <i className="fa-solid fa-bullseye text-primary-500 mr-3" />
               Objective
             </h2>
-            <p className="text-gray-700">
+            <p className="text-gray-800">
               Explore how scientists detect cancer by looking at gene expression “volume.” If key genes are too loud
               (over-expressed) or too quiet (under-expressed), that imbalance can signal trouble.
             </p>
@@ -328,7 +328,7 @@ const Day3Page = () => {
           {/* 1. Intro to Gene Expression & Detection */}
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">What Does Gene Expression Look Like?</h3>
-            <p className="text-gray-700 mb-4">
+            <p className="text-gray-800 mb-4">
               Review your Day 1 and 2 notes on oncogenes, tumor suppressors, and DNA repair genes. Then answer:
             </p>
             <label className="block text-sm font-medium mb-2" htmlFor="day3-intro-loud-quiet">
@@ -353,7 +353,7 @@ const Day3Page = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
                 <label className="font-medium mb-2 block" htmlFor="day3-compare-healthy">Describe expression in healthy cells</label>
-                <p className="text-xs text-gray-600 mb-1">
+                <p className="text-xs text-gray-800 mb-1">
                   Hint: housekeeping steady; cancer-linked genes within normal ranges and responding to signals.
                 </p>
                 <textarea
@@ -368,7 +368,7 @@ const Day3Page = () => {
               </div>
               <div>
                 <label className="font-medium mb-2 block" htmlFor="day3-compare-cancer">Describe expression in cancerous cells</label>
-                <p className="text-xs text-gray-600 mb-1">
+                <p className="text-xs text-gray-800 mb-1">
                   Hint: examples of over/under-expression (e.g., MYC high; TP53 low) and why those matter.
                 </p>
                 <textarea
@@ -384,7 +384,7 @@ const Day3Page = () => {
             </div>
 
             <h4 className="font-medium mb-2">Categorize each gene (Typical vs Suspicious)</h4>
-            <p className="text-xs text-gray-600 mb-2">Use the cards below to help your decision.</p>
+            <p className="text-xs text-gray-800 mb-2">Use the cards below to help your decision.</p>
             <div className="overflow-x-auto border border-gray-200 rounded-lg">
               <table className="min-w-full text-sm">
                 <thead>
@@ -451,7 +451,7 @@ const Day3Page = () => {
 
             <div className="mt-4">
               <h4 className="font-medium mb-2" id="day3-patterns-label">Patterns you noticed</h4>
-              <p className="text-xs text-gray-600 mb-1">
+              <p className="text-xs text-gray-800 mb-1">
                 Hint: trends across healthy vs cancerous; housekeeping vs candidates; “too loud/too quiet” pairs.
               </p>
               <textarea
@@ -479,7 +479,7 @@ const Day3Page = () => {
         {/* Gene Cards */}
         <section id="gene-cards" className="space-y-4 scroll-mt-24">
           <h2 className="text-3xl font-bold text-center">Gene Cards</h2>
-          <p className="text-center text-gray-600 max-w-3xl mx-auto">
+          <p className="text-center text-gray-800 max-w-3xl mx-auto">
             Use these visuals while you mark each gene <span className="font-medium">Typical</span> or <span className="font-medium">Suspicious</span>.
           </p>
 
@@ -512,7 +512,7 @@ const Day3Page = () => {
         {/* Patient/Suspect Cards */}
         <section id="suspect-cards" className="space-y-4 scroll-mt-24">
           <h2 className="text-3xl font-bold text-center">Patient Cards</h2>
-          <p className="text-center text-gray-600 max-w-3xl mx-auto">
+          <p className="text-center text-gray-800 max-w-3xl mx-auto">
             These tissue profiles show real expression patterns. Compare with the gene cards to decide whether cancer is likely.
             Tap a card to zoom.
           </p>
@@ -590,15 +590,15 @@ const Day3Page = () => {
           <div className="flex items-start justify-between gap-3">
             <h3 className="text-2xl font-semibold mb-4">Gene Detective — Formulate a Hypothesis</h3>
             <div className="flex gap-3 mt-1">
-              <a href="#gene-cards" className="text-primary-700 underline text-sm hover:text-primary-800">Jump to cards ↑</a>
-              <a href="#background-hypothesis" className="text-primary-700 underline text-sm hover:text-primary-800">Jump to background ↑</a>
+              <a href="#gene-cards" className="text-primary-800 underline text-sm hover:text-primary-800">Jump to cards ↑</a>
+              <a href="#background-hypothesis" className="text-primary-800 underline text-sm hover:text-primary-800">Jump to background ↑</a>
             </div>
           </div>
 
           <label className="block text-sm font-medium mb-1">
             A) Which patient cards looked <b>most suspicious</b>, and why?
           </label>
-          <p className="text-xs text-gray-600 mb-2">
+          <p className="text-xs text-gray-800 mb-2">
             Refer to specific genes/patterns (e.g., “MYC looks very high while TP53 looks low in Case 2”).
           </p>
           <textarea
@@ -611,7 +611,7 @@ const Day3Page = () => {
           />
 
           <label className="block text-sm font-medium mb-1">B) Write a clear, testable hypothesis.</label>
-          <p className="text-xs text-gray-600 mb-2">
+          <p className="text-xs text-gray-800 mb-2">
             Include groups and measurement. Example: “In Patient Case 3, <b>BRCA1</b> expression is lower than in matched normal tissue as measured by qPCR.”
           </p>
           <textarea
@@ -624,7 +624,7 @@ const Day3Page = () => {
           />
 
           <label className="block text-sm font-medium mb-1" htmlFor="day3-detective-experiment">C) Describe a simple experiment to test it.</label>
-          <p className="text-xs text-gray-600 mb-2">
+          <p className="text-xs text-gray-800 mb-2">
             Mention <em>samples</em> (e.g., tumor vs matched normal), <em>method</em> (qPCR/RNA-seq/IHC), <em>control</em> (housekeeping gene), and a
             <em> decision rule</em> (what result would support your hypothesis?).
           </p>
@@ -651,19 +651,19 @@ const Day3Page = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-gray-50 rounded-xl p-4 border">
               <h4 className="font-semibold mb-1">Imaging First</h4>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-gray-800">
                 Ultrasound, MRI, PET can find masses. Concerning features (shape, vascularity, growth rate) may lead to biopsy and expression testing.
               </p>
             </div>
             <div className="bg-gray-50 rounded-xl p-4 border">
               <h4 className="font-semibold mb-1">Known Mutations</h4>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-gray-800">
                 Mutations like <span className="font-medium">BRCA1/2</span> increase risk; may trigger earlier testing and monitoring.
               </p>
             </div>
             <div className="bg-gray-50 rounded-xl p-4 border">
               <h4 className="font-semibold mb-1">Multiple Methods</h4>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-gray-800">
                 Diagnosis uses combined evidence (imaging, histology, gene expression) for the clearest picture.
               </p>
             </div>
@@ -693,17 +693,17 @@ const Day3Page = () => {
                     <h4 className="font-medium">{item.q}</h4>
                     <i className="fa-solid fa-chevron-down text-gray-500" />
                   </summary>
-                  <div className="px-4 pb-4 pt-2 text-gray-600 text-sm">{item.a}</div>
+                  <div className="px-4 pb-4 pt-2 text-gray-800 text-sm">{item.a}</div>
                 </details>
               ))}
             </div>
 
             <div className="bg-white rounded-xl p-6 shadow-sm relative z-10">
-              <h3 className="text-xl font-semibold mb-2 text-primary-700">Think & Respond</h3>
-              <p className="text-gray-700 mb-2">
+              <h3 className="text-xl font-semibold mb-2 text-primary-800">Think & Respond</h3>
+              <p className="text-gray-800 mb-2">
                 Scenario: You observe high <b>MYC</b> expression and low <b>TP53</b> expression in a sample.
               </p>
-              <p className="text-xs text-gray-600 mb-3">
+              <p className="text-xs text-gray-800 mb-3">
                 Write one hypothesis and one measurement you’d use to test it (e.g., “qPCR of MYC and TP53 vs housekeeping gene”).
               </p>
               <textarea

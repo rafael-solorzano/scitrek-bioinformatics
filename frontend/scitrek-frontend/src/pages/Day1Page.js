@@ -185,7 +185,7 @@ function Chip({ active, children, onClick }) {
         'px-3 py-1 rounded-full border text-sm transition',
         active
           ? 'bg-primary-500 text-white border-primary-600'
-          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+          : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
       ].join(' ')}
       aria-pressed={active}
     >
@@ -579,7 +579,7 @@ const Day1Page = () => {
 
       {/* autosave status badge (same UX as Day5) */}
       <div className="fixed bottom-4 right-4 z-40">
-        <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
+        <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-800">
           {saving
             ? 'Autosaving…'
             : lastSavedAt
@@ -595,7 +595,7 @@ const Day1Page = () => {
         {/* Section 1: Welcome & Orientation */}
         <div className="text-center mb-8" id="welcome-section">
           <h1 className="text-4xl md:text-5xl font-bold mb-3">Day 1: Unlocking the Code</h1>
-          <h2 className="text-xl md:text-2xl text-gray-700 mb-8">How Your Cells Decide What to Do</h2>
+          <h2 className="text-xl md:text-2xl text-gray-800 mb-8">How Your Cells Decide What to Do</h2>
         </div>
 
         {/* Section 2: Objective */}
@@ -603,7 +603,7 @@ const Day1Page = () => {
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border-l-4 border-primary-500">
             <div className="flex flex-col md:flex-row items-start">
               <div className="md:w-2/3 mb-6 md:mb-0 md:pr-8">
-                <h2 className="text-2xl md:text-3xl font-bold mb-4 flex items-center text-primary-700">
+                <h2 className="text-2xl md:text-3xl font-bold mb-4 flex items-center text-primary-800">
                   <i className="fa-solid fa-bullseye text-primary-500 mr-3" />
                   Objective
                 </h2>
@@ -636,11 +636,11 @@ const Day1Page = () => {
 
             <div className="flex flex-col md:flex-row">
               <div className="md:w-2/3 mb-6 md:mb-0 md:pr-8">
-                <p className="text-gray-700 mb-4">
+                <p className="text-gray-800 mb-4">
                   Gene regulation is how cells control which genes are expressed (ON) or repressed (OFF). Think of your genes
                   as a library of instructions—regulation decides which “books” are read when.
                 </p>
-                <p className="text-gray-700 mb-4">
+                <p className="text-gray-800 mb-4">
                   <span className="font-semibold">Note:</span> Parts of a gene (like <em>promoters</em> and other regulatory regions)
                   can encode instructions about when a gene should be used—so some regulation is literally <em>encoded within the gene</em>.
                 </p>
@@ -756,7 +756,7 @@ const Day1Page = () => {
               allowFullScreen
             />
           </div>
-          <p className="mt-2 text-sm text-gray-700">
+          <p className="mt-2 text-sm text-gray-800">
             <span className="font-medium">Heads-up:</span> In <em>translation</em>, the <b>ribosome</b> uses the <b>mRNA</b> to build a protein.
           </p>
 
@@ -817,7 +817,7 @@ const Day1Page = () => {
             <div className="flex items-center justify-between pt-2">
               <button
                 type="button"
-                className="text-sm text-gray-600 hover:text-gray-800 underline underline-offset-2"
+                className="text-sm text-gray-800 hover:text-gray-800 underline underline-offset-2"
                 onClick={() =>
                   setAnswersData((a) => {
                     const next = { ...a, fillBlanks: Array(13).fill('') };
@@ -841,7 +841,7 @@ const Day1Page = () => {
         {/* Section 5: Gene Expression vs. Regulation (DnD + Q1) */}
         <section id="gene-expression-section" className="border border-gray-200 rounded-2xl p-6 md:p-8 bg-white">
           <h4 className="text-xl font-semibold mb-4">Gene Expression vs Gene Regulation</h4>
-          <p className="text-gray-700 mb-6">
+          <p className="text-gray-800 mb-6">
             What’s the relationship between expression and regulation, and why does it matter for our health?
           </p>
           <label htmlFor="day1-gene-q1" className="sr-only">Gene expression vs regulation response</label>
@@ -920,7 +920,7 @@ const Day1Page = () => {
                       {Array.from({ length: ORDER_SIZE - filled.length }).map((_, i) => (
                         <div
                           key={`slot-${i}`}
-                          className="rounded-lg p-3 mb-2 min-h-[48px] flex items-center justify-center bg-primary-100/40 text-gray-600"
+                          className="rounded-lg p-3 mb-2 min-h-[48px] flex items-center justify-center bg-primary-100/40 text-gray-800"
                         >
                           Drop step {filled.length + i + 1} here
                         </div>
@@ -1023,7 +1023,7 @@ const Day1Page = () => {
               {/* Embedded iframe + toolbar */}
               <div className="bg-gray-100 rounded-xl p-3 md:p-4 relative overflow-hidden ring-1 ring-gray-200">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-sm font-medium text-gray-700">PhET: Gene Expression Essentials</div>
+                  <div className="text-sm font-medium text-gray-800">PhET: Gene Expression Essentials</div>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -1058,7 +1058,7 @@ const Day1Page = () => {
                   />
                 </div>
 
-                <p className="mt-2 text-xs text-gray-600">
+                <p className="mt-2 text-xs text-gray-800">
                   Trouble loading? Some school filters or browser extensions can block embeds. Use “Open in new tab” above if needed.
                 </p>
               </div>
@@ -1067,7 +1067,7 @@ const Day1Page = () => {
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="border-b border-gray-200 p-4">
                   <h4 className="font-semibold text-lg">Your Plan for Each Gene</h4>
-                  <p className="text-sm text-gray-700 mt-1">
+                  <p className="text-sm text-gray-800 mt-1">
                     Write only the parts you actually used, in order. It’s ok if some tools weren’t needed.
                   </p>
                 </div>
@@ -1076,7 +1076,7 @@ const Day1Page = () => {
                   {/* Gene 1 */}
                   <div className="p-4">
                     <h5 className="font-medium mb-2">Gene 1</h5>
-                    <p className="text-gray-700 text-sm mb-2">
+                    <p className="text-gray-800 text-sm mb-2">
                       Plan the <b>three</b> you’ll need.
                     </p>
                     {['i.', 'ii.', 'iii.'].map((label, idx) => (
@@ -1103,7 +1103,7 @@ const Day1Page = () => {
                   {/* Gene 2 */}
                   <div className="p-4">
                     <h5 className="font-medium mb-2">Gene 2</h5>
-                    <p className="text-gray-700 text-sm mb-2">
+                    <p className="text-gray-800 text-sm mb-2">
                       Only list the <b>four</b> parts you truly used, in order (not all tools are needed here).
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
@@ -1126,7 +1126,7 @@ const Day1Page = () => {
                   {/* Gene 3 */}
                   <div className="p-4">
                     <h5 className="font-medium mb-2">Gene 3</h5>
-                    <p className="text-gray-700 text-sm mb-2">List the <b>four</b> parts used here, in order:</p>
+                    <p className="text-gray-800 text-sm mb-2">List the <b>four</b> parts used here, in order:</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                       {['i', 'ii', 'iii', 'iv'].map((label, idx) => (
                         <div key={label} className="flex items-center">
@@ -1225,14 +1225,14 @@ const Day1Page = () => {
                     <h4 className="font-medium">{item.q}</h4>
                     <i className="fa-solid fa-chevron-down text-gray-500" />
                   </summary>
-                  <div className="px-4 pb-4 pt-2 text-gray-600 text-sm">{item.a}</div>
+                  <div className="px-4 pb-4 pt-2 text-gray-800 text-sm">{item.a}</div>
                 </details>
               ))}
             </div>
 
             <div className="bg-white rounded-xl p-6 shadow-sm relative z-10">
-              <h3 className="text-xl font-semibold mb-4 text-primary-700">Think & Respond</h3>
-              <p className="text-gray-700 mb-4">
+              <h3 className="text-xl font-semibold mb-4 text-primary-800">Think & Respond</h3>
+              <p className="text-gray-800 mb-4">
                 A cell is exposed to extreme heat. Predict how heat shock might change transcription factor activity and protein production.
               </p>
               <label htmlFor="day1-inquiry-think" className="sr-only">Think and respond</label>
@@ -1282,7 +1282,7 @@ const Day1Page = () => {
                     <i className="fa-solid fa-arrow-right text-primary-500 mr-2" />
                     Coming Up Tomorrow
                   </h4>
-                  <p className="text-gray-700 text-sm">
+                  <p className="text-gray-800 text-sm">
                     Day 2: “Gene Regulation in Action” — real-world examples of regulation and its impact on development & disease.
                   </p>
                 </div>
@@ -1291,7 +1291,7 @@ const Day1Page = () => {
               <div>
                 <h3 className="text-xl font-semibold mb-4">Reflection Journal</h3>
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <label className="text-gray-700 mb-3 block" htmlFor="day1-wrap-reflection">Reflect: What surprised you most today?</label>
+                  <label className="text-gray-800 mb-3 block" htmlFor="day1-wrap-reflection">Reflect: What surprised you most today?</label>
                   <textarea
                     id="day1-wrap-reflection"
                     value={answersData.wrap.reflection}

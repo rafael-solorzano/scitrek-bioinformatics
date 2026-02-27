@@ -19,7 +19,7 @@ const HomeHeader = ({ user, onLogout }) => {
   return (
     <header className="home-header">
       <div className="logo-section">
-        <Link to="/">
+        <Link to="/" aria-label="SciTrek home">
           <img src="/images/scitrek_logo.png" alt="SciTrek Logo" />
         </Link>
       </div>

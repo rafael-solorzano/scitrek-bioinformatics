@@ -33,18 +33,18 @@ const WelcomePage = () => {
         {/* Hero / Welcome */}
         <section className="text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-3">Welcome to SciTrek!</h1>
-          <h2 className="text-xl md:text-2xl text-gray-600">
+          <h2 className="text-xl md:text-2xl text-gray-800">
             Your interactive workbook for a week of discovery
           </h2>
         </section>
 
         {/* Intro Card */}
         <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
-          <h3 className="text-2xl font-bold mb-4 flex items-center text-primary-700">
+          <h3 className="text-2xl font-bold mb-4 flex items-center text-primary-800">
             <i className="fa-solid fa-compass text-primary-500 mr-3" />
             What this workbook is about
           </h3>
-          <p className="text-gray-700 leading-relaxed mb-6">
+          <p className="text-gray-800 leading-relaxed mb-6">
             We’re excited to have you here! This workbook will guide you through hands-on activities,
             team discussions, and real science investigations with support from SciTrek Mentors and Leads.
           </p>
@@ -55,7 +55,7 @@ const WelcomePage = () => {
                 <i className="fa-solid fa-rocket text-primary-500 mr-2" />
                 What to expect
               </h4>
-              <ul className="space-y-3 text-gray-700">
+              <ul className="space-y-3 text-gray-800">
                 <li className="flex items-start">
                   <i className="fa-solid fa-circle-check text-primary-500 mt-1 mr-3" />
                   Explore core biology concepts with interactive tools and guided prompts.
@@ -79,31 +79,31 @@ const WelcomePage = () => {
               <ul className="space-y-4">
                 <li>
                   <span className="font-medium">Day 1: Gene Regulation</span>
-                  <p className="text-gray-700 text-sm">
+                  <p className="text-gray-800 text-sm">
                     Learn how cells turn genes on and off—and why it matters.
                   </p>
                 </li>
                 <li>
                   <span className="font-medium">Day 2: Understanding Cancer</span>
-                  <p className="text-gray-700 text-sm">
+                  <p className="text-gray-800 text-sm">
                     Compare healthy and cancer cells to see what’s different.
                   </p>
                 </li>
                 <li>
                   <span className="font-medium">Day 3: How Do We Detect Cancer?</span>
-                  <p className="text-gray-700 text-sm">
+                  <p className="text-gray-800 text-sm">
                     Analyze data and explore how gene expression reveals patterns.
                   </p>
                 </li>
                 <li>
                   <span className="font-medium">Day 4: Expression Differences</span>
-                  <p className="text-gray-700 text-sm">
+                  <p className="text-gray-800 text-sm">
                     Investigate real gene expression differences between healthy and cancer cells.
                   </p>
                 </li>
                 <li>
                   <span className="font-medium">Day 5: Poster Symposium</span>
-                  <p className="text-gray-700 text-sm">
+                  <p className="text-gray-800 text-sm">
                     Team up to present a hallmark of colorectal cancer and share your findings.
                   </p>
                 </li>
@@ -116,7 +116,7 @@ const WelcomePage = () => {
               <i className="fa-solid fa-hand-holding-heart text-primary-500 mr-2" />
               You’ve got a team behind you
             </h4>
-            <p className="text-gray-700 text-sm">
+            <p className="text-gray-800 text-sm">
               Your teacher and the SciTrek team are here to help. Ask questions, share ideas, and have fun—this is your space to explore!
             </p>
           </div>
@@ -136,7 +136,7 @@ const WelcomePage = () => {
       {/* Footer nav (matches Day 1 style) */}
       <footer className="bg-white border-t border-gray-200 py-6 text-center">
         {/* No previous page here; show only Next
-        <Link to="/sections/what-youll-learn" className="text-primary-600 hover:text-primary-700 ml-4">
+        <Link to="/sections/what-youll-learn" className="text-primary-600 hover:text-primary-800 ml-4">
           <i className="fa-solid fa-arrow-right" />
         </Link> */}
       </footer>

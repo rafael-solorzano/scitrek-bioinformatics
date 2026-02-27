@@ -33,19 +33,19 @@ const WhatYoullLearnPage = () => {
         {/* Header */}
         <section className="text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-3">What You’ll Learn</h1>
-          <h2 className="text-xl md:text-2xl text-gray-600">
+          <h2 className="text-xl md:text-2xl text-gray-800">
             Skills & concepts in the Bioinformatics Module
           </h2>
         </section>
 
         {/* Learning Outcomes Card */}
         <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
-          <h3 className="text-2xl font-bold mb-4 flex items-center text-primary-700">
+          <h3 className="text-2xl font-bold mb-4 flex items-center text-primary-800">
             <i className="fa-solid fa-graduation-cap text-primary-500 mr-3" />
             By the end, you’ll be able to…
           </h3>
 
-          <p className="text-gray-700 leading-relaxed mb-6">
+          <p className="text-gray-800 leading-relaxed mb-6">
             Explore how scientists use computer-based tools to study genes and diseases—especially cancer.
             You’ll work with real data, ask questions like a scientist, and see how bioinformatics reveals
             what’s happening inside our cells.
@@ -57,7 +57,7 @@ const WhatYoullLearnPage = () => {
                 <i className="fa-solid fa-dna text-primary-500 mr-2" />
                 Biology Foundations
               </h4>
-              <ul className="space-y-3 text-gray-700">
+              <ul className="space-y-3 text-gray-800">
                 <li className="flex items-start">
                   <i className="fa-solid fa-circle-check text-primary-500 mt-1 mr-3" />
                   <span>
@@ -80,7 +80,7 @@ const WhatYoullLearnPage = () => {
                 <i className="fa-solid fa-laptop-code text-primary-500 mr-2" />
                 Data & Tools
               </h4>
-              <ul className="space-y-3 text-gray-700">
+              <ul className="space-y-3 text-gray-800">
                 <li className="flex items-start">
                   <i className="fa-solid fa-circle-check text-primary-500 mt-1 mr-3" />
                   <span>
@@ -103,7 +103,7 @@ const WhatYoullLearnPage = () => {
                 <i className="fa-solid fa-lightbulb text-primary-500 mr-2" />
                 Scientific Thinking
               </h4>
-              <ul className="space-y-3 text-gray-700">
+              <ul className="space-y-3 text-gray-800">
                 <li className="flex items-start">
                   <i className="fa-solid fa-circle-check text-primary-500 mt-1 mr-3" />
                   <span>
@@ -119,7 +119,7 @@ const WhatYoullLearnPage = () => {
                 <i className="fa-solid fa-chalkboard-user text-primary-500 mr-2" />
                 Communicating Science
               </h4>
-              <ul className="space-y-3 text-gray-700">
+              <ul className="space-y-3 text-gray-800">
                 <li className="flex items-start">
                   <i className="fa-solid fa-circle-check text-primary-500 mt-1 mr-3" />
                   <span>
@@ -136,7 +136,7 @@ const WhatYoullLearnPage = () => {
               <i className="fa-solid fa-microscope text-primary-500 mr-2" />
               Get ready to analyze, investigate, and present like a bioinformatics researcher!
             </h4>
-            <p className="text-gray-700 text-sm">
+            <p className="text-gray-800 text-sm">
               Stay curious, collaborate with your team, and save your work as you go—this notebook is your learning journal.
             </p>
           </div>
@@ -162,11 +162,11 @@ const WhatYoullLearnPage = () => {
 
       {/* Footer nav (matches Day 1 style) */}
       <footer className="bg-white border-t border-gray-200 py-6 text-center">
-        <Link to="/sections/welcome" className="text-gray-600 hover:text-primary-500 mr-4">
-          
+        <Link to="/sections/welcome" className="text-gray-800 hover:text-primary-500 mr-4">
+          Previous: Welcome
         </Link>
-        <Link to="/sections/vocabulary" className="text-primary-600 hover:text-primary-700 ml-4">
-          
+        <Link to="/sections/vocabulary" className="text-primary-600 hover:text-primary-800 ml-4">
+          Next: Important Vocabulary
         </Link>
       </footer>
 

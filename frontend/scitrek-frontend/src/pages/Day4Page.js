@@ -50,8 +50,9 @@ const GeneLink = ({ symbol, className }) => {
       rel="noopener noreferrer"
       className={className}
       title={`${s} on the Human Protein Atlas`}
+      aria-label={`Open ${s} on Human Protein Atlas (new window)`}
     >
-      {s} <i className="fa-solid fa-arrow-up-right-from-square ml-1 text-xs align-super" />
+      {s} <i className="fa-solid fa-arrow-up-right-from-square ml-1 text-xs align-super" aria-hidden="true" />
     </a>
   );
 };
@@ -74,7 +75,7 @@ function ProteinAtlasPanel() {
   const geneOptions = Object.keys(PROTEIN_ATLAS_URLS); // ['EGFR','RAS','TDG']
 
   return (
-    <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden" role="region" aria-label="Protein Atlas: view gene expression data">
       <div className="p-4 flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex flex-col sm:flex-row gap-2">
@@ -94,20 +95,21 @@ function ProteinAtlasPanel() {
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center bg-primary-500 hover:bg-primary-600 text-white font-medium px-4 py-2 rounded"
+              aria-label="Open Protein Atlas in new window"
             >
               Open on Protein Atlas
             </a>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span className="text-gray-500">Quick links:</span>
+            <span className="text-gray-800">Quick links:</span>
             {geneOptions.map(s => (
-              <GeneLink key={s} symbol={s} className="text-primary-700 underline" />
+              <GeneLink key={s} symbol={s} className="text-primary-800 underline" />
             ))}
           </div>
         </div>
 
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-800">
           Some browsers block embeds; if the panel stays blank, use “Open on Protein Atlas”.
         </p>
       </div>
@@ -126,7 +128,7 @@ function ProteinAtlasPanel() {
           <div className="absolute inset-0 grid place-items-center">
             <div className="bg-white/85 backdrop-blur border border-gray-200 rounded-lg px-4 py-3 text-center">
               <div className="font-medium">Loading Protein Atlas…</div>
-              <div className="text-xs text-gray-600 mt-1">
+              <div className="text-xs text-gray-800 mt-1">
                 {timedOut
                   ? 'Your browser may block this embed. Click “Open on Protein Atlas.”'
                   : 'One moment while we load the interactive view.'}
@@ -165,7 +167,7 @@ const Day4Page = () => {
       q1FunctionToAggression: '',
       q2AggressivenessByFunction: '',
     },
-    methods: { qPCRuse: '', IHCuse: '', RNAseqUse: '' },
+    methods: { qPCRuse: '', IHCuse: '', RNAseqUse: '', scenario1: '', scenario2: '', scenario3: '' },
     inquiry: { think: '' },
     wrap: {
       patternsFromVisuals: '',
@@ -316,13 +318,13 @@ const Day4Page = () => {
 
       {/* autosave status badge */}
       <div className="fixed bottom-4 right-4 z-40">
-        <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
+        <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-800">
           {saving
             ? 'Autosaving…'
             : lastSavedAt
               ? `Saved • ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
               : 'Ready'}
-          {dirty && !saving ? <span className="ml-2 text-amber-600">(unsaved)</span> : null}
+          {dirty && !saving ? <span className="ml-2 text-amber-800">(unsaved)</span> : null}
         </div>
       </div>
 
@@ -330,10 +332,10 @@ const Day4Page = () => {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-3">Day 4: Levels of Expression, Diagnosis, & Treatment</h1>
-          <h2 className="text-xl md:text-2xl text-gray-600">
+          <h2 className="text-xl md:text-2xl text-gray-800">
             Spotting patterns in gene activity—and what they mean for patients
           </h2>
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="text-sm text-gray-800 mt-2">
             Vocabulary focus: <b>oncogene</b>, <b>tumor suppressor</b>, <b>DNA repair</b>, <b>over/under-expression (“loud/quiet”)</b>, <b>IHC</b>, <b>qPCR</b>, <b>RNA-seq</b>.
           </p>
         </div>
@@ -341,11 +343,11 @@ const Day4Page = () => {
         {/* Objective */}
         <section id="objective-section">
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border-l-4 border-primary-500">
-            <h2 className="text-2xl font-bold mb-4 flex items-center text-primary-700">
+            <h2 className="text-2xl font-bold mb-4 flex items-center text-primary-800">
               <i className="fa-solid fa-bullseye text-primary-500 mr-3" />
               Objective
             </h2>
-            <p className="text-gray-700">
+            <p className="text-gray-800">
               Compare gene activity between healthy and cancerous cells using visual data. Identify patterns in expression,
               and connect them to differences in diagnosis and treatment.
             </p>
@@ -406,7 +408,7 @@ const Day4Page = () => {
               placeholder="Use the vocabulary list above as your guide."
             />
 
-            <label className="text-sm font-medium mb-1 block">Housekeeping vs cancer-linked gene expression: one example of each “too loud / too quiet”.</label>
+            <label className="text-sm font-medium mb-1 block" htmlFor="day4-recap-detect-housekeeping">Housekeeping vs cancer-linked gene expression: one example of each “too loud / too quiet”.</label>
               <textarea
                 id="day4-recap-detect-housekeeping"
                 aria-label="Housekeeping vs cancer-linked gene expression: one example of each too loud or too quiet"
@@ -494,11 +496,12 @@ const Day4Page = () => {
                             href={url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-primary-700 underline"
+                            className="inline-flex items-center gap-1 text-primary-800 underline"
                             title={`${symbol} on the Human Protein Atlas`}
+                            aria-label={`Open ${symbol} on Human Protein Atlas (new window)`}
                           >
                             {symbol}
-                            <i className="fa-solid fa-arrow-up-right-from-square text-xs" />
+                            <i className="fa-solid fa-arrow-up-right-from-square text-xs" aria-hidden="true" />
                           </a>
                         </td>
                       </tr>
@@ -512,7 +515,7 @@ const Day4Page = () => {
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium mb-1 block" htmlFor="day4-viz-q1">1) Function → Aggression</label>
-                <p className="text-xs text-gray-600 mb-1">
+                <p className="text-xs text-gray-800 mb-1">
                   Here “aggressive” = more likely to cause fast growth or resist control if mis-regulated.
                 </p>
                 <textarea
@@ -525,8 +528,8 @@ const Day4Page = () => {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">2) More vs less “aggressive” by function</label>
-                <p className="text-xs text-gray-600 mb-1">
+                <label className="text-sm font-medium mb-1 block" htmlFor="day4-viz-q2">2) More vs less “aggressive” by function</label>
+                <p className="text-xs text-gray-800 mb-1">
                   Compare any two genes you studied. Justify your reasoning.
                 </p>
                 <textarea
@@ -550,7 +553,7 @@ const Day4Page = () => {
           {/* Mini-lesson: Methods (qPCR, IHC, RNA-seq) — background only */}
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-2">Mini-Lesson: How Do We Measure Expression?</h3>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-gray-800 mb-4">
               Read the method summaries, then answer the scenarios below. For each scenario: (1) pick the best method, (2) explain why,
               and (3) say why at least one other method is less ideal.
             </p>
@@ -621,7 +624,7 @@ const Day4Page = () => {
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-1 block">
+                <label className="text-sm font-medium mb-1 block" htmlFor="day4-methods-scenario3">
                   Scenario 3: You <b>don’t know</b> which genes change between healthy and cancer samples. You want a broad scan to
                   discover unexpected differences. What method would you use, and why?
                 </label>
@@ -654,21 +657,21 @@ const Day4Page = () => {
         {/* Inquiry & Discussion */}
         <section id="inquiry-section" className="mb-16">
           <div className="bg-primary-100 rounded-2xl shadow-md p-6 md:p-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 -mt-10 -mr-10 text-primary-200">
-              <i className="fa-solid fa-quote-right text-9xl opacity-30" />
+            <div className="absolute top-0 right-0 w-32 h-32 -mt-10 -mr-10 text-primary-400 opacity-20" aria-hidden="true">
+              <i className="fa-solid fa-quote-right text-9xl" />
             </div>
 
             <h2 className="text-2xl font-bold mb-6 text-primary-800 relative z-10">
-              <i className="fa-solid fa-lightbulb text-primary-500 mr-3" />
+              <i className="fa-solid fa-lightbulb text-primary-500 mr-3" aria-hidden="true" />
               Inquiry & Discussion
             </h2>
 
             <div className="bg-white rounded-xl p-6 shadow-sm relative z-10">
-              <h3 className="text-xl font-semibold mb-2 text-primary-700">Think & Respond</h3>
-              <p className="text-gray-700 mb-2">
+              <h3 className="text-xl font-semibold mb-2 text-primary-800">Think & Respond</h3>
+              <p className="text-gray-800 mb-2">
                 Scenario: A sample shows high <GeneLink symbol="RAS" /> and low <GeneLink symbol="EGFR" /> expression.
               </p>
-              <p className="text-xs text-gray-600 mb-3">
+              <p className="text-xs text-gray-800 mb-3">
                 Write one hypothesis and one measurement to test it (choose: qPCR, IHC, or RNA-seq). State the result that would support your claim.
               </p>
               <label htmlFor="day4-inquiry-think" className="sr-only">Think and respond</label>
@@ -707,8 +710,9 @@ const Day4Page = () => {
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">How does typical gene function affect progression once mutated? Which seem more “aggressive,” and why?</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="day4-wrap-function-aggression">How does typical gene function affect progression once mutated? Which seem more “aggressive,” and why?</label>
               <textarea
+                id="day4-wrap-function-aggression"
                 value={answersData.wrap.functionAndAggression}
                 onChange={e => setField('wrap.functionAndAggression', e.target.value)}
                 className="w-full border border-gray-300 rounded p-3"
@@ -748,16 +752,18 @@ const Day4Page = () => {
           <Link
             to="/sections/day-3"
             className="inline-flex items-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg"
+            aria-label="Back to Day 3"
           >
-            <i className="fa-solid fa-arrow-left mr-2" />
+            <i className="fa-solid fa-arrow-left mr-2" aria-hidden="true" />
             Back to Day 3
           </Link>
           <Link
             to="/sections/day-5"
             className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+            aria-label="Go to Day 5"
           >
             Go to Day 5
-            <i className="fa-solid fa-arrow-right ml-2" />
+            <i className="fa-solid fa-arrow-right ml-2" aria-hidden="true" />
           </Link>
         </div>
       </main>

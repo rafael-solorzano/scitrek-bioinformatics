@@ -23,7 +23,7 @@ const StudentProfileBanner = ({ user, onLogout }) => {
   return (
     <header className="profile-header">
       <div className="logo">
-        <Link to="/">
+        <Link to="/" aria-label="SciTrek home">
           <img
             src="/images/scitrek_logo.png"
             alt="SciTrek Logo"

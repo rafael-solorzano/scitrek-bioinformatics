@@ -33,7 +33,7 @@ const ImportantVocabularyPage = () => {
         {/* Header */}
         <section className="text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-3">Important Vocabulary</h1>
-          <h2 className="text-xl md:text-2xl text-gray-600">
+          <h2 className="text-xl md:text-2xl text-gray-800">
             Key terms for the Bioinformatics module
           </h2>
         </section>
@@ -49,7 +49,7 @@ const ImportantVocabularyPage = () => {
               <i className="fa-solid fa-arrow-left mr-2" />
               Back
             </Link>
-            <div className="text-primary-700 font-semibold flex items-center">
+            <div className="text-primary-800 font-semibold flex items-center">
               <i className="fa-solid fa-book-open text-primary-500 mr-2" />
               Glossary
             </div>
@@ -86,7 +86,7 @@ const ImportantVocabularyPage = () => {
                   <i className="fa-solid fa-tag text-primary-500 mr-2 mt-0.5" />
                   {term}
                 </h4>
-                <p className="text-gray-700 text-sm leading-relaxed">{def}</p>
+                <p className="text-gray-800 text-sm leading-relaxed">{def}</p>
               </div>
             ))}
           </div>
@@ -113,10 +113,10 @@ const ImportantVocabularyPage = () => {
 
       {/* Footer nav (matches Day 1 style) */}
       <footer className="bg-white border-t border-gray-200 py-6 text-center">
-        {/* <Link to="/sections/what-youll-learn" className="text-gray-600 hover:text-primary-500 mr-4">
+        {/* <Link to="/sections/what-youll-learn" className="text-gray-800 hover:text-primary-500 mr-4">
           <i className="fa-solid fa-arrow-left" />
         </Link>
-        <Link to="/sections/day-1" className="text-primary-600 hover:text-primary-700 ml-4">
+        <Link to="/sections/day-1" className="text-primary-600 hover:text-primary-800 ml-4">
           <i className="fa-solid fa-arrow-right" />
         </Link> */}
       </footer>

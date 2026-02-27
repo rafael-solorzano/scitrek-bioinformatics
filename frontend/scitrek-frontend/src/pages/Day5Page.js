@@ -169,7 +169,7 @@ const Day5Page = () => {
 
       {/* autosave status badge */}
       <div className="fixed bottom-4 right-4 z-40">
-        <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
+        <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-800">
           {saving
             ? 'Autosaving…'
             : lastSavedAt
@@ -183,7 +183,7 @@ const Day5Page = () => {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-3">Day 5: Poster Presentation — Showcasing Your Scientific Journey!</h1>
-          <h2 className="text-xl md:text-2xl text-gray-600">
+          <h2 className="text-xl md:text-2xl text-gray-800">
             Create a slideshow (research-poster style) explaining how ONE gene behaves differently during breast cancer progression
           </h2>
         </div>
@@ -191,11 +191,11 @@ const Day5Page = () => {
         {/* 1) Objective */}
         <section id="objective-section">
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border-l-4 border-primary-500">
-            <h2 className="text-2xl font-bold mb-4 flex items-center text-primary-700">
+            <h2 className="text-2xl font-bold mb-4 flex items-center text-primary-800">
               <i className="fa-solid fa-bullseye text-primary-500 mr-3" />
               Objective
             </h2>
-            <p className="text-gray-700 mb-4">
+            <p className="text-gray-800 mb-4">
               You will create a slideshow in the style of a research poster that explains how one specific gene behaves differently
               during the growth of breast cancer. Your slideshow should include: a title, research explanation, procedure,
               visual data representation (bar graph/heat map/etc.), results, and conclusion.
@@ -226,7 +226,7 @@ const Day5Page = () => {
               What You’ll Do Today
             </h2>
 
-            <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 text-sm text-gray-700 mb-6">
+            <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 text-sm text-gray-800 mb-6">
               <div className="font-semibold text-primary-800 mb-1">Slideshow Template (optional, recommended)</div>
               <div>
                 Use this as inspiration for your design:
@@ -234,7 +234,7 @@ const Day5Page = () => {
                   href="https://docs.google.com/presentation/d/1v-u2kytUM2MXvtG2qnFLdON0U4pX2Ey0y1cVEgj6zFY/edit?usp=sharing"
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="text-primary-700 underline ml-1"
+                  className="text-primary-800 underline ml-1"
                 >
                   Google Slides Template Link
                 </a>
@@ -270,7 +270,7 @@ const Day5Page = () => {
           {/* Step 1: Title */}
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 1: Title</h3>
-            <p className="text-gray-700 mb-2">
+            <p className="text-gray-800 mb-2">
               Create a clear, descriptive title for your project (example: “BRCA-1 Gene & Breast Cancer: Causes & Conclusions”).
             </p>
             <label className="block text-sm font-medium mb-1" htmlFor="day5-step1-title">Your project title</label>
@@ -289,7 +289,7 @@ const Day5Page = () => {
           {/* Step 2: Research Explanation (one-liner) */}
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 2: Research Explanation</h3>
-            <p className="text-gray-700 mb-2">
+            <p className="text-gray-800 mb-2">
               Write your main conclusion in one sentence. What does your gene do, and how does it relate to breast cancer progression?
             </p>
             <label className="block text-sm font-medium mb-1" htmlFor="day5-step2-oneline">One-sentence research explanation</label>
@@ -309,7 +309,7 @@ const Day5Page = () => {
           {/* Step 3: Procedure + Sources */}
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 3: Description of Procedure</h3>
-            <p className="text-gray-700 mb-2">
+            <p className="text-gray-800 mb-2">
               Write a short explanation of your research process. Emphasize the top 3–5 sources you used.
             </p>
             <label className="block text-sm font-medium mb-1" htmlFor="day5-step3-procedure">Procedure summary</label>
@@ -323,7 +323,7 @@ const Day5Page = () => {
             />
 
             <h4 className="font-medium mb-2">Top 3–5 Sources</h4>
-            <label className="block text-xs text-gray-600 mb-2" htmlFor="day5-step3-source-0">List titles or links to your strongest sources</label>
+            <label className="block text-xs text-gray-800 mb-2" htmlFor="day5-step3-source-0">List titles or links to your strongest sources</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {answersData.step3.topSources.map((src, i) => (
                 <input
@@ -350,13 +350,13 @@ const Day5Page = () => {
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 4: Visual Data Representation</h3>
             <div className="bg-gray-100 rounded-xl p-4 mb-4">
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-gray-800">
                 Draw or find a visual (bar graph, heat map, etc.) showing gene expression for your gene in a cancer cell AND in a typical (healthy) cell.
                 Upload the visual to your slide. Label which samples are healthy and which are cancerous.
               </p>
             </div>
 
-            <label className="block text-sm font-medium mb-1">Link to your visual (or where it’s uploaded)</label>
+            <label className="block text-sm font-medium mb-1" htmlFor="day5-step4-visual">Link to your visual (or where it’s uploaded)</label>
             <input
               id="day5-step4-visual"
               value={answersData.step4.visualLink}
@@ -382,7 +382,7 @@ const Day5Page = () => {
           {/* Step 5: Results */}
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 5: Results</h3>
-            <p className="text-gray-700 mb-2">
+            <p className="text-gray-800 mb-2">
               Summarize your results. Include: the normal function of the gene, how it may behave differently in a mutated cancer cell,
               why it matters for doctors/patients (clinical relevance), and any unexpected findings.
             </p>
@@ -404,7 +404,7 @@ const Day5Page = () => {
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 6: Conclusion</h3>
 
-            <p className="text-gray-700 mb-3">
+            <p className="text-gray-800 mb-3">
               Write a conclusion explaining what your findings mean. Discuss whether what you observed was the normal function of the gene,
               and how changes in this gene (expression or mutation) could contribute to how a cell becomes cancerous.
             </p>
@@ -453,7 +453,7 @@ const Day5Page = () => {
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 7: Assemble the Slideshow</h3>
 
-            <p className="text-gray-700 mb-3">
+            <p className="text-gray-800 mb-3">
               Use the guidelines above to assemble neat slides for each part. Organize your information logically and make sure everything is clear and easy to read.
               Then add creative design elements (photos, transitions, animations, colors, or music) to make it visually appealing while staying focused on the science.
             </p>
@@ -496,7 +496,7 @@ const Day5Page = () => {
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 8: Presentation & Peer Feedback</h3>
 
-            <p className="text-gray-700 mb-3">
+            <p className="text-gray-800 mb-3">
               Present your finished slideshow to the class (or in groups). Everyone should respectfully review each presentation and provide
               positive feedback and constructive comments.
             </p>
@@ -565,14 +565,14 @@ const Day5Page = () => {
                     <h4 className="font-medium">{item.q}</h4>
                     <i className="fa-solid fa-chevron-down text-gray-500" />
                   </summary>
-                  <div className="px-4 pb-4 pt-2 text-gray-600 text-sm">{item.a}</div>
+                  <div className="px-4 pb-4 pt-2 text-gray-800 text-sm">{item.a}</div>
                 </details>
               ))}
             </div>
 
             <div className="bg-white rounded-xl p-6 shadow-sm relative z-10">
-              <h3 className="text-xl font-semibold mb-2 text-primary-700">Think & Respond</h3>
-              <p className="text-gray-700 mb-2">
+              <h3 className="text-xl font-semibold mb-2 text-primary-800">Think & Respond</h3>
+              <p className="text-gray-800 mb-2">
                 Imagine a classmate challenges your claim: “Your gene isn’t actually over-expressed; it’s just sample bias.”
               </p>
               <label className="block text-sm font-medium mb-1" htmlFor="day5-inquiry-think">What extra evidence or analysis would you add to strengthen your conclusion?</label>
@@ -600,7 +600,7 @@ const Day5Page = () => {
             Conclusion & Reflection
           </h3>
 
-          <p className="text-gray-700 mb-4">
+          <p className="text-gray-800 mb-4">
             Reflect on the process of creating your slideshow and why communicating scientific findings effectively matters.
           </p>
 

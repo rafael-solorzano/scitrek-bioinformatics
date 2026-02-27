@@ -76,7 +76,7 @@ function EmbedWithFallback({
   return (
     <div className="bg-gray-100 rounded-xl p-3 md:p-4 relative overflow-hidden ring-1 ring-gray-200">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-sm font-medium text-gray-700">{title}</div>
+        <div className="text-sm font-medium text-gray-800">{title}</div>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -100,7 +100,7 @@ function EmbedWithFallback({
 
       <div className="rounded-lg overflow-hidden relative">
         {!loaded && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/60 text-gray-700 text-sm z-10">
+          <div className="absolute inset-0 flex items-center justify-center bg-white/60 text-gray-800 text-sm z-10">
             <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-white shadow">
               <i className="fa-solid fa-spinner animate-spin" /> Loading…
             </div>
@@ -136,7 +136,7 @@ function EmbedWithFallback({
         />
       </div>
 
-      <p className="mt-2 text-xs text-gray-600">
+      <p className="mt-2 text-xs text-gray-800">
         Trouble loading? School filters or site security rules can block embeds. Use “Open in new tab.”
       </p>
     </div>
@@ -373,7 +373,7 @@ const Day2Page = () => {
     <div className="font-sans bg-gray-50 text-gray-800">
       {/* Day5-style autosave status badge */}
       <div className="fixed bottom-4 right-4 z-40">
-        <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
+        <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-800">
           {saving
             ? 'Autosaving…'
             : lastSavedAt
@@ -396,7 +396,7 @@ const Day2Page = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-bold mb-3">Day 2: Understanding Cancer</h1>
-          <h2 className="text-xl md:text-2xl text-gray-600">Cell Cycle, Mutations & Regulation Gone Wrong</h2>
+          <h2 className="text-xl md:text-2xl text-gray-800">Cell Cycle, Mutations & Regulation Gone Wrong</h2>
         </div>
 
         {/* Curiosity Spark: Case Scenario */}
@@ -411,7 +411,7 @@ const Day2Page = () => {
               change the outcome? As you go through today’s activities, collect evidence to explain how gene regulation
               can push cells toward healthy division—or cancer.
             </p>
-            <p className="text-xs text-gray-600 mt-2">
+            <p className="text-xs text-gray-800 mt-2">
               Facilitator tip: Provide <b>noise-cancelling headphones</b> for videos—classroom discussions can get loud.
             </p>
           </div>
@@ -420,11 +420,11 @@ const Day2Page = () => {
         {/* Objective */}
         <section id="objective-section" className="mb-12">
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border-l-4 border-primary-500">
-            <h2 className="text-2xl font-bold mb-4 flex items-center text-primary-700">
+            <h2 className="text-2xl font-bold mb-4 flex items-center text-primary-800">
               <i className="fa-solid fa-bullseye text-primary-500 mr-3" />
               Objective
             </h2>
-            <p className="text-gray-700 leading-relaxed">
+            <p className="text-gray-800 leading-relaxed">
               Investigate what happens when the “instructions” inside a cell break down—leading to uncontrolled growth (cancer).
               Prepare for Days 3–4 by learning healthy vs. harmful cell division, explore p53 and regulators like Mdm2, and see why cancer is a problem of cell-cycle regulation gone wrong.
             </p>
@@ -786,7 +786,7 @@ const Day2Page = () => {
               <li>Answer the questions below labelled with the section (e.g., “Cell Cycle Phases”).</li>
               <li>For “what-if” tests, use the interactive toggles (e.g., disable checkpoints, change protein levels), then note what you observe.</li>
             </ol>
-            <p className="text-xs text-gray-600 mt-1">Tip: If lost, return to the <b>Overview</b> tab, then proceed left-to-right.</p>
+            <p className="text-xs text-gray-800 mt-1">Tip: If lost, return to the <b>Overview</b> tab, then proceed left-to-right.</p>
           </div>
 
           {/* Embedded (with fallback) */}
@@ -946,14 +946,14 @@ const Day2Page = () => {
                     <h4 className="font-medium">{item.q}</h4>
                     <i className="fa-solid fa-chevron-down text-gray-500" />
                   </summary>
-                  <div className="px-4 pb-4 pt-2 text-gray-600 text-sm">{item.a}</div>
+                  <div className="px-4 pb-4 pt-2 text-gray-800 text-sm">{item.a}</div>
                 </details>
               ))}
             </div>
 
             <div className="bg-white rounded-xl p-6 shadow-sm relative z-10">
-              <h3 className="text-xl font-semibold mb-4 text-primary-700">Think & Respond</h3>
-              <label className="text-gray-700 mb-4 block" htmlFor="day2-inquiry-think">
+              <h3 className="text-xl font-semibold mb-4 text-primary-800">Think & Respond</h3>
+              <label className="text-gray-800 mb-4 block" htmlFor="day2-inquiry-think">
                 Scenario: A cell has severe DNA damage, p53 is mutated, and cyclin D is overexpressed. Predict what happens at the G1/S checkpoint.
               </label>
               <AutoResizeTextarea
