@@ -9,15 +9,15 @@ import { getCurrentUser, getResponseDetail, upsertResponse } from '../services/a
 // -----------------------------------------------------------------------------
 // Pacing Mode (Floating Pacing Dashboard)
 // -----------------------------------------------------------------------------
-const DAY1_PACING_STEPS = [
-  { label: 'Intro & Objective', duration: 5, target: 'welcome-section' },
-  { label: 'Core Concepts', duration: 8, target: 'content-blocks-section' },
-  { label: 'Amoeba Sisters Video', duration: 12, target: 'video-section' },
-  { label: 'Expression vs Regulation (DnD + Q)', duration: 8, target: 'gene-expression-section' },
-  { label: 'PhET Simulation', duration: 15, target: 'simulation-section' },
-  { label: 'Inquiry & Discussion', duration: 6, target: 'inquiry-section' },
-  { label: 'Wrap-up', duration: 6, target: 'wrap-up-section' }
-];
+// const DAY1_PACING_STEPS = [
+//   { label: 'Intro & Objective', duration: 5, target: 'welcome-section' },
+//   { label: 'Core Concepts', duration: 8, target: 'content-blocks-section' },
+//   { label: 'Amoeba Sisters Video', duration: 12, target: 'video-section' },
+//   { label: 'Expression vs Regulation (DnD + Q)', duration: 8, target: 'gene-expression-section' },
+//   { label: 'PhET Simulation', duration: 15, target: 'simulation-section' },
+//   { label: 'Inquiry & Discussion', duration: 6, target: 'inquiry-section' },
+//   { label: 'Wrap-up', duration: 6, target: 'wrap-up-section' }
+// ];
 
 
 /**
@@ -295,7 +295,7 @@ const Day1Page = () => {
   
     import(
       /* webpackIgnore: true */
-      "https://app.realeye.io/sdk/js/testRunnerEmbeddableSdk-1.9.0.js"
+      "https://app.realeye.io/sdk/js/testRunnerEmbeddableSdk-1.9.js"
     )
       .then(({ EmbeddedPageSdk }) => {
         if (!mounted) return;
@@ -613,7 +613,7 @@ const Day1Page = () => {
   return (
     <div className="font-sans bg-gray-50 text-gray-800">
       {/* Pacing Mode dashboard */}
-      <FloatingPacingDashboard steps={DAY1_PACING_STEPS} />
+      {/* <FloatingPacingDashboard steps={DAY1_PACING_STEPS} /> */}
 
       {/* autosave status badge (same UX as Day5) */}
       <div className="fixed bottom-4 right-4 z-40">
