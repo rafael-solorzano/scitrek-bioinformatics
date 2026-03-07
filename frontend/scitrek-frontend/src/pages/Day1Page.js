@@ -290,6 +290,28 @@ const Day1Page = () => {
   const [showUtah1, setShowUtah1] = useState(false);
   const [showUtah2, setShowUtah2] = useState(false);
 
+  useEffect(() => {
+    let mounted = true;
+  
+    import(
+      /* webpackIgnore: true */
+      "https://app.realeye.io/sdk/js/testRunnerEmbeddableSdk-1.9.0.js"
+    )
+      .then(({ EmbeddedPageSdk }) => {
+        if (!mounted) return;
+        if (!window.reSdk) {
+          window.reSdk = new EmbeddedPageSdk(false, null, false);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load RealEye SDK:", err);
+      });
+  
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -311,6 +333,24 @@ const Day1Page = () => {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
+
+  useEffect(() => {
+    if (showUtah1 && window.reSdk) {
+      window.reSdk.startNextExposure();
+    }
+  }, [showUtah1]);
+  
+  useEffect(() => {
+    if (showUtah2 && window.reSdk) {
+      window.reSdk.startNextExposure();
+    }
+  }, [showUtah2]);
+
+  useEffect(() => {
+    if (showModal && window.reSdk) {
+      window.reSdk.startNextExposure();
+    }
+  }, [showModal]);
 
   // ------- load user + saved answers (same pattern as Day5) -------
   useEffect(() => {
@@ -622,7 +662,7 @@ const Day1Page = () => {
         </section>
 
         {/* Section 3: Core Concepts + Interactive Model links */}
-        <section id="content-blocks-section" className="mb-16">
+        <section id="content-blocks-section" className="mb-16" data-re-aoi-name="Core Concepts">
           <h2 className="text-3xl font-bold mb-8 text-center">Core Concepts</h2>
 
           <div id="gene-regulation-card" className="bg-white rounded-2xl shadow-md p-6 md:p-8 mb-8">
@@ -730,7 +770,7 @@ const Day1Page = () => {
         </section>
 
         {/* Section 4: Video & Dropdown Quiz */}
-        <section id="video-section" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
+        <section id="video-section" className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Amoeba Sisters Video Exercise">
           <header className="mb-4 flex items-center justify-between">
             <h3 className="text-2xl font-semibold flex items-center">
               <i className="fa-solid fa-video text-primary-500 mr-3" />
@@ -836,7 +876,7 @@ const Day1Page = () => {
         </section>
 
         {/* Section 5: Gene Expression vs. Regulation (DnD + Q1) */}
-        <section id="gene-expression-section" className="border border-gray-200 rounded-2xl p-6 md:p-8 bg-white">
+        <section id="gene-expression-section" className="border border-gray-200 rounded-2xl p-6 md:p-8 bg-white" data-re-aoi-name="Gene Expression vs Gene Regulation Exercise">
           <h4 className="text-xl font-semibold mb-4">Gene Expression vs Gene Regulation</h4>
           <p className="text-gray-700 mb-6">
             What’s the relationship between expression and regulation, and why does it matter for our health?
@@ -940,7 +980,7 @@ const Day1Page = () => {
         </section>
 
         {/* Section 6: PhET Simulation (embedded) */}
-        <section id="simulation-section" className="mb-16">
+        <section  id="simulation-section" className="mb-16" data-re-aoi-name="PhET Simulation Exercise" >
           <div className="bg-white rounded-2xl shadow-md overflow-hidden">
             {/* Header */}
             <div className="bg-primary-500 px-6 md:px-8 py-4">
@@ -1221,7 +1261,7 @@ const Day1Page = () => {
               ))}
             </div>
 
-            <div className="bg-white rounded-xl p-6 shadow-sm relative z-10">
+            <div className="bg-white rounded-xl p-6 shadow-sm relative z-10" data-re-aoi-name="Think & Respond Question">
               <h3 className="text-xl font-semibold mb-4 text-primary-700">Think & Respond</h3>
               <p className="text-gray-700 mb-4">
                 A cell is exposed to extreme heat. Predict how heat shock might change transcription factor activity and protein production.
