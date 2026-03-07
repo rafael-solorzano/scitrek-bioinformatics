@@ -109,6 +109,7 @@ function App() {
               path="/sections/day-1"
               element={user ? <Day1Page /> : <Navigate to="/login" />}
             />
+            <Route path="/realeye/day-1" element={<Day1Page />} />
             <Route
               path="/sections/day-2"
               element={user ? <Day2Page /> : <Navigate to="/login" />}
