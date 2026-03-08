@@ -244,6 +244,8 @@ const Day1Page = () => {
   const { day } = useParams();
   const moduleId = Number(day) || 1;
 
+  const isRealEyeMode = window.location.pathname === '/realeye/day-1';
+
   const [user, setUser] = useState(null);
   const [popupVisible, setPopupVisible] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -354,95 +356,102 @@ const Day1Page = () => {
 
   // ------- load user + saved answers (same pattern as Day5) -------
   useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      try {
-        setLoading(true);
-        const u = await getCurrentUser();
-        if (!isMounted) return;
-        setUser(u);
+  let isMounted = true;
 
-        let data = null;
-        try {
-          data = await getResponseDetail(moduleId);
-        } catch {
-          // treat 404 as no previous answers
-        }
-        if (!isMounted) return;
+  const normalizeAnswers = (payload) => {
+    setAnswersData((prev) => {
+      const next = { ...prev, ...(payload || {}) };
 
-        if (data?.answers) {
-          const payload = data.answers.answers || data.answers;
-          setAnswersData((prev) => {
-            const next = { ...prev, ...payload };
-
-            // Ensure new sim shape is present
-            if (!next.sim) {
-              next.sim = {
-                gene1: Array(5).fill(''),
-                gene2: Array(4).fill(''),
-                gene3: Array(6).fill(''),
-                reflections: Array(4).fill('')
-              };
-            } else {
-              next.sim.gene1 = Array.isArray(next.sim.gene1)
-                ? next.sim.gene1
-                    .slice(0, 5)
-                    .concat(Array(Math.max(0, 5 - next.sim.gene1.length)).fill(''))
-                : Array(5).fill('');
-              next.sim.gene2 = Array.isArray(next.sim.gene2)
-                ? next.sim.gene2
-                    .slice(0, 4)
-                    .concat(Array(Math.max(0, 4 - next.sim.gene2.length)).fill(''))
-                : Array(4).fill('');
-              next.sim.gene3 = Array.isArray(next.sim.gene3)
-                ? next.sim.gene3
-                    .slice(0, 6)
-                    .concat(Array(Math.max(0, 6 - next.sim.gene3.length)).fill(''))
-                : Array(6).fill('');
-              next.sim.reflections = Array.isArray(next.sim.reflections)
-                ? next.sim.reflections
-                    .slice(0, 4)
-                    .concat(Array(Math.max(0, 4 - next.sim.reflections.length)).fill(''))
-                : Array(4).fill('');
-            }
-
-            // Ensure DnD shape exists
-            if (!next.dnd)
-              next.dnd = {
-                available: INITIAL_STEPS,
-                ordered: Array(5).fill(''),
-                orderSize: 5
-              };
-            if (!Array.isArray(next.dnd.available)) next.dnd.available = INITIAL_STEPS;
-            if (!Array.isArray(next.dnd.ordered))
-              next.dnd.ordered = Array(next.dnd.orderSize || 5).fill('');
-
-            // Keep fillBlanks length >= 13
-            if (!Array.isArray(next.fillBlanks) || next.fillBlanks.length < 13) {
-              const fb = Array(13).fill('');
-              (next.fillBlanks || []).forEach((v, i) => (fb[i] = v));
-              next.fillBlanks = fb;
-            }
-
-            return next;
-          });
-
-          setDirty(false);
-          setLastSavedAt(new Date());
-        }
-      } finally {
-        if (isMounted) setLoading(false);
+      if (!next.sim) {
+        next.sim = {
+          gene1: Array(5).fill(''),
+          gene2: Array(4).fill(''),
+          gene3: Array(6).fill(''),
+          reflections: Array(4).fill('')
+        };
+      } else {
+        next.sim.gene1 = Array.isArray(next.sim.gene1)
+          ? next.sim.gene1.slice(0, 5).concat(Array(Math.max(0, 5 - next.sim.gene1.length)).fill(''))
+          : Array(5).fill('');
+        next.sim.gene2 = Array.isArray(next.sim.gene2)
+          ? next.sim.gene2.slice(0, 4).concat(Array(Math.max(0, 4 - next.sim.gene2.length)).fill(''))
+          : Array(4).fill('');
+        next.sim.gene3 = Array.isArray(next.sim.gene3)
+          ? next.sim.gene3.slice(0, 6).concat(Array(Math.max(0, 6 - next.sim.gene3.length)).fill(''))
+          : Array(6).fill('');
+        next.sim.reflections = Array.isArray(next.sim.reflections)
+          ? next.sim.reflections.slice(0, 4).concat(Array(Math.max(0, 4 - next.sim.reflections.length)).fill(''))
+          : Array(4).fill('');
       }
-    })();
 
-    return () => {
-      isMounted = false;
-    };
-  }, [moduleId]);
+      if (!next.dnd) {
+        next.dnd = {
+          available: INITIAL_STEPS,
+          ordered: Array(5).fill(''),
+          orderSize: 5
+        };
+      }
+      if (!Array.isArray(next.dnd.available)) next.dnd.available = INITIAL_STEPS;
+      if (!Array.isArray(next.dnd.ordered)) {
+        next.dnd.ordered = Array(next.dnd.orderSize || 5).fill('');
+      }
+
+      if (!Array.isArray(next.fillBlanks) || next.fillBlanks.length < 13) {
+        const fb = Array(13).fill('');
+        (next.fillBlanks || []).forEach((v, i) => {
+          fb[i] = v;
+        });
+        next.fillBlanks = fb;
+      }
+
+      return next;
+    });
+  };
+
+  (async () => {
+    try {
+      setLoading(true);
+
+      if (isRealEyeMode) {
+        normalizeAnswers(null);
+        return;
+      }
+
+      const u = await getCurrentUser();
+      if (!isMounted) return;
+      setUser(u);
+
+      let data = null;
+      try {
+        data = await getResponseDetail(moduleId);
+      } catch {
+        // treat missing saved data as empty answers
+      }
+      if (!isMounted) return;
+
+      if (data?.answers) {
+        const payload = data.answers.answers || data.answers;
+        normalizeAnswers(payload);
+        setDirty(false);
+        setLastSavedAt(new Date());
+      } else {
+        normalizeAnswers(null);
+      }
+    } finally {
+      if (isMounted) setLoading(false);
+    }
+  })();
+
+  return () => {
+    isMounted = false;
+  };
+}, [moduleId, isRealEyeMode]);
 
   // ------- helpers: save routine / debouncer (Day5 parity) -------
   const saveAnswers = async ({ silent = true } = {}) => {
+    if (isRealEyeMode) return;
     if (saving) return;
+  
     try {
       setSaving(true);
       await upsertResponse(moduleId, answersData);
@@ -500,6 +509,8 @@ const Day1Page = () => {
 
   // Manual logout (ensure save first if dirty)
   const handleLogout = async () => {
+    if (isRealEyeMode) return;
+  
     if (dirty && !saving) {
       await saveAnswers({ silent: true });
     }
@@ -616,6 +627,7 @@ const Day1Page = () => {
       {/* <FloatingPacingDashboard steps={DAY1_PACING_STEPS} /> */}
 
       {/* autosave status badge (same UX as Day5) */}
+      {!isRealEyeMode && (
       <div className="fixed bottom-4 right-4 z-40">
         <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
           {saving
@@ -626,8 +638,9 @@ const Day1Page = () => {
           {dirty && !saving ? <span className="ml-2 text-amber-600">(unsaved)</span> : null}
         </div>
       </div>
+      )}
 
-      <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />
+      {!isRealEyeMode && ( <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />)}
 
       <main className="container mx-auto px-4 py-8 space-y-16">
         {/* Section 1: Welcome & Orientation */}
@@ -1375,7 +1388,7 @@ const Day1Page = () => {
 
       <footer id="footer" className="bg-white border-t border-gray-200 py-6 text-center" />
 
-      {popupVisible && (
+      {!isRealEyeMode && popupVisible && (
         <Popup
           message="Are you sure you want to logout?"
           onCancel={() => setPopupVisible(false)}
