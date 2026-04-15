@@ -46,14 +46,15 @@ function EmbedWithFallback({
     setMaybeBlocked(false);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      // If not loaded by now, it may be blocked by X-Frame-Options/CSP
       setMaybeBlocked(true);
     }, 3500);
   };
 
   useEffect(() => {
     startWatchdog();
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [src]);
 
   const onLoad = () => {
@@ -65,7 +66,6 @@ function EmbedWithFallback({
   const reload = () => {
     if (iframeRef.current) {
       try {
-        // Force reload by resetting src
         const s = iframeRef.current.src;
         iframeRef.current.src = s;
       } catch (_) {}
@@ -131,7 +131,6 @@ function EmbedWithFallback({
           allow={allow}
           loading="lazy"
           allowFullScreen
-          // IMPORTANT: include allow-presentation to silence Cast/Presentation API errors from the embed
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads allow-presentation"
         />
       </div>
@@ -147,7 +146,8 @@ function EmbedWithFallback({
 
 const Day2Page = () => {
   const { day } = useParams();
-  const moduleId = Number(day) || 2; // default to Day 2
+  const moduleId = Number(day) || 2;
+  const isRealEyeMode = window.location.pathname.startsWith('/realeye/day-2');
 
   const [user, setUser] = useState(null);
   const [popupVisible, setPopupVisible] = useState(false);
@@ -163,9 +163,8 @@ const Day2Page = () => {
 
   // Central answers model
   const [answersData, setAnswersData] = useState({
-    // Watch & Learn (Cell Cycle video)
     cellCycle: {
-      phasesTwo: ['', ''], // Interphase, Mitosis
+      phasesTwo: ['', ''],
       interphaseG1: '',
       interphaseS: '',
       interphaseG2: '',
@@ -179,28 +178,24 @@ const Day2Page = () => {
       postDivisionStage: '',
     },
 
-    // Watch & Learn (Cancer Research UK video)
     cancerBasics: {
       howDiffers: '',
       twoHallmarks: '',
       mutationsRole: '',
-      // Early detection not covered in this video; keep as an optional stretch
       earlyDetection: '',
     },
 
-    // Activity 1: p53 Gene & Cancer
     p53Sim: {
       oncogenes: '',
       tumorSuppressors: '',
       dnaRepair: '',
       p53Function: '',
-      p53TFBlank: '', // "transcription factor"
+      p53TFBlank: '',
       mdm2Effect: '',
     },
 
-    // Activity 2: Eukaryotic Cell Cycle & Cancer
     cycleSim: {
-      cellsDo: ['', ''], // divide, differentiate, or die
+      cellsDo: ['', ''],
       apoptosis: '',
       badRegulators: '',
       tooFewCells: '',
@@ -211,10 +206,8 @@ const Day2Page = () => {
       whatIfObservation: '',
     },
 
-    // Inquiry & discussion
     inquiry: { think: '' },
 
-    // Wrap-up reflections
     wrap: {
       healthyDivision: '',
       cancerVsNormal: '',
@@ -230,6 +223,28 @@ const Day2Page = () => {
   /* -------------------------- lifecycle & data load ------------------------- */
 
   useEffect(() => {
+    let mounted = true;
+
+    import(
+      /* webpackIgnore: true */
+      "https://app.realeye.io/sdk/js/testRunnerEmbeddableSdk-1.9.js"
+    )
+      .then(({ EmbeddedPageSdk }) => {
+        if (!mounted) return;
+        if (!window.reSdk) {
+          window.reSdk = new EmbeddedPageSdk(false, null, false);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load RealEye SDK:", err);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
     return () => {
       unmountedRef.current = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -240,8 +255,18 @@ const Day2Page = () => {
   useEffect(() => {
     let active = true;
     setLoading(true);
+
+    const normalizeAnswers = (payload) => {
+      setAnswersData((prev) => ({ ...prev, ...(payload || {}) }));
+    };
+
     (async () => {
       try {
+        if (isRealEyeMode) {
+          normalizeAnswers(null);
+          return;
+        }
+
         const u = await getCurrentUser();
         if (!active) return;
         setUser(u);
@@ -256,21 +281,28 @@ const Day2Page = () => {
 
         if (data?.answers) {
           const payload = data.answers.answers || data.answers;
-          setAnswersData(prev => ({ ...prev, ...payload }));
+          normalizeAnswers(payload);
           setDirty(false);
           setLastSavedAt(new Date());
+        } else {
+          normalizeAnswers(null);
         }
       } finally {
         if (active) setLoading(false);
       }
     })();
-    return () => { active = false; };
-  }, [moduleId]);
+
+    return () => {
+      active = false;
+    };
+  }, [moduleId, isRealEyeMode]);
 
   /* ------------------------------ saving logic ------------------------------ */
 
   const saveAnswers = async ({ silent = true } = {}) => {
+    if (isRealEyeMode) return;
     if (saving) return;
+
     try {
       setSaving(true);
       await upsertResponse(moduleId, answersData);
@@ -287,57 +319,65 @@ const Day2Page = () => {
   };
 
   const markDirtyAndDebounce = () => {
+    if (isRealEyeMode) return;
+
     setDirty(true);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      // read latest dirty/saving at call time
-      setDirty(currentDirty => {
+      setDirty((currentDirty) => {
         if (currentDirty && !saving) {
           saveAnswers({ silent: true });
         }
         return currentDirty;
       });
-    }, 2000); // 2s after last change
+    }, 2000);
   };
 
-  // periodic autosave while dirty (every 15s)
   useEffect(() => {
+    if (isRealEyeMode) return;
+
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
       if (dirty && !saving) saveAnswers({ silent: true });
     }, 15000);
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [dirty, saving]);
+  }, [dirty, saving, isRealEyeMode]);
 
-  // save on tab hide / page close
   useEffect(() => {
+    if (isRealEyeMode) return;
+
     const handleBeforeUnload = (e) => {
       if (dirty) {
         e.preventDefault();
         e.returnValue = '';
       }
     };
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && dirty && !saving) {
         saveAnswers({ silent: true });
       }
     };
+
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [dirty, saving]);
+  }, [dirty, saving, isRealEyeMode]);
 
-  // Manual save (buttons still work)
   const handleSave = async () => {
     await saveAnswers({ silent: false });
   };
 
   const handleLogout = async () => {
+    if (isRealEyeMode) return;
+
     if (dirty && !saving) {
       await saveAnswers({ silent: true });
     }
@@ -346,18 +386,29 @@ const Day2Page = () => {
     window.location.href = '/login';
   };
 
+  const handleFinishEntireStudy = () => {
+    if (!isRealEyeMode) return;
+
+    const confirmed = window.confirm(
+      'Are you sure you want to finish the entire study? This will end the study immediately.'
+    );
+
+    if (confirmed) {
+      window.reSdk?.finishEntireStudy();
+    }
+  };
+
   /* ------------------------------- helpers --------------------------------- */
 
-  // tiny setter: path like "cellCycle.interphaseG1" or "cycleSim.cellsDo[0]"
   const setField = (path, value) => {
-    setAnswersData(prev => {
-      // fallback in older environments
-      const clone = typeof structuredClone === 'function'
-        ? structuredClone(prev)
-        : JSON.parse(JSON.stringify(prev));
+    setAnswersData((prev) => {
+      const clone =
+        typeof structuredClone === 'function'
+          ? structuredClone(prev)
+          : JSON.parse(JSON.stringify(prev));
+
       // eslint-disable-next-line no-new-func
       new Function('obj', 'value', `obj.${path} = value;`)(clone, value);
-      // mark dirty after computing next state
       Promise.resolve().then(markDirtyAndDebounce);
       return clone;
     });
@@ -371,36 +422,34 @@ const Day2Page = () => {
 
   return (
     <div className="font-sans bg-gray-50 text-gray-800">
-      {/* Day5-style autosave status badge */}
-      <div className="fixed bottom-4 right-4 z-40">
-        <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
-          {saving
-            ? 'Autosaving…'
-            : lastSavedAt
-              ? `Saved • ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
-              : 'Ready'}
-          {dirty && !saving ? <span className="ml-2 text-amber-600">(unsaved)</span> : null}
-        </div>
-      </div>
-
-      {/* Guard banner to avoid calling .split() on null user */}
-      {user ? (
-        <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />
-      ) : (
-        <div className="container mx-auto px-4">
-          <div className="animate-pulse h-14 bg-gray-200 rounded-xl mb-4" />
+      {!isRealEyeMode && (
+        <div className="fixed bottom-4 right-4 z-40">
+          <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
+            {saving
+              ? 'Autosaving…'
+              : lastSavedAt
+                ? `Saved • ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+                : 'Ready'}
+            {dirty && !saving ? <span className="ml-2 text-amber-600">(unsaved)</span> : null}
+          </div>
         </div>
       )}
 
+      {!isRealEyeMode && user ? (
+        <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />
+      ) : !isRealEyeMode ? (
+        <div className="container mx-auto px-4">
+          <div className="animate-pulse h-14 bg-gray-200 rounded-xl mb-4" />
+        </div>
+      ) : null}
+
       <main className="container mx-auto px-4 py-8 space-y-16">
-        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-bold mb-3">Day 2: Understanding Cancer</h1>
           <h2 className="text-xl md:text-2xl text-gray-600">Cell Cycle, Mutations & Regulation Gone Wrong</h2>
         </div>
 
-        {/* Curiosity Spark: Case Scenario */}
-        <section id="scenario" className="mb-4">
+        <section id="scenario" className="mb-4" data-re-aoi-name="Case Spark Genetic Risk and Decisions">
           <div className="bg-primary-50 border border-primary-200 rounded-2xl p-6">
             <h3 className="text-xl font-semibold mb-2 flex items-center text-primary-800">
               <i className="fa-solid fa-user-doctor text-primary-500 mr-2" /> Case Spark: Genetic Risk & Decisions
@@ -417,22 +466,21 @@ const Day2Page = () => {
           </div>
         </section>
 
-        {/* Objective */}
-        <section id="objective-section" className="mb-12">
+        <section id="objective-section" className="mb-12" data-re-aoi-name="Objective">
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border-l-4 border-primary-500">
             <h2 className="text-2xl font-bold mb-4 flex items-center text-primary-700">
               <i className="fa-solid fa-bullseye text-primary-500 mr-3" />
               Objective
             </h2>
             <p className="text-gray-700 leading-relaxed">
-              Investigate what happens when the “instructions” inside a cell break down—leading to uncontrolled growth (cancer).
-              Prepare for Days 3–4 by learning healthy vs. harmful cell division, explore p53 and regulators like Mdm2, and see why cancer is a problem of cell-cycle regulation gone wrong.
+              Investigate what happens when the “instructions” inside a cell break down—leading to uncontrolled growth
+              (cancer). Prepare for Days 3–4 by learning healthy vs. harmful cell division, explore p53 and regulators
+              like Mdm2, and see why cancer is a problem of cell-cycle regulation gone wrong.
             </p>
           </div>
         </section>
 
-        {/* What's the Plan? */}
-        <section id="plan-section" className="mb-12">
+        <section id="plan-section" className="mb-12" data-re-aoi-name="Daily Plan">
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h2 className="text-2xl font-bold mb-6 flex items-center">
               <i className="fa-solid fa-list-check text-primary-500 mr-3" />
@@ -457,19 +505,17 @@ const Day2Page = () => {
           </div>
         </section>
 
-        {/* Activities */}
         <section id="activities-header" className="mb-2">
           <h2 className="text-3xl font-bold text-center">Activities</h2>
         </section>
 
-        {/* Watch & Learn: Cell Cycle */}
-        <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
+        <section id="watch-part-1" className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Watch Learn Part 1 Cell Cycle">
           <h3 className="text-2xl font-semibold mb-4 flex items-center">
             <i className="fa-solid fa-video text-primary-500 mr-3" />
             Watch & Learn — Part 1: Cell Cycle
           </h3>
 
-          <div className="rounded-xl overflow-hidden mb-4">
+          <div className="rounded-xl overflow-hidden mb-4" data-re-aoi-name="Cell Cycle Video Player">
             <iframe
               className="w-full h-80 rounded-xl"
               src="https://www.youtube-nocookie.com/embed/zNJJ_C2j4gk"
@@ -482,8 +528,7 @@ const Day2Page = () => {
             />
           </div>
 
-          {/* Questions (labels outside inputs so they remain visible) */}
-          <div className="border border-gray-200 rounded-2xl p-4 md:p-6">
+          <div className="border border-gray-200 rounded-2xl p-4 md:p-6" data-re-aoi-name="Cell Cycle Questions Block">
             <h4 className="text-xl font-semibold mb-4">Key Questions</h4>
 
             <div className="space-y-6 text-sm">
@@ -492,13 +537,13 @@ const Day2Page = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <input
                     value={answersData.cellCycle.phasesTwo[0]}
-                    onChange={e => setField('cellCycle.phasesTwo[0]', e.target.value)}
+                    onChange={(e) => setField('cellCycle.phasesTwo[0]', e.target.value)}
                     className="border-b-2 border-primary-300 focus:border-primary-500 outline-none px-2 py-1"
                     placeholder="Type here…"
                   />
                   <input
                     value={answersData.cellCycle.phasesTwo[1]}
-                    onChange={e => setField('cellCycle.phasesTwo[1]', e.target.value)}
+                    onChange={(e) => setField('cellCycle.phasesTwo[1]', e.target.value)}
                     className="border-b-2 border-primary-300 focus:border-primary-500 outline-none px-2 py-1"
                     placeholder="Type here…"
                   />
@@ -509,21 +554,21 @@ const Day2Page = () => {
                 <p className="font-medium mb-2">2) Describe the three subphases of interphase.</p>
                 <AutoResizeTextarea
                   value={answersData.cellCycle.interphaseG1}
-                  onChange={e => setField('cellCycle.interphaseG1', e.target.value)}
+                  onChange={(e) => setField('cellCycle.interphaseG1', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2 mb-2"
                   rows={2}
                   placeholder="G1 (Gap/Growth 1)…"
                 />
                 <AutoResizeTextarea
                   value={answersData.cellCycle.interphaseS}
-                  onChange={e => setField('cellCycle.interphaseS', e.target.value)}
+                  onChange={(e) => setField('cellCycle.interphaseS', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2 mb-2"
                   rows={2}
                   placeholder="S (Synthesis)…"
                 />
                 <AutoResizeTextarea
                   value={answersData.cellCycle.interphaseG2}
-                  onChange={e => setField('cellCycle.interphaseG2', e.target.value)}
+                  onChange={(e) => setField('cellCycle.interphaseG2', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2"
                   rows={2}
                   placeholder="G2 (Gap/Growth 2)…"
@@ -532,15 +577,14 @@ const Day2Page = () => {
 
               <div>
                 <p className="font-medium mb-2">3) Describe the four phases of mitosis:</p>
-                {['prophase','metaphase','anaphase','telophase'].map(phase => (
+                {['prophase', 'metaphase', 'anaphase', 'telophase'].map((phase) => (
                   <div key={phase} className="grid grid-cols-1 gap-3 mb-3">
-                    {/* Removed the drawing/link input per request */}
                     <AutoResizeTextarea
                       value={answersData.cellCycle.mitosisSketch[phase].desc}
-                      onChange={e => setField(`cellCycle.mitosisSketch.${phase}.desc`, e.target.value)}
+                      onChange={(e) => setField(`cellCycle.mitosisSketch.${phase}.desc`, e.target.value)}
                       className="border border-gray-300 rounded px-3 py-2"
                       rows={2}
-                      placeholder={`${phase[0].toUpperCase()+phase.slice(1)} — describe what you see (chromosomes, spindle, nucleus, etc.)`}
+                      placeholder={`${phase[0].toUpperCase() + phase.slice(1)} — describe what you see (chromosomes, spindle, nucleus, etc.)`}
                     />
                   </div>
                 ))}
@@ -549,10 +593,9 @@ const Day2Page = () => {
               <div>
                 <p className="font-medium mb-2">4) Describe a cell in cytokinesis.</p>
                 <div className="grid grid-cols-1 gap-3">
-                  {/* Removed the drawing input per request */}
                   <AutoResizeTextarea
                     value={answersData.cellCycle.cytokinesis.desc}
-                    onChange={e => setField('cellCycle.cytokinesis.desc', e.target.value)}
+                    onChange={(e) => setField('cellCycle.cytokinesis.desc', e.target.value)}
                     className="border border-gray-300 rounded px-3 py-2"
                     rows={2}
                     placeholder="Membrane pinches; two daughter cells separate…"
@@ -561,10 +604,12 @@ const Day2Page = () => {
               </div>
 
               <div>
-                <p className="font-medium mb-2">5) When cells no longer need to divide, what stage do they enter? Describe.</p>
+                <p className="font-medium mb-2">
+                  5) When cells no longer need to divide, what stage do they enter? Describe.
+                </p>
                 <AutoResizeTextarea
                   value={answersData.cellCycle.postDivisionStage}
-                  onChange={e => setField('cellCycle.postDivisionStage', e.target.value)}
+                  onChange={(e) => setField('cellCycle.postDivisionStage', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2"
                   rows={2}
                   placeholder="e.g., G0 — quiescent/resting phase…"
@@ -573,21 +618,23 @@ const Day2Page = () => {
             </div>
 
             <div className="flex justify-end mt-6">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+              <button
+                onClick={handleSave}
+                className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+              >
                 Save Answers
               </button>
             </div>
           </div>
         </section>
 
-        {/* Watch & Learn: What is Cancer? */}
-        <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
+        <section id="watch-part-2" className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Watch Learn Part 2 What is Cancer">
           <h3 className="text-2xl font-semibold mb-4 flex items-center">
             <i className="fa-solid fa-video text-primary-500 mr-3" />
             Watch & Learn — Part 2: What is Cancer?
           </h3>
 
-          <div className="rounded-xl overflow-hidden mb-4">
+          <div className="rounded-xl overflow-hidden mb-4" data-re-aoi-name="Cancer Video Player">
             <iframe
               className="w-full h-80 rounded-xl"
               src="https://www.youtube-nocookie.com/embed/tsXnVu3kUnM"
@@ -600,14 +647,14 @@ const Day2Page = () => {
             />
           </div>
 
-          <div className="border border-gray-200 rounded-2xl p-4 md:p-6">
+          <div className="border border-gray-200 rounded-2xl p-4 md:p-6" data-re-aoi-name="Cancer Questions Block">
             <h4 className="text-xl font-semibold mb-4">After the video</h4>
             <div className="space-y-5 text-sm">
               <div>
                 <p className="font-medium mb-1">1) How does cancer differ from normal cell growth?</p>
                 <AutoResizeTextarea
                   value={answersData.cancerBasics.howDiffers}
-                  onChange={e => setField('cancerBasics.howDiffers', e.target.value)}
+                  onChange={(e) => setField('cancerBasics.howDiffers', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
                   rows={3}
                   placeholder="Type your answer…"
@@ -617,7 +664,7 @@ const Day2Page = () => {
                 <p className="font-medium mb-1">2) Name & describe two hallmarks of cancer from the video.</p>
                 <AutoResizeTextarea
                   value={answersData.cancerBasics.twoHallmarks}
-                  onChange={e => setField('cancerBasics.twoHallmarks', e.target.value)}
+                  onChange={(e) => setField('cancerBasics.twoHallmarks', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
                   rows={3}
                   placeholder="Type your answer…"
@@ -627,7 +674,7 @@ const Day2Page = () => {
                 <p className="font-medium mb-1">3) What role do mutations play in cancer development?</p>
                 <AutoResizeTextarea
                   value={answersData.cancerBasics.mutationsRole}
-                  onChange={e => setField('cancerBasics.mutationsRole', e.target.value)}
+                  onChange={(e) => setField('cancerBasics.mutationsRole', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
                   rows={3}
                   placeholder="Type your answer…"
@@ -639,55 +686,60 @@ const Day2Page = () => {
                 </p>
                 <AutoResizeTextarea
                   value={answersData.cancerBasics.earlyDetection}
-                  onChange={e => setField('cancerBasics.earlyDetection', e.target.value)}
+                  onChange={(e) => setField('cancerBasics.earlyDetection', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
                   rows={3}
                   placeholder="Use your prior knowledge and today’s concepts…"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Note: The CR-UK video doesn’t cover this directly; answer using your understanding of tumor growth & treatment outcomes.
+                  Note: The CR-UK video doesn’t cover this directly; answer using your understanding of tumor growth &
+                  treatment outcomes.
                 </p>
               </div>
             </div>
 
             <div className="flex justify-end mt-6">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+              <button
+                onClick={handleSave}
+                className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+              >
                 Save Answers
               </button>
             </div>
           </div>
         </section>
 
-        {/* Activity 1: p53 Gene & Cancer */}
-        <section id="sim-p53" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
+        <section id="sim-p53" className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="p53 Gene and Cancer Simulation">
           <h3 className="text-2xl font-semibold mb-4 flex items-center">
             <i className="fa-solid fa-flask-vial text-primary-500 mr-3" />
             Activity: Online Simulation — p53 Gene & Cancer
           </h3>
 
-          {/* Clear “How to use” block */}
           <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 mb-4">
             <h4 className="font-semibold mb-2">How to use this simulation</h4>
             <ol className="list-decimal list-inside text-sm text-gray-800 space-y-1">
               <li>Open the simulation page and click <b>Start Interactive</b>.</li>
               <li>Use the left sidebar to move through slides; answer the questions below after each relevant slide.</li>
-              <li>Focus on: <b>oncogenes</b>, <b>tumor suppressor genes</b>, <b>DNA repair genes</b>, <b>p53</b>, and <b>Mdm2</b>.</li>
+              <li>
+                Focus on: <b>oncogenes</b>, <b>tumor suppressor genes</b>, <b>DNA repair genes</b>, <b>p53</b>, and <b>Mdm2</b>.
+              </li>
               <li>If you get lost, return to the slide list and re-open the slide mentioned in the question label.</li>
             </ol>
           </div>
 
-          {/* Embedded (with fallback) */}
-          <EmbedWithFallback
-            src="https://media.hhmi.org/biointeractive/click/p53/01.html?_gl=1*1pyukss*_ga*NjQ2NDY1NDE5LjE3NDc0MTYwNDE.*_ga_H0E1KHGJBH*czE3NTc2NDgyOTQkbzIkZzEkdDE3NTc2NDkzNjQkajYwJGwwJGgw"
-            title="HHMI BioInteractive — p53 Gene & Cancer"
-          />
+          <div data-re-aoi-name="p53 Simulation Embed">
+            <EmbedWithFallback
+              src="https://media.hhmi.org/biointeractive/click/p53/01.html?_gl=1*1pyukss*_ga*NjQ2NDY1NDE5LjE3NDc0MTYwNDE.*_ga_H0E1KHGJBH*czE3NTc2NDgyOTQkbzIkZzEkdDE3NTc2NDkzNjQkajYwJGwwJGgw"
+              title="HHMI BioInteractive — p53 Gene & Cancer"
+            />
+          </div>
 
           <div className="border border-gray-200 rounded-2xl p-4 md:p-6 space-y-4 text-sm mt-6">
             <div>
               <p className="font-medium mb-1">Slide 2 — What are <b>oncogenes</b>?</p>
               <input
                 value={answersData.p53Sim.oncogenes}
-                onChange={e => setField('p53Sim.oncogenes', e.target.value)}
+                onChange={(e) => setField('p53Sim.oncogenes', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
                 placeholder="Type your answer…"
               />
@@ -696,7 +748,7 @@ const Day2Page = () => {
               <p className="font-medium mb-1">Slide 2 — What are <b>tumor suppressor genes</b>?</p>
               <input
                 value={answersData.p53Sim.tumorSuppressors}
-                onChange={e => setField('p53Sim.tumorSuppressors', e.target.value)}
+                onChange={(e) => setField('p53Sim.tumorSuppressors', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
                 placeholder="Type your answer…"
               />
@@ -705,7 +757,7 @@ const Day2Page = () => {
               <p className="font-medium mb-1">Slide 2 — What are <b>DNA repair genes</b>?</p>
               <input
                 value={answersData.p53Sim.dnaRepair}
-                onChange={e => setField('p53Sim.dnaRepair', e.target.value)}
+                onChange={(e) => setField('p53Sim.dnaRepair', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
                 placeholder="Type your answer…"
               />
@@ -714,7 +766,7 @@ const Day2Page = () => {
               <p className="font-medium mb-1">Slide 3 — Normal function of <b>p53</b> in a healthy cell?</p>
               <input
                 value={answersData.p53Sim.p53Function}
-                onChange={e => setField('p53Sim.p53Function', e.target.value)}
+                onChange={(e) => setField('p53Sim.p53Function', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
                 placeholder="Type your answer…"
               />
@@ -723,7 +775,7 @@ const Day2Page = () => {
               <p className="font-medium mb-1">Slide 5 — “p53 functions primarily as a ________.”</p>
               <input
                 value={answersData.p53Sim.p53TFBlank}
-                onChange={e => setField('p53Sim.p53TFBlank', e.target.value)}
+                onChange={(e) => setField('p53Sim.p53TFBlank', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
                 placeholder="Fill the blank (one or two words)…"
               />
@@ -732,28 +784,30 @@ const Day2Page = () => {
               <p className="font-medium mb-1">Slide 6 — Effect of <b>Mdm2</b> on p53?</p>
               <input
                 value={answersData.p53Sim.mdm2Effect}
-                onChange={e => setField('p53Sim.mdm2Effect', e.target.value)}
+                onChange={(e) => setField('p53Sim.mdm2Effect', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
                 placeholder="Type your answer…"
               />
             </div>
 
             <div className="flex justify-end pt-2">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+              <button
+                data-re-aoi-name="p53 Save Answers Button"
+                onClick={handleSave}
+                className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+              >
                 Save Answers
               </button>
             </div>
           </div>
         </section>
 
-        {/* Activity 2: Cell Cycle & Cancer */}
-        <section id="sim-cycle" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
+        <section id="sim-cycle" className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Eukaryotic Cell Cycle and Cancer Simulation">
           <h3 className="text-2xl font-semibold mb-4 flex items-center">
             <i className="fa-solid fa-microscope text-primary-500 mr-3" />
             Activity: Online Simulation — Eukaryotic Cell Cycle & Cancer
           </h3>
 
-          {/* Clear “How to navigate” block */}
           <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 mb-4">
             <h4 className="font-semibold mb-2">How to navigate this simulation</h4>
             <ol className="list-decimal list-inside text-sm text-gray-800 space-y-1">
@@ -763,29 +817,34 @@ const Day2Page = () => {
               <li>Answer the questions below labelled with the section (e.g., “Cell Cycle Phases”).</li>
               <li>For “what-if” tests, use the interactive toggles (e.g., disable checkpoints, change protein levels), then note what you observe.</li>
             </ol>
-            <p className="text-xs text-gray-600 mt-1">Tip: If lost, return to the <b>Overview</b> tab, then proceed left-to-right.</p>
+            <p className="text-xs text-gray-600 mt-1">
+              Tip: If lost, return to the <b>Overview</b> tab, then proceed left-to-right.
+            </p>
           </div>
 
-          {/* Embedded (with fallback) */}
-          <EmbedWithFallback
-            src="https://media.hhmi.org/biointeractive/click/cellcycle/?_gl=1*1e5q9o3*_ga*NjQ2NDY1NDE5LjE3NDc0MTYwNDE.*_ga_H0E1KHGJBH*czE3NTgwNzEzOTAkbzMkZzAkdDE3NTgwNzEzOTAkajYwJGwwJGgw"
-            title="HHMI BioInteractive — Eukaryotic Cell Cycle & Cancer"
-          />
+          <div data-re-aoi-name="Cell Cycle Cancer Simulation Embed">
+            <EmbedWithFallback
+              src="https://media.hhmi.org/biointeractive/click/cellcycle/?_gl=1*1e5q9o3*_ga*NjQ2NDY1NDE5LjE3NDc0MTYwNDE.*_ga_H0E1KHGJBH*czE3NTgwNzEzOTAkbzMkZzAkdDE3NTgwNzEzOTAkajYwJGwwJGgw"
+              title="HHMI BioInteractive — Eukaryotic Cell Cycle & Cancer"
+            />
+          </div>
 
           <div className="border border-gray-200 rounded-2xl p-4 md:p-6 space-y-5 text-sm mt-6">
             <div>
-            <p className="font-medium mb-1"> Overview — Molecular signals can cause cells to <b>divide</b>, ________, or ________. Fill the two blanks.</p>
+              <p className="font-medium mb-1">
+                Overview — Molecular signals can cause cells to <b>divide</b>, ________, or ________. Fill the two blanks.
+              </p>
               <input
                 value={answersData.cycleSim.cellsDo[0]}
-                onChange={e => setField('cycleSim.cellsDo[0]', e.target.value)}
+                onChange={(e) => setField('cycleSim.cellsDo[0]', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
-                placeholder='First blank'
+                placeholder="First blank"
               />
               <input
                 value={answersData.cycleSim.cellsDo[1]}
-                onChange={e => setField('cycleSim.cellsDo[1]', e.target.value)}
+                onChange={(e) => setField('cycleSim.cellsDo[1]', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2 mt-2"
-                placeholder='Second blank'
+                placeholder="Second blank"
               />
               <p className="text-xs text-gray-500 mt-1">Slide numbers are shown in the simulation sidebar.</p>
             </div>
@@ -794,7 +853,7 @@ const Day2Page = () => {
               <p className="font-medium mb-1">Overview — What is <b>apoptosis</b>, and why is it beneficial?</p>
               <AutoResizeTextarea
                 value={answersData.cycleSim.apoptosis}
-                onChange={e => setField('cycleSim.apoptosis', e.target.value)}
+                onChange={(e) => setField('cycleSim.apoptosis', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
                 rows={2}
                 placeholder="Type your answer…"
@@ -802,10 +861,12 @@ const Day2Page = () => {
             </div>
 
             <div>
-              <p className="font-medium mb-1">Regulators & Cancer — What happens if cell cycle regulators don’t function properly?</p>
+              <p className="font-medium mb-1">
+                Regulators & Cancer — What happens if cell cycle regulators don’t function properly?
+              </p>
               <AutoResizeTextarea
                 value={answersData.cycleSim.badRegulators}
-                onChange={e => setField('cycleSim.badRegulators', e.target.value)}
+                onChange={(e) => setField('cycleSim.badRegulators', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
                 rows={2}
                 placeholder="Type your answer…"
@@ -817,7 +878,7 @@ const Day2Page = () => {
                 <p className="font-medium mb-1">Give one issue that arises with <b>too few</b> cells.</p>
                 <input
                   value={answersData.cycleSim.tooFewCells}
-                  onChange={e => setField('cycleSim.tooFewCells', e.target.value)}
+                  onChange={(e) => setField('cycleSim.tooFewCells', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2"
                   placeholder="Type your answer…"
                 />
@@ -826,7 +887,7 @@ const Day2Page = () => {
                 <p className="font-medium mb-1">Give one issue that arises with <b>too many</b> cells.</p>
                 <input
                   value={answersData.cycleSim.tooManyCells}
-                  onChange={e => setField('cycleSim.tooManyCells', e.target.value)}
+                  onChange={(e) => setField('cycleSim.tooManyCells', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2"
                   placeholder="Type your answer…"
                 />
@@ -837,7 +898,7 @@ const Day2Page = () => {
               <p className="font-medium mb-1">Cell Cycle Phases — Notes (G1, S, G2, M + checkpoints)</p>
               <AutoResizeTextarea
                 value={answersData.cycleSim.phasesNotes}
-                onChange={e => setField('cycleSim.phasesNotes', e.target.value)}
+                onChange={(e) => setField('cycleSim.phasesNotes', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
                 rows={2}
                 placeholder="After exploring the simulation, type your notes here. This is important for Day 3 and 4"
@@ -848,7 +909,7 @@ const Day2Page = () => {
               <p className="font-medium mb-1">Regulators & Cancer — Notes</p>
               <AutoResizeTextarea
                 value={answersData.cycleSim.regulatorsNotes}
-                onChange={e => setField('cycleSim.regulatorsNotes', e.target.value)}
+                onChange={(e) => setField('cycleSim.regulatorsNotes', e.target.value)}
                 className="w-full border border-gray-300 rounded px-3 py-2"
                 rows={2}
                 placeholder="After exploring the simulation, type your notes here. This is important for Day 3 and 4"
@@ -857,10 +918,12 @@ const Day2Page = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <p className="font-medium mb-1">What-if scenario (e.g., turn p53 off, overexpress cyclin D, disable G2/M arrest):</p>
+                <p className="font-medium mb-1">
+                  What-if scenario (e.g., turn p53 off, overexpress cyclin D, disable G2/M arrest):
+                </p>
                 <AutoResizeTextarea
                   value={answersData.cycleSim.whatIf}
-                  onChange={e => setField('cycleSim.whatIf', e.target.value)}
+                  onChange={(e) => setField('cycleSim.whatIf', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2"
                   rows={2}
                   placeholder="Describe the setup…"
@@ -870,7 +933,7 @@ const Day2Page = () => {
                 <p className="font-medium mb-1">Observation — what happened?</p>
                 <AutoResizeTextarea
                   value={answersData.cycleSim.whatIfObservation}
-                  onChange={e => setField('cycleSim.whatIfObservation', e.target.value)}
+                  onChange={(e) => setField('cycleSim.whatIfObservation', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2"
                   rows={2}
                   placeholder="What did you see?"
@@ -879,7 +942,11 @@ const Day2Page = () => {
             </div>
 
             <div className="flex justify-end pt-2">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+              <button
+                data-re-aoi-name="Cell Cycle Simulation Save Answers Button"
+                onClick={handleSave}
+                className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+              >
                 Save Answers
               </button>
             </div>
@@ -890,8 +957,7 @@ const Day2Page = () => {
           </p>
         </section>
 
-        {/* Inquiry & Discussion */}
-        <section id="inquiry-section" className="mb-16">
+        <section id="inquiry-section" className="mb-16" data-re-aoi-name="Inquiry and Discussion">
           <div className="bg-primary-100 rounded-2xl shadow-md p-6 md:p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 -mt-10 -mr-10 text-primary-200">
               <i className="fa-solid fa-quote-right text-9xl opacity-30" />
@@ -902,11 +968,20 @@ const Day2Page = () => {
               Inquiry & Discussion
             </h2>
 
-            <div className="bg-white rounded-xl p-6 shadow-sm mb-6 relative z-10 space-y-4">
+            <div className="bg-white rounded-xl p-6 shadow-sm mb-6 relative z-10 space-y-4" data-re-aoi-name="Inquiry Accordion Questions">
               {[
-                { q: 'If p53 is mutated and cannot activate repair or apoptosis, what happens to the cell cycle?', a: 'Cells can pass damaged DNA through checkpoints, increasing mutation load and potential tumor formation.' },
-                { q: 'How might overactive Mdm2 impact p53 and cancer risk?', a: 'Mdm2 tags p53 for degradation; overactivity can reduce p53 levels, weakening crucial damage responses.' },
-                { q: 'Name one environmental factor that could increase mutation rates. How might this affect regulators?', a: 'UV radiation can cause thymine dimers; checkpoint proteins and repair genes must respond or errors accumulate.' }
+                {
+                  q: 'If p53 is mutated and cannot activate repair or apoptosis, what happens to the cell cycle?',
+                  a: 'Cells can pass damaged DNA through checkpoints, increasing mutation load and potential tumor formation.'
+                },
+                {
+                  q: 'How might overactive Mdm2 impact p53 and cancer risk?',
+                  a: 'Mdm2 tags p53 for degradation; overactivity can reduce p53 levels, weakening crucial damage responses.'
+                },
+                {
+                  q: 'Name one environmental factor that could increase mutation rates. How might this affect regulators?',
+                  a: 'UV radiation can cause thymine dimers; checkpoint proteins and repair genes must respond or errors accumulate.'
+                }
               ].map((item, idx) => (
                 <details key={idx} className="border border-gray-200 rounded-lg transition-colors">
                   <summary className="cursor-pointer px-4 py-3 hover:bg-primary-50 rounded-lg flex justify-between items-center">
@@ -921,17 +996,23 @@ const Day2Page = () => {
             <div className="bg-white rounded-xl p-6 shadow-sm relative z-10">
               <h3 className="text-xl font-semibold mb-4 text-primary-700">Think & Respond</h3>
               <p className="text-gray-700 mb-4">
-                Scenario: A cell has severe DNA damage, p53 is mutated, and cyclin D is overexpressed. Predict what happens at the G1/S checkpoint.
+                Scenario: A cell has severe DNA damage, p53 is mutated, and cyclin D is overexpressed. Predict what
+                happens at the G1/S checkpoint.
               </p>
               <AutoResizeTextarea
+                data-re-aoi-name="Think Respond Textbox"
                 value={answersData.inquiry.think}
-                onChange={e => setField('inquiry.think', e.target.value)}
+                onChange={(e) => setField('inquiry.think', e.target.value)}
                 className="w-full border border-gray-300 rounded-lg p-3"
                 rows={4}
                 placeholder="Type your response here..."
               />
               <div className="mt-4 flex justify-end">
-                <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+                <button
+                  data-re-aoi-name="Submit Response Button"
+                  onClick={handleSave}
+                  className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+                >
                   Submit Response
                 </button>
               </div>
@@ -939,92 +1020,101 @@ const Day2Page = () => {
           </div>
         </section>
 
-        {/* Wrap-Up & Reflection */}
-        <section id="wrap-up-section" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
-  <h3 className="text-2xl font-semibold mb-4 flex items-center">
-    <i className="fa-solid fa-flag-checkered text-primary-500 mr-3" />
-    Wrap-Up & Reflection
-  </h3>
+        <section id="wrap-up-section" className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Wrap Up and Reflection">
+          <h3 className="text-2xl font-semibold mb-4 flex items-center">
+            <i className="fa-solid fa-flag-checkered text-primary-500 mr-3" />
+            Wrap-Up & Reflection
+          </h3>
 
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    {[
-      {
-        key: "healthyDivision",
-        q: "What does healthy cellular division typically look like? What are the two main phases?",
-      },
-      { key: "cancerVsNormal", q: "How does cancer differ from normal cell growth?" },
-      {
-        key: "threeGeneTypes",
-        q: "What are oncogenes, tumor suppressor genes, and DNA repair genes? Why are they important?",
-      },
-      { key: "p53Normal", q: "What is the normal function of p53 in a healthy cell?" },
-      { key: "mdm2OnP53", q: "What is the effect of Mdm2 on p53?" },
-      { key: "whatIfRan", q: "Describe one “what-if” you tested. What did you observe?" },
-      { key: "favVideo", q: "Which video was your favorite and why?" },
-      { key: "favSim", q: "Which simulation was your favorite and why?" },
-    ].map(({ key, q }) => {
-      const id = `wrap-${key}`;
-      return (
-        <div key={key} className="space-y-2">
-          <label htmlFor={id} className="block text-sm font-medium text-gray-800">
-            {q}
-          </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-re-aoi-name="Wrap Up Reflection Inputs">
+            {[
+              {
+                key: 'healthyDivision',
+                q: 'What does healthy cellular division typically look like? What are the two main phases?',
+              },
+              { key: 'cancerVsNormal', q: 'How does cancer differ from normal cell growth?' },
+              {
+                key: 'threeGeneTypes',
+                q: 'What are oncogenes, tumor suppressor genes, and DNA repair genes? Why are they important?',
+              },
+              { key: 'p53Normal', q: 'What is the normal function of p53 in a healthy cell?' },
+              { key: 'mdm2OnP53', q: 'What is the effect of Mdm2 on p53?' },
+              { key: 'whatIfRan', q: 'Describe one “what-if” you tested. What did you observe?' },
+              { key: 'favVideo', q: 'Which video was your favorite and why?' },
+              { key: 'favSim', q: 'Which simulation was your favorite and why?' },
+            ].map(({ key, q }) => {
+              const id = `wrap-${key}`;
+              return (
+                <div key={key} className="space-y-2">
+                  <label htmlFor={id} className="block text-sm font-medium text-gray-800">
+                    {q}
+                  </label>
 
-          <AutoResizeTextarea
-            id={id}
-            value={answersData.wrap[key] ?? ""}
-            onChange={(e) => setField(`wrap.${key}`, e.target.value)}
-            className="w-full border border-gray-300 rounded p-3"
-            rows={3}
-            placeholder="Type your answer…"
-          />
-        </div>
-      );
-    })}
-  </div>
+                  <AutoResizeTextarea
+                    id={id}
+                    value={answersData.wrap[key] ?? ''}
+                    onChange={(e) => setField(`wrap.${key}`, e.target.value)}
+                    className="w-full border border-gray-300 rounded p-3"
+                    rows={3}
+                    placeholder="Type your answer…"
+                  />
+                </div>
+              );
+            })}
+          </div>
 
-  <div className="flex justify-end mt-6">
-    <button
-      onClick={handleSave}
-      className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
-    >
-      Save Reflection
-    </button>
-  </div>
-</section>
+          <div className="flex justify-end mt-6">
+            <button
+              onClick={handleSave}
+              className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+            >
+              Save Reflection
+            </button>
+          </div>
+        </section>
 
-        {/* Global Save */}
         <div className="flex justify-center">
-          <button
-            onClick={handleSave}
-            className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-lg"
-          >
-            Save
-          </button>
+          {!isRealEyeMode ? (
+            <button
+              onClick={handleSave}
+              className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-lg"
+            >
+              Save
+            </button>
+          ) : (
+            <button
+              data-re-aoi-name="Finish Entire Study Button"
+              onClick={handleFinishEntireStudy}
+              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg"
+            >
+              Finish Entire Study
+            </button>
+          )}
         </div>
 
-        {/* Page Nav */}
-        <div className="flex justify-between">
-          <Link
-            to="/sections/day-1"
-            className="inline-flex items-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg"
-          >
-            <i className="fa-solid fa-arrow-left mr-2" />
-            Back to Day 1
-          </Link>
-          <Link
-            to="/sections/day-3"
-            className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
-          >
-            Go to Day 3
-            <i className="fa-solid fa-arrow-right ml-2" />
-          </Link>
-        </div>
+        {!isRealEyeMode && (
+          <div className="flex justify-between">
+            <Link
+              to="/sections/day-1"
+              className="inline-flex items-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg"
+            >
+              <i className="fa-solid fa-arrow-left mr-2" />
+              Back to Day 1
+            </Link>
+            <Link
+              to="/sections/day-3"
+              className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+            >
+              Go to Day 3
+              <i className="fa-solid fa-arrow-right ml-2" />
+            </Link>
+          </div>
+        )}
       </main>
 
       <footer className="bg-white border-t border-gray-200 py-6 text-center" />
 
-      {popupVisible && (
+      {!isRealEyeMode && popupVisible && (
         <Popup
           message="Are you sure you want to logout?"
           onCancel={() => setPopupVisible(false)}

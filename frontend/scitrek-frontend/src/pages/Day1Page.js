@@ -244,7 +244,7 @@ const Day1Page = () => {
   const { day } = useParams();
   const moduleId = Number(day) || 1;
 
-  const isRealEyeMode = window.location.pathname === '/realeye/day-1';
+  const isRealEyeMode = window.location.pathname.startsWith('/realeye/day-1');
 
   const [user, setUser] = useState(null);
   const [popupVisible, setPopupVisible] = useState(false);
@@ -291,6 +291,9 @@ const Day1Page = () => {
   const [showModal, setShowModal] = useState(false);
   const [showUtah1, setShowUtah1] = useState(false);
   const [showUtah2, setShowUtah2] = useState(false);
+  const prevShowUtah1Ref = useRef(showUtah1);
+  const prevShowUtah2Ref = useRef(showUtah2);
+  const prevShowModalRef = useRef(showModal);
 
   useEffect(() => {
     let mounted = true;
@@ -337,22 +340,37 @@ const Day1Page = () => {
   }, []);
 
   useEffect(() => {
-    if (showUtah1 && window.reSdk) {
-      window.reSdk.startNextExposure();
+    if (!isRealEyeMode) {
+      prevShowUtah1Ref.current = showUtah1;
+      return;
     }
-  }, [showUtah1]);
-  
-  useEffect(() => {
-    if (showUtah2 && window.reSdk) {
-      window.reSdk.startNextExposure();
+    if (prevShowUtah1Ref.current !== showUtah1) {
+      window.reSdk?.startNextExposure();
     }
-  }, [showUtah2]);
+    prevShowUtah1Ref.current = showUtah1;
+  }, [showUtah1, isRealEyeMode]);
 
   useEffect(() => {
-    if (showModal && window.reSdk) {
-      window.reSdk.startNextExposure();
+    if (!isRealEyeMode) {
+      prevShowUtah2Ref.current = showUtah2;
+      return;
     }
-  }, [showModal]);
+    if (prevShowUtah2Ref.current !== showUtah2) {
+      window.reSdk?.startNextExposure();
+    }
+    prevShowUtah2Ref.current = showUtah2;
+  }, [showUtah2, isRealEyeMode]);
+
+  useEffect(() => {
+    if (!isRealEyeMode) {
+      prevShowModalRef.current = showModal;
+      return;
+    }
+    if (prevShowModalRef.current !== showModal) {
+      window.reSdk?.startNextExposure();
+    }
+    prevShowModalRef.current = showModal;
+  }, [showModal, isRealEyeMode]);
 
   // ------- load user + saved answers (same pattern as Day5) -------
   useEffect(() => {
@@ -468,6 +486,8 @@ const Day1Page = () => {
   };
 
   const markDirtyAndDebounce = () => {
+    if (isRealEyeMode) return;
+
     setDirty(true);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -477,6 +497,8 @@ const Day1Page = () => {
 
   // periodic autosave while dirty (every 15s)
   useEffect(() => {
+    if (isRealEyeMode) return;
+
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
       if (dirty && !saving) saveAnswers({ silent: true });
@@ -484,10 +506,12 @@ const Day1Page = () => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [dirty, saving]); // re-evaluate when flags change
+  }, [dirty, saving, isRealEyeMode]); // re-evaluate when flags change
 
   // save on tab hide / page close
   useEffect(() => {
+    if (isRealEyeMode) return;
+
     const handleBeforeUnload = (e) => {
       if (dirty) {
         e.preventDefault();
@@ -505,12 +529,13 @@ const Day1Page = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [dirty, saving]);
+  }, [dirty, saving, isRealEyeMode]);
 
+  // Manual logout (ensure save first if dirty)
   // Manual logout (ensure save first if dirty)
   const handleLogout = async () => {
     if (isRealEyeMode) return;
-  
+
     if (dirty && !saving) {
       await saveAnswers({ silent: true });
     }
@@ -522,6 +547,19 @@ const Day1Page = () => {
   // Manual save button
   const handleSave = async () => {
     await saveAnswers({ silent: false });
+  };
+
+  // RealEye: finish the entire study
+  const handleFinishEntireStudy = () => {
+    if (!isRealEyeMode) return;
+
+    const confirmed = window.confirm(
+      'Are you sure you want to finish the entire study? This will end the study immediately.'
+    );
+
+    if (confirmed) {
+      window.reSdk?.finishEntireStudy();
+    }
   };
 
   // ---- state setters (each marks dirty + debounces autosave) ----------------
@@ -650,7 +688,7 @@ const Day1Page = () => {
         </div>
 
         {/* Section 2: Objective */}
-        <section id="objective-section" className="mb-16">
+        <section id="objective-section" className="mb-16" data-re-aoi-name="Objective">
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border-l-4 border-primary-500">
             <div className="flex flex-col md:flex-row items-start">
               <div className="md:w-2/3 mb-6 md:mb-0 md:pr-8">
@@ -702,12 +740,14 @@ const Day1Page = () => {
                     <h4 className="text-base font-semibold mb-2">Interactive Model</h4>
                     <div className="space-y-2">
                       <button
+                        data-re-aoi-name="Anatomy of a Gene Button"
                         className="w-full text-white bg-primary-500 hover:bg-primary-600 font-medium py-2 px-3 rounded-lg"
                         onClick={() => setShowUtah1(true)}
                       >
                         1) Anatomy of a Gene
                       </button>
                       <button
+                        data-re-aoi-name="Translation Machinery Button"
                         className="w-full text-white bg-primary-500 hover:bg-primary-600 font-medium py-2 px-3 rounded-lg"
                         onClick={() => setShowUtah2(true)}
                       >
@@ -725,6 +765,7 @@ const Day1Page = () => {
             {/* Utah modal 1 */}
             {showUtah1 && (
               <div
+                data-re-aoi-name="Utah Modal 1"
                 className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
                 onClick={() => setShowUtah1(false)}
               >
@@ -735,6 +776,7 @@ const Day1Page = () => {
                   <div className="flex items-center justify-between px-3 py-2 border-b">
                     <h5 className="font-semibold">Anatomy of a Gene (learn.genetics.utah.edu)</h5>
                     <button
+                      data-re-aoi-name="Utah Modal 1 Close Button"
                       className="px-3 py-1 bg-primary-500 text-white rounded-md"
                       onClick={() => setShowUtah1(false)}
                     >
@@ -754,6 +796,7 @@ const Day1Page = () => {
             {/* Utah modal 2 */}
             {showUtah2 && (
               <div
+                data-re-aoi-name="Utah Modal 2"
                 className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
                 onClick={() => setShowUtah2(false)}
               >
@@ -764,6 +807,7 @@ const Day1Page = () => {
                   <div className="flex items-center justify-between px-3 py-2 border-b">
                     <h5 className="font-semibold">Central Dogma: Translation (learn.genetics.utah.edu)</h5>
                     <button
+                      data-re-aoi-name="Utah Modal 2 Close Button"
                       className="px-3 py-1 bg-primary-500 text-white rounded-md"
                       onClick={() => setShowUtah2(false)}
                     >
@@ -796,7 +840,7 @@ const Day1Page = () => {
           </header>
 
           {/* Video */}
-          <div className="rounded-xl overflow-hidden ring-1 ring-gray-200">
+          <div className="rounded-xl overflow-hidden ring-1 ring-gray-200" data-re-aoi-name="Amoeba Sisters Video Player">
             <iframe
               className="w-full h-80 md:h-[28rem]"
               src="https://www.youtube.com/embed/ebIpkw3XapE"
@@ -811,7 +855,7 @@ const Day1Page = () => {
           </p>
 
           {/* Dropdown narrative */}
-          <div className="border border-gray-200 rounded-xl p-4 md:p-6 mt-6 space-y-5">
+          <div className="border border-gray-200 rounded-xl p-4 md:p-6 mt-6 space-y-5" data-re-aoi-name="Video Fill Blank Activity">
             <h4 className="text-xl font-semibold mb-2">Choose to complete each idea as you watch:</h4>
 
             <div className="leading-relaxed text-[15px] md:text-base">
@@ -866,6 +910,7 @@ const Day1Page = () => {
 
             <div className="flex items-center justify-between pt-2">
               <button
+                data-re-aoi-name="Video Reset Choices Button"
                 type="button"
                 className="text-sm text-gray-600 hover:text-gray-800 underline underline-offset-2"
                 onClick={() =>
@@ -879,6 +924,7 @@ const Day1Page = () => {
                 Reset choices
               </button>
               <button
+                data-re-aoi-name="Video Save Answers Button"
                 className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
                 onClick={handleSave}
               >
@@ -895,6 +941,7 @@ const Day1Page = () => {
             What’s the relationship between expression and regulation, and why does it matter for our health?
           </p>
           <textarea
+            data-re-aoi-name="Gene Q1 Textbox"
             value={answersData.geneQ1}
             onChange={(e) => setGeneQ1(e.target.value)}
             className="w-full border border-gray-300 rounded-lg p-3 text-sm mb-8"
@@ -910,6 +957,7 @@ const Day1Page = () => {
               <Droppable droppableId="available" type="STEP">
                 {(provided) => (
                   <div
+                    data-re-aoi-name="Available Steps List"
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                     className="bg-white border border-gray-200 rounded-lg p-3 min-h-[220px]"
@@ -944,6 +992,7 @@ const Day1Page = () => {
 
                   return (
                     <div
+                      data-re-aoi-name="Your Order List"
                       ref={provided.innerRef}
                       {...provided.droppableProps}
                       className="bg-primary-50 border-2 border-dashed border-primary-300 rounded-lg p-3 min-h-[220px]"
@@ -984,6 +1033,7 @@ const Day1Page = () => {
 
           <div className="flex justify-end mt-6">
             <button
+              data-re-aoi-name="Save DnD Section Button"
               onClick={handleSave}
               className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
             >
@@ -1070,10 +1120,11 @@ const Day1Page = () => {
 
               {/* Embedded iframe + toolbar */}
               <div className="bg-gray-100 rounded-xl p-3 md:p-4 relative overflow-hidden ring-1 ring-gray-200">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-3" data-re-aoi-name="PhET Toolbar">
                   <div className="text-sm font-medium text-gray-700">PhET: Gene Expression Essentials</div>
                   <div className="flex items-center gap-2">
                     <button
+                      data-re-aoi-name="PhET Reload Button"
                       type="button"
                       className="px-3 py-1.5 text-sm rounded-md bg-white hover:bg-gray-50 border"
                       onClick={() => {
@@ -1085,6 +1136,7 @@ const Day1Page = () => {
                       <i className="fa-solid fa-rotate-right mr-1" /> Reload
                     </button>
                     <a
+                      data-re-aoi-name="PhET Open in New Tab Button"
                       href="https://phet.colorado.edu/sims/html/gene-expression-essentials/latest/gene-expression-essentials_en.html?responsive"
                       target="_blank"
                       rel="noreferrer"
@@ -1096,7 +1148,7 @@ const Day1Page = () => {
                   </div>
                 </div>
 
-                <div className="rounded-lg overflow-hidden">
+                <div className="rounded-lg overflow-hidden" data-re-aoi-name="PhET Simulation Iframe">
                   <iframe
                     id="phet-gene-expression-iframe"
                     title="PhET Gene Expression Essentials"
@@ -1122,7 +1174,7 @@ const Day1Page = () => {
 
                 <div className="divide-y divide-gray-200">
                   {/* Gene 1 */}
-                  <div className="p-4">
+                  <div className="p-4" data-re-aoi-name="Gene 1 Inputs">
                     <h5 className="font-medium mb-2">Gene 1</h5>
                     <p className="text-gray-700 text-sm mb-2">
                       Plan the <b>three</b> you’ll need.
@@ -1148,7 +1200,7 @@ const Day1Page = () => {
                   </div>
 
                   {/* Gene 2 */}
-                  <div className="p-4">
+                  <div className="p-4" data-re-aoi-name="Gene 2 Inputs">
                     <h5 className="font-medium mb-2">Gene 2</h5>
                     <p className="text-gray-700 text-sm mb-2">
                       Only list the <b>four</b> parts you truly used, in order (not all tools are needed here).
@@ -1170,7 +1222,7 @@ const Day1Page = () => {
                   </div>
 
                   {/* Gene 3 */}
-                  <div className="p-4">
+                  <div className="p-4" data-re-aoi-name="Gene 3 Inputs">
                     <h5 className="font-medium mb-2">Gene 3</h5>
                     <p className="text-gray-700 text-sm mb-2">List the <b>four</b> parts used here, in order:</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
@@ -1191,7 +1243,7 @@ const Day1Page = () => {
                 </div>
 
                 {/* Reflections */}
-                <div className="p-4 bg-gray-50">
+                <div className="p-4 bg-gray-50" data-re-aoi-name="Simulation Reflection Questions">
                   <h5 className="font-medium mb-4">Reflection Questions</h5>
                   {[
                     'Gene ON → Protein made: In your own words, what steps were needed for transcription and translation to succeed? Name the key parts you used (promoter, TFs, RNA polymerase, operator/repressor, ribosome).',
@@ -1215,6 +1267,7 @@ const Day1Page = () => {
                 {/* Actions */}
                 <div className="p-4 bg-gray-50 flex flex-wrap gap-3 justify-end">
                   <button
+                    data-re-aoi-name="Simulation Reset Answers Button"
                     className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg"
                     onClick={() =>
                       setAnswersData((a) => {
@@ -1235,6 +1288,7 @@ const Day1Page = () => {
                     Reset Answers
                   </button>
                   <button
+                    data-re-aoi-name="Simulation Save Answers Button"
                     className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
                     onClick={handleSave}
                   >
@@ -1247,7 +1301,7 @@ const Day1Page = () => {
         </section>
 
         {/* Section 7: Inquiry & Discussion */}
-        <section id="inquiry-section" className="mb-16">
+        <section id="inquiry-section" className="mb-16" data-re-aoi-name="Inquiry and Discussion">
           <div className="bg-primary-100 rounded-2xl shadow-md p-6 md:p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 -mt-10 -mr-10 text-primary-200">
               <i className="fa-solid fa-quote-right text-9xl opacity-30" />
@@ -1258,7 +1312,7 @@ const Day1Page = () => {
               Inquiry & Discussion
             </h2>
 
-            <div className="bg-white rounded-xl p-6 shadow-sm mb-6 relative z-10">
+            <div className="bg-white rounded-xl p-6 shadow-sm mb-6 relative z-10" data-re-aoi-name="Inquiry Accordion Questions">
               {[
                 { q: 'What if a repressor is bound on the operator?', a: 'RNA polymerase cannot proceed—remove the repressor or add an inducer.' },
                 { q: 'Which environmental factors affect regulation?', a: 'Temperature, chemicals, and light can change transcription factor activity.' },
@@ -1280,6 +1334,7 @@ const Day1Page = () => {
                 A cell is exposed to extreme heat. Predict how heat shock might change transcription factor activity and protein production.
               </p>
               <textarea
+                data-re-aoi-name="Think Respond Textbox"
                 value={answersData.inquiry.think}
                 onChange={(e) => setInquiryThink(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg p-3"
@@ -1287,7 +1342,7 @@ const Day1Page = () => {
                 placeholder="Type your response here..."
               />
               <div className="mt-4 flex justify-end">
-                <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+                <button data-re-aoi-name="Submit Response Button" onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
                   Submit Response
                 </button>
               </div>
@@ -1296,7 +1351,7 @@ const Day1Page = () => {
         </section>
 
         {/* Section 8: Wrap-Up & Reflection */}
-        <section id="wrap-up-section" className="mb-16">
+        <section id="wrap-up-section" className="mb-16" data-re-aoi-name="Wrap Up and Reflection">
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h2 className="text-2xl font-bold mb-6 flex items-center">
               <i className="fa-solid fa-flag-checkered text-primary-500 mr-3" />
@@ -1335,6 +1390,7 @@ const Day1Page = () => {
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                   <p className="text-gray-700 mb-3">Reflect: What surprised you most today?</p>
                   <textarea
+                    data-re-aoi-name="Reflection Journal Textbox"
                     value={answersData.wrap.reflection}
                     onChange={(e) =>
                       setAnswersData((a) => {
@@ -1348,7 +1404,7 @@ const Day1Page = () => {
                     placeholder="Type your reflection here..."
                   />
                   <div className="flex justify-end">
-                    <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+                    <button data-re-aoi-name="Save Reflection Button" onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
                       Save Reflection
                     </button>
                   </div>
@@ -1358,32 +1414,44 @@ const Day1Page = () => {
           </div>
         </section>
 
-        {/* Global Save */}
+        {/* Bottom Action */}
         <div className="flex justify-center">
-          <button
-            onClick={handleSave}
-            className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-lg"
-          >
-            Save
-          </button>
+          {!isRealEyeMode ? (
+            <button
+              onClick={handleSave}
+              className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-lg"
+            >
+              Save
+            </button>
+          ) : (
+            <button
+              data-re-aoi-name="Finish Entire Study Button"
+              onClick={handleFinishEntireStudy}
+              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg"
+            >
+              Finish Entire Study
+            </button>
+          )}
         </div>
 
-        <div className="flex justify-between mt-8">
-          <Link
-            to="/sections/vocabulary"
-            className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
-          >
-            <i className="fa-solid fa-arrow-left mr-2" />
-            Important Vocabulary
-          </Link>
-          <Link
-            to="/sections/day-2"
-            className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
-          >
-            Go to Day 2
-            <i className="fa-solid fa-arrow-right ml-2" />
-          </Link>
-        </div>
+        {!isRealEyeMode && (
+          <div className="flex justify-between mt-8">
+            <Link
+              to="/sections/vocabulary"
+              className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+            >
+              <i className="fa-solid fa-arrow-left mr-2" />
+              Important Vocabulary
+            </Link>
+            <Link
+              to="/sections/day-2"
+              className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+            >
+              Go to Day 2
+              <i className="fa-solid fa-arrow-right ml-2" />
+            </Link>
+          </div>
+        )}
       </main>
 
       <footer id="footer" className="bg-white border-t border-gray-200 py-6 text-center" />
@@ -1399,6 +1467,7 @@ const Day1Page = () => {
       {/* Legacy diagram modal (kept) */}
       {showModal && (
         <div
+          data-re-aoi-name="Legacy Diagram Modal"
           className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
           onClick={() => setShowModal(false)}
         >
@@ -1413,6 +1482,7 @@ const Day1Page = () => {
             />
             <div className="text-right mt-3">
               <button
+                data-re-aoi-name="Legacy Diagram Modal Close Button"
                 className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
                 onClick={() => setShowModal(false)}
               >

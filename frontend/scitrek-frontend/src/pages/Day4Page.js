@@ -58,11 +58,12 @@ const GeneLink = ({ symbol, className }) => {
 
 /* --------------------------- Protein Atlas panel -------------------------- */
 
-function ProteinAtlasPanel() {
+function ProteinAtlasPanel({ isRealEyeMode = false }) {
   const [gene, setGene] = React.useState('EGFR');
   const [loaded, setLoaded] = React.useState(false);
   const [timedOut, setTimedOut] = React.useState(false);
   const src = getProteinAtlasUrl(gene);
+  const prevGeneRef = React.useRef(gene);
 
   React.useEffect(() => {
     setLoaded(false);
@@ -71,15 +72,27 @@ function ProteinAtlasPanel() {
     return () => clearTimeout(t);
   }, [src]);
 
+  React.useEffect(() => {
+    if (!isRealEyeMode) {
+      prevGeneRef.current = gene;
+      return;
+    }
+    if (prevGeneRef.current !== gene) {
+      window.reSdk?.startNextExposure();
+    }
+    prevGeneRef.current = gene;
+  }, [gene, isRealEyeMode]);
+
   const geneOptions = Object.keys(PROTEIN_ATLAS_URLS); // ['EGFR','RAS','TDG']
 
   return (
-    <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden" data-re-aoi-name="Protein Atlas Exploration Panel">
       <div className="p-4 flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex flex-col sm:flex-row gap-2">
             <label className="sr-only" htmlFor="gene-select">Select gene</label>
             <select
+              data-re-aoi-name="Protein Atlas Gene Select"
               id="gene-select"
               value={gene}
               onChange={(e) => setGene(e.target.value)}
@@ -90,6 +103,7 @@ function ProteinAtlasPanel() {
             </select>
 
             <a
+              data-re-aoi-name="Protein Atlas Open Button"
               href={src}
               target="_blank"
               rel="noopener noreferrer"
@@ -99,7 +113,7 @@ function ProteinAtlasPanel() {
             </a>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 text-sm">
+          <div className="flex flex-wrap items-center gap-3 text-sm" data-re-aoi-name="Protein Atlas Quick Links">
             <span className="text-gray-500">Quick links:</span>
             {geneOptions.map(s => (
               <GeneLink key={s} symbol={s} className="text-primary-700 underline" />
@@ -112,7 +126,7 @@ function ProteinAtlasPanel() {
         </p>
       </div>
 
-      <div className="relative">
+      <div className="relative" data-re-aoi-name="Protein Atlas Iframe">
         <iframe
           key={src}
           src={src}
@@ -144,6 +158,7 @@ function ProteinAtlasPanel() {
 const Day4Page = () => {
   const { day } = useParams();
   const moduleId = Number(day) || 4;
+  const isRealEyeMode = window.location.pathname.startsWith('/realeye/day-4');
 
   const [user, setUser] = useState(null);
   const [popupVisible, setPopupVisible] = useState(false);
@@ -175,11 +190,37 @@ const Day4Page = () => {
     participation: { trackerNotes: '', points: '' },
   });
 
+  useEffect(() => {
+    let mounted = true;
+
+    import(
+      /* webpackIgnore: true */
+      "https://app.realeye.io/sdk/js/testRunnerEmbeddableSdk-1.9.js"
+    )
+      .then(({ EmbeddedPageSdk }) => {
+        if (!mounted) return;
+        if (!window.reSdk) {
+          window.reSdk = new EmbeddedPageSdk(false, null, false);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load RealEye SDK:", err);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   /* -------------------------- load user + saved answers ------------------------- */
   useEffect(() => {
     let isMounted = true;
     (async () => {
       try {
+        if (isRealEyeMode) {
+          return;
+        }
+
         const u = await getCurrentUser();
         if (!isMounted) return;
         setUser(u);
@@ -221,10 +262,11 @@ const Day4Page = () => {
       }
     })();
     return () => { isMounted = false; };
-  }, [moduleId]);
+  }, [moduleId, isRealEyeMode]);
 
   /* ------------------------------ saving logic ----------------------------- */
   const saveAnswers = async ({ silent = true } = {}) => {
+    if (isRealEyeMode) return;
     if (saving) return;
     try {
       setSaving(true);
@@ -241,6 +283,8 @@ const Day4Page = () => {
 
   // periodic autosave while dirty
   useEffect(() => {
+    if (isRealEyeMode) return;
+
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
       if (dirty && !saving) saveAnswers({ silent: true });
@@ -248,10 +292,12 @@ const Day4Page = () => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [dirty, saving]);
+  }, [dirty, saving, isRealEyeMode]);
 
   // save on tab hide / close
   useEffect(() => {
+    if (isRealEyeMode) return;
+
     const handleBeforeUnload = (e) => {
       if (dirty) {
         e.preventDefault();
@@ -269,9 +315,11 @@ const Day4Page = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [dirty, saving]);
+  }, [dirty, saving, isRealEyeMode]);
 
   const handleLogout = async () => {
+    if (isRealEyeMode) return;
+
     if (dirty && !saving) {
       await saveAnswers({ silent: true });
     }
@@ -284,6 +332,16 @@ const Day4Page = () => {
     await saveAnswers({ silent: false });
   };
 
+  const handleFinishEntireStudy = () => {
+    if (!isRealEyeMode) return;
+    const confirmed = window.confirm(
+      'Are you sure you want to finish the entire study? This will end the study immediately.'
+    );
+    if (confirmed) {
+      window.reSdk?.finishEntireStudy();
+    }
+  };
+
   // lightweight nested setter with autosave debounce (~2s)
   const setField = (path, value) => {
     setAnswersData((prev) => {
@@ -292,6 +350,7 @@ const Day4Page = () => {
       new Function('obj', 'value', `obj.${path} = value;`)(clone, value);
       return clone;
     });
+    if (isRealEyeMode) return;
     setDirty(true);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -312,19 +371,21 @@ const Day4Page = () => {
 
   return (
     <div className="font-sans bg-gray-50 text-gray-800">
-      <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />
+      {!isRealEyeMode && <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />}
 
       {/* autosave status badge */}
-      <div className="fixed bottom-4 right-4 z-40">
-        <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
-          {saving
-            ? 'Autosaving…'
-            : lastSavedAt
-              ? `Saved • ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
-              : 'Ready'}
-          {dirty && !saving ? <span className="ml-2 text-amber-600">(unsaved)</span> : null}
+      {!isRealEyeMode && (
+        <div className="fixed bottom-4 right-4 z-40">
+          <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
+            {saving
+              ? 'Autosaving…'
+              : lastSavedAt
+                ? `Saved • ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+                : 'Ready'}
+            {dirty && !saving ? <span className="ml-2 text-amber-600">(unsaved)</span> : null}
+          </div>
         </div>
-      </div>
+      )}
 
       <main className="container mx-auto px-4 py-8 space-y-16">
         {/* Header */}
@@ -339,7 +400,7 @@ const Day4Page = () => {
         </div>
 
         {/* Objective */}
-        <section id="objective-section">
+        <section id="objective-section" data-re-aoi-name="Objective">
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border-l-4 border-primary-500">
             <h2 className="text-2xl font-bold mb-4 flex items-center text-primary-700">
               <i className="fa-solid fa-bullseye text-primary-500 mr-3" />
@@ -383,7 +444,7 @@ const Day4Page = () => {
           <h2 className="text-3xl font-bold text-center">Activities</h2>
 
           {/* Recap & Review */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
+          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Recap and Review Activity">
             <h3 className="text-2xl font-semibold mb-4">Recap & Review</h3>
 
             <label className="text-sm font-medium mb-1 block">What might cause gene regulation to go wrong?</label>
@@ -420,14 +481,14 @@ const Day4Page = () => {
           </section>
 
           {/* Activity 1: Visualizing Gene Expression Patterns */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
+          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Activity 1 Visualizing Gene Expression Patterns">
             <h3 className="text-2xl font-semibold mb-4">Activity 1: Visualizing Gene Expression Patterns</h3>
 
-            <ProteinAtlasPanel />
+            <ProteinAtlasPanel isRealEyeMode={isRealEyeMode} />
 
             {/* Gene function matching (table, students fill) */}
             <h4 className="font-semibold mb-2 mt-6">Gene Function Matching</h4>
-            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+            <div className="overflow-x-auto border border-gray-200 rounded-lg" data-re-aoi-name="Gene Function Matching Table">
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50">
@@ -506,6 +567,7 @@ const Day4Page = () => {
                   Here “aggressive” = more likely to cause fast growth or resist control if mis-regulated.
                 </p>
                 <textarea
+                  data-re-aoi-name="Function To Aggression Textbox"
                   value={answersData.viz.q1FunctionToAggression}
                   onChange={e => setField('viz.q1FunctionToAggression', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -519,6 +581,7 @@ const Day4Page = () => {
                   Compare any two genes you studied. Justify your reasoning.
                 </p>
                 <textarea
+                  data-re-aoi-name="Aggressiveness Comparison Textbox"
                   value={answersData.viz.q2AggressivenessByFunction}
                   onChange={e => setField('viz.q2AggressivenessByFunction', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -536,7 +599,7 @@ const Day4Page = () => {
           </section>
 
           {/* Mini-lesson: Methods (qPCR, IHC, RNA-seq) — background only */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
+          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Mini Lesson Expression Measurement Methods">
             <h3 className="text-2xl font-semibold mb-2">Mini-Lesson: How Do We Measure Expression?</h3>
             <p className="text-sm text-gray-600 mb-4">
               Read the method summaries, then answer the scenarios below. For each scenario: (1) pick the best method, (2) explain why,
@@ -578,6 +641,7 @@ const Day4Page = () => {
                   across <b>20 samples</b>. What method would you use, and why?
                 </label>
                 <textarea
+                  data-re-aoi-name="Methods Scenario 1 Textbox"
                   value={answersData.methods.scenario1}
                   onChange={e => setField('methods.scenario1', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -595,6 +659,7 @@ const Day4Page = () => {
                   RNA is present. What method would you use, and why?
                 </label>
                 <textarea
+                  data-re-aoi-name="Methods Scenario 2 Textbox"
                   value={answersData.methods.scenario2}
                   onChange={e => setField('methods.scenario2', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -612,6 +677,7 @@ const Day4Page = () => {
                   discover unexpected differences. What method would you use, and why?
                 </label>
                 <textarea
+                  data-re-aoi-name="Methods Scenario 3 Textbox"
                   value={answersData.methods.scenario3}
                   onChange={e => setField('methods.scenario3', e.target.value)}
                   className="w-full border border-gray-300 rounded p-3"
@@ -637,7 +703,7 @@ const Day4Page = () => {
         </section>
 
         {/* Inquiry & Discussion */}
-        <section id="inquiry-section" className="mb-16">
+        <section id="inquiry-section" className="mb-16" data-re-aoi-name="Inquiry and Discussion">
           <div className="bg-primary-100 rounded-2xl shadow-md p-6 md:p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 -mt-10 -mr-10 text-primary-200">
               <i className="fa-solid fa-quote-right text-9xl opacity-30" />
@@ -657,6 +723,7 @@ const Day4Page = () => {
                 Write one hypothesis and one measurement to test it (choose: qPCR, IHC, or RNA-seq). State the result that would support your claim.
               </p>
               <textarea
+                data-re-aoi-name="Think Respond Textbox"
                 value={answersData.inquiry.think}
                 onChange={e => setField('inquiry.think', e.target.value)}
                 className="w-full border border-gray-300 rounded-lg p-3"
@@ -664,7 +731,7 @@ const Day4Page = () => {
                 placeholder="Type your response…"
               />
               <div className="mt-4 flex justify-end">
-                <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+                <button data-re-aoi-name="Submit Response Button" onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
                   Submit Response
                 </button>
               </div>
@@ -673,12 +740,12 @@ const Day4Page = () => {
         </section>
 
         {/* Wrap-Up & Reflection */}
-        <section id="wrap-up-section" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
+        <section id="wrap-up-section" className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Wrap Up and Reflection">
           <h3 className="text-2xl font-semibold mb-4 flex items-center">
             <i className="fa-solid fa-flag-checkered text-primary-500 mr-3" />
             Wrap-Up & Reflection
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-re-aoi-name="Wrap Up Reflection Inputs">
             <div>
               <label className="text-sm font-medium mb-1 block">How did visuals help you notice patterns between healthy and cancerous cells?</label>
               <textarea
@@ -708,7 +775,7 @@ const Day4Page = () => {
             </div>
           </div>
           <div className="flex justify-end mt-6">
-            <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+            <button data-re-aoi-name="Save Reflection Button" onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
               Save Reflection
             </button>
           </div>
@@ -716,36 +783,48 @@ const Day4Page = () => {
 
         {/* Global Save */}
         <div className="flex justify-center">
-          <button
-            onClick={handleSave}
-            className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-lg"
-          >
-            Save
-          </button>
+          {!isRealEyeMode ? (
+            <button
+              onClick={handleSave}
+              className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-lg"
+            >
+              Save
+            </button>
+          ) : (
+            <button
+              data-re-aoi-name="Finish Entire Study Button"
+              onClick={handleFinishEntireStudy}
+              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg"
+            >
+              Finish Entire Study
+            </button>
+          )}
         </div>
 
         {/* Page Nav */}
-        <div className="flex justify-between">
-          <Link
-            to="/sections/day-3"
-            className="inline-flex items-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg"
-          >
-            <i className="fa-solid fa-arrow-left mr-2" />
-            Back to Day 3
-          </Link>
-          <Link
-            to="/sections/day-5"
-            className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
-          >
-            Go to Day 5
-            <i className="fa-solid fa-arrow-right ml-2" />
-          </Link>
-        </div>
+        {!isRealEyeMode && (
+          <div className="flex justify-between">
+            <Link
+              to="/sections/day-3"
+              className="inline-flex items-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg"
+            >
+              <i className="fa-solid fa-arrow-left mr-2" />
+              Back to Day 3
+            </Link>
+            <Link
+              to="/sections/day-5"
+              className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+            >
+              Go to Day 5
+              <i className="fa-solid fa-arrow-right ml-2" />
+            </Link>
+          </div>
+        )}
       </main>
 
       <footer className="bg-white border-t border-gray-200 py-6 text-center" />
 
-      {popupVisible && (
+      {!isRealEyeMode && popupVisible && (
         <Popup
           message="Are you sure you want to logout?"
           onCancel={() => setPopupVisible(false)}

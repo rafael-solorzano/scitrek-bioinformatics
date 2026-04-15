@@ -114,14 +114,17 @@ function App() {
               path="/sections/day-2"
               element={user ? <Day2Page /> : <Navigate to="/login" />}
             />
+            <Route path="/realeye/day-2" element={<Day2Page />} />
             <Route
               path="/sections/day-3"
               element={user ? <Day3Page /> : <Navigate to="/login" />}
             />
+            <Route path="/realeye/day-3" element={<Day3Page />} />
             <Route
               path="/sections/day-4"
               element={user ? <Day4Page /> : <Navigate to="/login" />}
             />
+            <Route path="/realeye/day-4" element={<Day4Page />} />
             <Route
               path="/sections/day-5"
               element={user ? <Day5Page /> : <Navigate to="/login" />}
