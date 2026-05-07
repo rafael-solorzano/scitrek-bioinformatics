@@ -223,26 +223,22 @@ const Day2Page = () => {
   /* -------------------------- lifecycle & data load ------------------------- */
 
   useEffect(() => {
-    let mounted = true;
+    if (!isRealEyeMode) return;
+    if (window.reSdk || document.querySelector('script[data-realeye-sdk]')) return;
 
-    import(
-      /* webpackIgnore: true */
-      "https://app.realeye.io/sdk/js/testRunnerEmbeddableSdk-1.9.js"
-    )
-      .then(({ EmbeddedPageSdk }) => {
-        if (!mounted) return;
-        if (!window.reSdk) {
-          window.reSdk = new EmbeddedPageSdk(false, null, false);
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to load RealEye SDK:", err);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    const s = document.createElement('script');
+    s.type = 'module';
+    s.dataset.realeyeSdk = 'true';
+    s.textContent = `
+      import { EmbeddedPageSdk } from 'https://app.realeye.io/sdk/js/testRunnerEmbeddableSdk-1.9.js';
+      try {
+        if (!window.reSdk) window.reSdk = new EmbeddedPageSdk(false, null, false);
+      } catch (e) {
+        console.error('RealEye SDK init failed:', e);
+      }
+    `;
+    document.head.appendChild(s);
+  }, [isRealEyeMode]);
 
   useEffect(() => {
     return () => {
