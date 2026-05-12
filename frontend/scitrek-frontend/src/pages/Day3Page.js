@@ -118,7 +118,7 @@ const Day3Page = () => {
     s.type = 'module';
     s.dataset.realeyeSdk = 'true';
     s.textContent = `
-      import { EmbeddedPageSdk } from 'https://app.realeye.io/sdk/js/testRunnerEmbeddableSdk-1.9.js';
+      import EmbeddedPageSdk from 'https://app.realeye.io/sdk/js/testRunnerEmbeddableSdk-1.9.js';
       try {
         if (!window.reSdk) window.reSdk = new EmbeddedPageSdk(false, null, false);
       } catch (e) {
