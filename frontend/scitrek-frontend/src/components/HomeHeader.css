@@ -1,27 +1,61 @@
 .home-header {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(217, 226, 236, 0.9);
+  border-radius: var(--st-radius-lg);
+  box-shadow: var(--st-shadow-sm);
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  background: #e39c04;
-  padding: 10px 20px;
-  color: white;
-  font-family: Arial, sans-serif;
+  margin: 0;
+  max-width: none;
+  padding: 0.7rem clamp(0.9rem, 2vw, 1.2rem);
+  position: sticky;
+  top: 1rem;
+  width: 100%;
+  z-index: 20;
 }
 
 .logo-section img {
-  height: 50px;
-  cursor: pointer;
+  display: block;
+  height: clamp(2.45rem, 4vw, 3.1rem);
+  max-width: 12rem;
+  object-fit: contain;
 }
 
-.home-nav .user-btn {
-  color: white;
-  font-size: 22px;
-  padding: 4px;
+.home-nav {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
 }
 
+.home-nav .user-btn,
 .login-link {
-  color: white;
+  align-items: center;
+  background: var(--st-ink);
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.95rem;
+  font-weight: 850;
+  min-height: 2.5rem;
+  padding: 0.6rem 0.95rem;
   text-decoration: none;
-  font-size: 18px;
-  padding: 4px 8px;
+}
+
+.home-nav .user-btn:hover,
+.login-link:hover {
+  background: #26313d;
+  color: #fff;
+}
+
+@media (max-width: 520px) {
+  .home-header {
+    top: 0.5rem;
+  }
+
+  .home-nav .user-btn,
+  .login-link {
+    font-size: 0.86rem;
+    padding-inline: 0.75rem;
+  }
 }

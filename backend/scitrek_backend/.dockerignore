@@ -1,0 +1,12 @@
+.env
+.env.*
+.devdata/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+staticfiles/
+media/
+celerybeat-schedule.db
+dump.rdb

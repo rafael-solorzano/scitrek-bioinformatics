@@ -1,0 +1,207 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, andyDeployedPre]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: scitrek_e2e
+          POSTGRES_USER: scitrek_e2e
+          POSTGRES_PASSWORD: scitrek_e2e_only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U scitrek_e2e -d scitrek_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend/scitrek_backend
+    env:
+      DJANGO_SETTINGS_MODULE: scitrek_backend.settings.e2e
+      DJANGO_SECRET_KEY: ci-e2e-only-not-for-deployment-8fpz6r1xKQwyv9m4
+      DATABASE_NAME: scitrek_e2e
+      DATABASE_USER: scitrek_e2e
+      DATABASE_PASSWORD: scitrek_e2e_only
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_PORT: "5432"
+      CELERY_BROKER_URL: redis://127.0.0.1:6379/0
+      CELERY_RESULT_BACKEND: redis://127.0.0.1:6379/1
+      SCITREK_E2E_RESET_ALLOWED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/scitrek_backend/requirements.txt
+      - name: Install pinned backend dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Check migration drift
+        run: python manage.py makemigrations --check --dry-run
+      - name: Migrate a fresh PostgreSQL database
+        run: python manage.py migrate --noinput
+      - name: Run backend tests with branch coverage gate
+        run: coverage run manage.py test
+      - name: Report backend coverage
+        run: coverage report
+      - name: Check production deployment settings
+        env:
+          DJANGO_SETTINGS_MODULE: scitrek_backend.settings.production
+          DJANGO_SECRET_KEY: ci-deploy-check-only-never-for-any-deployment-3mP8qR6sT4wZ
+          DJANGO_ALLOWED_HOSTS: example.test
+          DATABASE_NAME: scitrek_e2e
+          DATABASE_USER: scitrek_e2e
+          DATABASE_PASSWORD: scitrek_e2e_only
+          DATABASE_HOST: 127.0.0.1
+          DATABASE_SSLMODE: require
+          CELERY_BROKER_URL: redis://127.0.0.1:6379/0
+          CELERY_RESULT_BACKEND: redis://127.0.0.1:6379/1
+          REDIS_CACHE_URL: redis://127.0.0.1:6379/2
+        run: python manage.py check --deploy
+      - name: Audit Python dependencies
+        run: |
+          python -m pip install pip-audit==2.10.1
+          pip-audit -r requirements.txt
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/scitrek-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.5"
+          cache: npm
+          cache-dependency-path: frontend/scitrek-frontend/package-lock.json
+      - name: Install locked frontend dependencies
+        run: npm ci
+      - name: Audit high and critical frontend dependencies
+        run: npm audit --audit-level=high
+      - name: Run frontend tests with coverage
+        run: npm run coverage
+      - name: Build production frontend
+        run: npm run build
+      - name: Verify sitemap
+        run: npm run verify-sitemap
+
+  mocked-e2e:
+    needs: frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/scitrek-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.5"
+          cache: npm
+          cache-dependency-path: frontend/scitrek-frontend/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run mocked UI regression suite
+        run: npm run e2e:mocked
+      - name: Upload mocked Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-mocked-${{ github.run_id }}
+          path: |
+            frontend/scitrek-frontend/playwright-report
+            frontend/scitrek-frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  fullstack-e2e:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/scitrek-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.5"
+          cache: npm
+          cache-dependency-path: frontend/scitrek-frontend/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Start disposable PostgreSQL-backed Django stack
+        working-directory: .
+        run: docker compose -f docker-compose.e2e.yml up -d --build --wait web worker
+      - name: Verify shared media visibility across web and worker
+        working-directory: .
+        run: |
+          docker compose -f docker-compose.e2e.yml exec -T web sh -c 'printf media-probe > /app/media/ci-shared-volume-probe'
+          docker compose -f docker-compose.e2e.yml exec -T worker test -f /app/media/ci-shared-volume-probe
+      - name: Run real backend-connected browser and accessibility tests
+        run: npm run e2e:fullstack
+      - name: Show container logs after failure
+        if: failure()
+        working-directory: .
+        run: docker compose -f docker-compose.e2e.yml logs --no-color
+      - name: Upload full-stack Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-fullstack-${{ github.run_id }}
+          path: |
+            frontend/scitrek-frontend/playwright-report/fullstack
+            frontend/scitrek-frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Tear down disposable stack
+        if: always()
+        working-directory: .
+        run: docker compose -f docker-compose.e2e.yml down --volumes --remove-orphans
+
+  configuration-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject tracked secrets and runtime artifacts
+        run: bash scripts/check-tracked-runtime-artifacts.sh
+      - name: Validate E2E Compose
+        run: docker compose -f docker-compose.e2e.yml config --quiet
+      - name: Validate production and development Compose
+        run: |
+          SCITREK_BACKEND_ENV_FILE=backend/scitrek_backend/.env.production.example docker compose config --quiet
+          SCITREK_BACKEND_ENV_FILE=backend/scitrek_backend/.env.dev.example SCITREK_DEV_ENV_FILE=backend/scitrek_backend/.env.dev.example docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
+      - name: Build production images
+        run: SCITREK_BACKEND_ENV_FILE=backend/scitrek_backend/.env.production.example docker compose build web nginx
+      - name: Smoke fresh-volume TLS bootstrap and nginx configuration
+        # The upstream name is stubbed only so nginx can resolve it during a
+        # standalone config test; at runtime Compose provides the real service.
+        # The anonymous /etc/letsencrypt volume starts empty, so this also
+        # exercises the bootstrap-certificate entrypoint on a fresh host.
+        run: >-
+          docker run --rm --add-host web:127.0.0.1
+          -e TLS_DOMAIN=sci-trek.org -e TLS_WWW_DOMAIN=www.sci-trek.org
+          -v /etc/letsencrypt
+          scitrek-nginx:local nginx -t

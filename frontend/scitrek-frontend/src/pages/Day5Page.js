@@ -8,7 +8,6 @@ import { getCurrentUser, getResponseDetail, upsertResponse } from '../services/a
 const Day5Page = () => {
   const { day } = useParams();
   const moduleId = Number(day) || 5;
-  const isRealEyeMode = window.location.pathname === '/realeye/day-5';
 
   const [user, setUser] = useState(null);
   const [popupVisible, setPopupVisible] = useState(false);
@@ -36,38 +35,17 @@ const Day5Page = () => {
     spotlight: { takeaways: '' },
     wrap: { whyCommMatters: '', lookingAhead: '', finalReflection: '' },
   });
+  const answersDataRef = useRef(answersData);
 
   useEffect(() => {
-    let mounted = true;
-
-    import(
-      /* webpackIgnore: true */
-      "https://app.realeye.io/sdk/js/testRunnerEmbeddableSdk-1.9.js"
-    )
-      .then(({ EmbeddedPageSdk }) => {
-        if (!mounted) return;
-        if (!window.reSdk) {
-          window.reSdk = new EmbeddedPageSdk(false, null, false);
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to load RealEye SDK:", err);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    answersDataRef.current = answersData;
+  }, [answersData]);
 
   // ------- load user + saved answers -------
   useEffect(() => {
     let isMounted = true;
     (async () => {
       try {
-        if (isRealEyeMode) {
-          return;
-        }
-
         const u = await getCurrentUser();
         if (!isMounted) return;
         setUser(u);
@@ -99,15 +77,14 @@ const Day5Page = () => {
       }
     })();
     return () => { isMounted = false; };
-  }, [moduleId, isRealEyeMode]);
+  }, [moduleId]);
 
   // ------- helpers -------
   const saveAnswers = async ({ silent = true } = {}) => {
-    if (isRealEyeMode) return;
     if (saving) return;
     try {
       setSaving(true);
-      await upsertResponse(moduleId, answersData);
+      await upsertResponse(moduleId, answersDataRef.current);
       setDirty(false);
       setLastSavedAt(new Date());
       if (!silent) alert('Your work has been saved!');
@@ -120,8 +97,6 @@ const Day5Page = () => {
 
   // periodic autosave while dirty
   useEffect(() => {
-    if (isRealEyeMode) return;
-
     // clear any existing
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
@@ -130,12 +105,11 @@ const Day5Page = () => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [dirty, saving, isRealEyeMode]); // re-evaluate when flags change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty, saving]); // re-evaluate when flags change
 
   // save on tab hide / close
   useEffect(() => {
-    if (isRealEyeMode) return;
-
     const handleBeforeUnload = (e) => {
       if (dirty) {
         // Some browsers ignore async here; set flag to hint unsaved work.
@@ -155,11 +129,10 @@ const Day5Page = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [dirty, saving, isRealEyeMode]); // use latest flags
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty, saving]); // use latest flags
 
   const handleLogout = async () => {
-    if (isRealEyeMode) return;
-
     if (dirty && !saving) {
       await saveAnswers({ silent: true });
     }
@@ -172,16 +145,6 @@ const Day5Page = () => {
     await saveAnswers({ silent: false });
   };
 
-  const handleFinishEntireStudy = () => {
-    if (!isRealEyeMode) return;
-    const confirmed = window.confirm(
-      'Are you sure you want to finish the entire study? This will end the study immediately.'
-    );
-    if (confirmed) {
-      window.reSdk?.finishEntireStudy();
-    }
-  };
-
   // lightweight nested setter with autosave debounce
   const setField = (path, value) => {
     setAnswersData((prev) => {
@@ -190,13 +153,17 @@ const Day5Page = () => {
       new Function('obj', 'value', `obj.${path} = value;`)(clone, value);
       return clone;
     });
-    if (isRealEyeMode) return;
     setDirty(true);
 
     // debounce autosave ~2s after last keystroke
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      if (dirty && !saving) saveAnswers({ silent: true });
+      setDirty((currentDirty) => {
+        if (currentDirty && !saving) {
+          saveAnswers({ silent: true });
+        }
+        return currentDirty;
+      });
     }, 2000);
   };
 
@@ -210,21 +177,19 @@ const Day5Page = () => {
 
   return (
     <div className="font-sans bg-gray-50 text-gray-800">
-      {!isRealEyeMode && <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />}
+      <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />
 
       {/* autosave status badge */}
-      {!isRealEyeMode && (
-        <div className="fixed bottom-4 right-4 z-40">
-          <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
-            {saving
-              ? 'Autosaving…'
-              : lastSavedAt
-                ? `Saved • ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
-                : 'Ready'}
-            {dirty && !saving ? <span className="ml-2 text-amber-600">(unsaved)</span> : null}
-          </div>
+      <div className="fixed bottom-4 right-4 z-40">
+        <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
+          {saving
+            ? 'Autosaving…'
+            : lastSavedAt
+              ? `Saved • ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+              : 'Ready'}
+          {dirty && !saving ? <span className="ml-2 text-amber-600">(unsaved)</span> : null}
         </div>
-      )}
+      </div>
 
       <main className="container mx-auto px-4 py-8 space-y-16">
         {/* Header */}
@@ -236,7 +201,7 @@ const Day5Page = () => {
         </div>
 
         {/* 1) Objective */}
-        <section id="objective-section" data-re-aoi-name="Objective">
+        <section id="objective-section">
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border-l-4 border-primary-500">
             <h2 className="text-2xl font-bold mb-4 flex items-center text-primary-700">
               <i className="fa-solid fa-bullseye text-primary-500 mr-3" />
@@ -265,7 +230,7 @@ const Day5Page = () => {
         </section>
 
         {/* 2) What's the Plan? */}
-        <section id="plan-section" data-re-aoi-name="Project Plan and Instructions">
+        <section id="plan-section">
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h2 className="text-2xl font-bold mb-6 flex items-center">
               <i className="fa-solid fa-list-check text-primary-500 mr-3" />
@@ -314,7 +279,7 @@ const Day5Page = () => {
           <h2 className="text-3xl font-bold text-center">Slideshow Creation (SciTrek-Led)</h2>
 
           {/* Step 1: Title */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Step 1 Title Creation">
+          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 1: Title</h3>
             <p className="text-gray-700 mb-2">
               Create a clear, descriptive title for your project (example: “BRCA-1 Gene & Breast Cancer: Causes & Conclusions”).
@@ -332,7 +297,7 @@ const Day5Page = () => {
           </section>
 
           {/* Step 2: Research Explanation (one-liner) */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Step 2 Research Explanation">
+          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 2: Research Explanation</h3>
             <p className="text-gray-700 mb-2">
               Write your main conclusion in one sentence. What does your gene do, and how does it relate to breast cancer progression?
@@ -351,7 +316,7 @@ const Day5Page = () => {
           </section>
 
           {/* Step 3: Procedure + Sources */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Step 3 Procedure and Sources">
+          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 3: Description of Procedure</h3>
             <p className="text-gray-700 mb-2">
               Write a short explanation of your research process. Emphasize the top 3–5 sources you used.
@@ -388,7 +353,7 @@ const Day5Page = () => {
           </section>
 
           {/* Step 4: Visual Representation of Data */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Step 4 Visual Data Representation">
+          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 4: Visual Data Representation</h3>
             <div className="bg-gray-100 rounded-xl p-4 mb-4">
               <p className="text-sm text-gray-700">
@@ -419,7 +384,7 @@ const Day5Page = () => {
           </section>
 
           {/* Step 5: Results */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Step 5 Results Summary">
+          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 5: Results</h3>
             <p className="text-gray-700 mb-2">
               Summarize your results. Include: the normal function of the gene, how it may behave differently in a mutated cancer cell,
@@ -439,7 +404,7 @@ const Day5Page = () => {
           </section>
 
           {/* Step 6: Conclusion */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Step 6 Conclusion and Reflection">
+          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 6: Conclusion</h3>
 
             <p className="text-gray-700 mb-3">
@@ -485,7 +450,7 @@ const Day5Page = () => {
           </section>
 
           {/* Step 7: Assemble the Slideshow */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Step 7 Slideshow Assembly">
+          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 7: Assemble the Slideshow</h3>
 
             <p className="text-gray-700 mb-3">
@@ -526,7 +491,7 @@ const Day5Page = () => {
           </section>
 
           {/* Step 8: Presentation & Peer Feedback */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Step 8 Presentation and Peer Feedback">
+          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Step 8: Presentation & Peer Feedback</h3>
 
             <p className="text-gray-700 mb-3">
@@ -573,7 +538,7 @@ const Day5Page = () => {
         </section>
 
         {/* 4) Inquiry & Discussion */}
-        <section id="inquiry-section" className="mb-16" data-re-aoi-name="Inquiry and Discussion">
+        <section id="inquiry-section" className="mb-16">
           <div className="bg-primary-100 rounded-2xl shadow-md p-6 md:p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 -mt-10 -mr-10 text-primary-200">
               <i className="fa-solid fa-quote-right text-9xl opacity-30" />
@@ -623,7 +588,7 @@ const Day5Page = () => {
         </section>
 
         {/* 5) Wrap-Up & Reflection */}
-        <section id="wrap-up-section" className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Wrap Up and Reflection">
+        <section id="wrap-up-section" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
           <h3 className="text-2xl font-semibold mb-4 flex items-center">
             <i className="fa-solid fa-flag-checkered text-primary-500 mr-3" />
             Conclusion & Reflection
@@ -675,47 +640,36 @@ const Day5Page = () => {
         </section>
 
         <div className="flex justify-center">
-          {!isRealEyeMode ? (
-            <button
-              onClick={handleSave}
-              className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-lg"
-            >
-              Save
-            </button>
-          ) : (
-            <button
-              onClick={handleFinishEntireStudy}
-              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg"
-            >
-              Finish Entire Study
-            </button>
-          )}
+          <button
+            onClick={handleSave}
+            className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-lg"
+          >
+            Save
+          </button>
         </div>
 
         {/* Page Nav */}
-        {!isRealEyeMode && (
-          <div className="flex justify-between">
-            <Link
-              to="/sections/day-4"
-              className="inline-flex items-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg"
-            >
-              <i className="fa-solid fa-arrow-left mr-2" />
-              Back to Day 4
-            </Link>
-            <button
-              onClick={handleSave}
-              className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
-            >
-              Save All
-              <i className="fa-solid fa-floppy-disk ml-2" />
-            </button>
-          </div>
-        )}
+        <div className="flex justify-between">
+          <Link
+            to="/sections/day-4"
+            className="inline-flex items-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg"
+          >
+            <i className="fa-solid fa-arrow-left mr-2" />
+            Back to Day 4
+          </Link>
+          <button
+            onClick={handleSave}
+            className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+          >
+            Save All
+            <i className="fa-solid fa-floppy-disk ml-2" />
+          </button>
+        </div>
       </main>
 
       <footer className="bg-white border-t border-gray-200 py-6 text-center" />
 
-      {!isRealEyeMode && popupVisible && (
+      {popupVisible && (
         <Popup
           message="Are you sure you want to logout?"
           onCancel={() => setPopupVisible(false)}

@@ -1,10 +1,207 @@
-/* Minimal HomePage styles */
 .home-page {
-    padding: 20px;
-    background: #fff;
+  background:
+    radial-gradient(circle at 12% 4%, rgba(242, 164, 0, 0.2), transparent 22rem),
+    radial-gradient(circle at 86% 12%, rgba(31, 122, 140, 0.14), transparent 26rem),
+    linear-gradient(180deg, #fffaf0 0%, #f6f8fb 44%, #ffffff 100%);
+  margin: -20px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding: clamp(0.75rem, 2vw, 1.2rem);
+}
+
+.home-page main {
+  margin: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.home-hero {
+  align-items: center;
+  display: grid;
+  gap: clamp(2rem, 4vw, 5rem);
+  grid-template-columns: minmax(0, 1.08fr) minmax(24rem, 0.92fr);
+  min-height: calc(100vh - 8rem);
+  padding: clamp(2.25rem, 7vw, 6rem) clamp(1rem, 3.5vw, 4rem) clamp(2rem, 5vw, 4rem);
+}
+
+.home-hero-copy h1 {
+  color: var(--st-ink);
+  font-size: clamp(2.45rem, 6vw, 5.9rem);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 0.98;
+  margin: 0.55rem 0 1.2rem;
+  max-width: 14ch;
+}
+
+.home-hero-copy > p:not(.st-kicker) {
+  color: var(--st-muted);
+  font-size: clamp(1rem, 1.35vw, 1.2rem);
+  line-height: 1.7;
+  max-width: 42rem;
+}
+
+.home-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 1.6rem;
+}
+
+.home-hero-visual {
+  background:
+    linear-gradient(145deg, rgba(23, 32, 42, 0.96), rgba(19, 48, 58, 0.92)),
+    #17202a;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--st-radius-lg);
+  box-shadow: var(--st-shadow-lg);
+  min-height: clamp(22rem, 38vw, 32rem);
+  overflow: hidden;
+  position: relative;
+}
+
+.home-hero-visual::before {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+  content: "";
+  inset: 0;
+  opacity: 0.35;
+  position: absolute;
+}
+
+.home-hero-visual img {
+  height: calc(100% - 6.5rem);
+  inset: 0 0 auto;
+  object-fit: cover;
+  object-position: center;
+  padding: clamp(1rem, 2.5vw, 1.8rem);
+  position: absolute;
+  width: 100%;
+}
+
+.home-hero-data-card {
+  background: rgba(16, 24, 32, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
+  color: #fff;
+  display: grid;
+  gap: 0.65rem;
+  left: clamp(1rem, 3vw, 2rem);
+  padding: 0.85rem;
+  position: absolute;
+  right: clamp(1rem, 3vw, 2rem);
+  top: clamp(1rem, 3vw, 2rem);
+}
+
+.home-hero-data-card span {
+  color: #9ee0ea;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.data-bars {
+  align-items: end;
+  display: grid;
+  gap: 0.4rem;
+  grid-template-columns: repeat(5, 1fr);
+  height: 4rem;
+}
+
+.data-bars i {
+  background: linear-gradient(180deg, #f2a400, #1f7a8c);
+  border-radius: 999px 999px 4px 4px;
+  display: block;
+  height: 42%;
+}
+
+.data-bars i:nth-child(2) {
+  height: 76%;
+}
+
+.data-bars i:nth-child(3) {
+  height: 54%;
+}
+
+.data-bars i:nth-child(4) {
+  height: 88%;
+}
+
+.data-bars i:nth-child(5) {
+  height: 63%;
+}
+
+.home-hero-note {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(217, 226, 236, 0.95);
+  border-radius: var(--st-radius-md);
+  bottom: 1rem;
+  box-shadow: var(--st-shadow-md);
+  display: grid;
+  gap: 0.2rem;
+  left: 1rem;
+  padding: 0.85rem 1rem;
+  position: absolute;
+  right: 1rem;
+}
+
+.home-hero-note span {
+  color: var(--st-accent);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.home-hero-note strong {
+  color: var(--st-ink);
+  font-size: 1rem;
+}
+
+.home-section {
+  padding: clamp(2rem, 5vw, 4.5rem) clamp(1rem, 3.5vw, 4rem);
+}
+
+.home-section-header {
+  margin-bottom: 1.25rem;
+  max-width: 48rem;
+}
+
+.home-section-header h2,
+.team-section h2,
+.ft-resources h2 {
+  color: var(--st-ink);
+  font-size: clamp(1.65rem, 3vw, 2.55rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.home-gallery-section {
+  border-top: 1px solid rgba(217, 226, 236, 0.8);
+}
+
+@media (max-width: 920px) {
+  .home-hero {
+    grid-template-columns: 1fr;
+    min-height: auto;
   }
-  
-  .home-page > * {
-    margin-bottom: 20px;
+
+  .home-hero-copy h1 {
+    max-width: 15ch;
   }
-  
+}
+
+@media (max-width: 520px) {
+  .home-page {
+    margin: -20px;
+    padding: 0.75rem;
+  }
+
+  .home-hero-actions .st-button {
+    width: 100%;
+  }
+}

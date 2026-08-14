@@ -1,0 +1,95 @@
+.module-page {
+  background:
+    radial-gradient(circle at 12% 12%, rgba(242, 164, 0, 0.15), transparent 22rem),
+    linear-gradient(180deg, #f6f8fb 0%, #ffffff 100%);
+  min-height: 100vh;
+}
+
+.module-page .module-main {
+  margin: 0 auto;
+  max-width: 1280px;
+  padding: clamp(2.25rem, 5vw, 4.5rem) clamp(1rem, 3vw, 2rem);
+}
+
+.module-page .module-main > section:first-child {
+  margin: 0 auto clamp(2rem, 4vw, 3.5rem);
+  max-width: 56rem;
+}
+
+.module-page .module-main > section:first-child h1 {
+  color: var(--st-ink);
+  font-size: clamp(2.2rem, 5vw, 4.2rem);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.module-page .module-main > section:first-child h2 {
+  color: var(--st-muted);
+  font-size: clamp(1.1rem, 2vw, 1.55rem);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.module-page .module-main > section:nth-child(2) {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border: 1px solid rgba(217, 226, 236, 0.92);
+  border-radius: 12px !important;
+  box-shadow: var(--st-shadow-sm) !important;
+}
+
+.module-page .module-main > section:nth-child(2) h3,
+.module-page .module-main > section:nth-child(2) h4 {
+  color: var(--st-ink);
+}
+
+.module-page .module-main > section:nth-child(2) i {
+  color: #ff6b1a;
+}
+
+.module-page .module-main > section:nth-child(2) .rounded-2xl {
+  border: 1px solid rgba(217, 226, 236, 0.86);
+  border-radius: 12px !important;
+  box-shadow: var(--st-shadow-sm) !important;
+}
+
+.module-page .module-main a[class*="bg-primary"],
+.module-page .module-main a[class*="bg-gray"] {
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.module-page .module-footer {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border-top: 1px solid rgba(217, 226, 236, 0.8) !important;
+}
+
+.quiz-shell {
+  background:
+    radial-gradient(circle at 12% 12%, rgba(242, 164, 0, 0.15), transparent 22rem),
+    linear-gradient(180deg, #f6f8fb 0%, #ffffff 100%);
+  min-height: 100vh;
+}
+
+.quiz-shell .quiz-page-content {
+  background: transparent;
+  padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 3vw, 2rem);
+}
+
+.quiz-shell .quiz-iframe {
+  background: #fff;
+  border: 1px solid rgba(217, 226, 236, 0.92);
+  border-radius: 12px;
+  box-shadow: var(--st-shadow-sm);
+  max-width: 860px;
+}
+
+@media (max-width: 640px) {
+  .module-page .module-main {
+    padding-inline: 1rem;
+  }
+
+  .module-page .module-main > section:nth-child(2) {
+    padding: 1rem !important;
+  }
+}

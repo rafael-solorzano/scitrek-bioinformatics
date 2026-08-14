@@ -1,59 +1,112 @@
-/* src/pages/StudentProfilePage.css */
-
-/* Make the page container full width */
 .student-profile-page {
+  background:
+    radial-gradient(circle at 12% 12%, rgba(242, 164, 0, 0.15), transparent 22rem),
+    linear-gradient(180deg, #f6f8fb 0%, #ffffff 100%);
+  min-height: 100vh;
   width: 100%;
-  margin: 0;
-  background: #fff;
 }
 
-/* Header: flex‐center the content */
-.profile-header {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #e39c04;
-  color: white;
-  padding: 20px;
-}
-
-.profile-header h1 {
-  margin: 0;
-  font-size: 32px;
-}
-
-/* Main content */
-.profile-main {
-  padding: 20px;
-  text-align: center;
-}
-
-/* GIF: centered, but not too wide */
-.bioinfo-gif {
-  width: 100%;
-  max-width: 600px;
-  margin: 0 auto 20px;
-  display: block;
-}
-
-/* Profile details list: keep it neat */
-.profile-biography {
-  list-style: none;
-  padding: 0;
+.profile-shell {
   margin: 0 auto;
-  max-width: 600px;
-  text-align: left;
+  max-width: 1120px;
+  padding: clamp(1.5rem, 5vw, 4rem) clamp(1rem, 3vw, 2rem);
+}
+
+.profile-hero {
+  margin-bottom: clamp(1.5rem, 4vw, 3rem);
+  max-width: 48rem;
+}
+
+.profile-hero h1 {
+  color: var(--st-ink);
+  font-size: clamp(2rem, 5vw, 4.2rem);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0.45rem 0 0.85rem;
+}
+
+.profile-hero p {
+  color: var(--st-muted);
+  font-size: clamp(1rem, 1.4vw, 1.18rem);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.profile-main {
+  align-items: stretch;
+  display: grid;
+  gap: clamp(1rem, 3vw, 2rem);
+  grid-template-columns: minmax(0, 1.25fr) minmax(18rem, 0.75fr);
+}
+
+.profile-media-card {
+  background: #d9e7f7;
+  border: 1px solid rgba(217, 226, 236, 0.95);
+  border-radius: 12px;
+  box-shadow: var(--st-shadow-sm);
+  min-height: 22rem;
+  overflow: hidden;
+}
+
+.bioinfo-gif {
+  display: block;
+  height: 100%;
+  min-height: 22rem;
+  object-fit: cover;
+  width: 100%;
+}
+
+.profile-info-card {
+  align-self: start;
+  padding: clamp(1rem, 3vw, 1.5rem);
+}
+
+.profile-info-card h2 {
+  color: var(--st-ink);
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  margin: 0 0 1rem;
+}
+
+.profile-biography {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .profile-biography li {
-  margin-bottom: 12px;
-  font-size: 18px;
-  line-height: 1.4;
+  background: var(--st-subtle);
+  border: 1px solid rgba(217, 226, 236, 0.9);
+  border-radius: 8px;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem;
 }
 
-/* Loading state */
+.profile-biography span {
+  color: var(--st-muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.profile-biography strong {
+  color: var(--st-ink);
+  font-size: 1rem;
+}
+
 .loading {
   text-align: center;
   padding: 50px;
   font-size: 20px;
+}
+
+@media (max-width: 820px) {
+  .profile-main {
+    grid-template-columns: 1fr;
+  }
 }

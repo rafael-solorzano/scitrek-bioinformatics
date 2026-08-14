@@ -2,9 +2,11 @@
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.throttling import ScopedRateThrottle
 
-from student_activities.tasks import seed_inbox_for_user
+from student_activities.tasks import seed_inbox_for_user_now
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
@@ -20,6 +22,8 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'token_obtain'
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -27,8 +31,13 @@ class MyTokenObtainPairView(TokenObtainPairView):
         tokens = serializer.validated_data
         user = getattr(serializer, "_authed_user", None)
 
-        # Enqueue seeding for active students (idempotent: safe every login)
+        # Idempotent: safe every login, and keeps inbox seeding independent of Celery.
         if user and getattr(user, "is_active", False) and getattr(user, "is_student", False):
-            seed_inbox_for_user.delay(user.id)
+            seed_inbox_for_user_now(user.id)
 
         return Response(tokens, status=status.HTTP_200_OK)
+
+
+class ScopedTokenRefreshView(TokenRefreshView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'token_refresh'

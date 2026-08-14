@@ -1,90 +1,171 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-backend-service: &backend-service
+  image: scitrek-backend:${SCITREK_IMAGE_TAG:-local}
+  build:
+    context: backend/scitrek_backend
+    dockerfile: Dockerfile
+  env_file:
+    - path: ${SCITREK_BACKEND_ENV_FILE:-backend/scitrek_backend/.env}
+      required: false
+  environment:
+    DJANGO_SETTINGS_MODULE: scitrek_backend.settings.production
+    DATABASE_ENGINE: postgresql
+    CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+    CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+    REDIS_CACHE_URL: ${REDIS_CACHE_URL:-redis://redis:6379/2}
+    DJANGO_HEALTHCHECK_HOST: ${DJANGO_HEALTHCHECK_HOST:-sci-trek.org}
+  init: true
+  logging: *default-logging
+
 services:
-  web:
+  init-volumes:
+    image: scitrek-backend:${SCITREK_IMAGE_TAG:-local}
     build:
       context: backend/scitrek_backend
       dockerfile: Dockerfile
-    command: /entrypoint.sh
-    env_file:
-      - backend/scitrek_backend/.env
-    environment:
-      - DJANGO_SETTINGS_MODULE=scitrek_backend.settings.production
-    expose:
-      - 8000
+    user: root
+    entrypoint: ["sh", "-c"]
+    command: ["chown -R scitrek:scitrek /app/media /app/staticfiles"]
+    volumes:
+      - media-data:/app/media
+      - static-data:/app/staticfiles
+    restart: "no"
+    logging: *default-logging
+
+  migrate:
+    <<: *backend-service
+    command:
+      - sh
+      - -c
+      - python manage.py migrate --noinput && python manage.py collectstatic --noinput
+    volumes:
+      - static-data:/app/staticfiles
     depends_on:
+      init-volumes:
+        condition: service_completed_successfully
+    restart: "no"
+
+  web:
+    <<: *backend-service
+    command:
+      - gunicorn
+      - scitrek_backend.wsgi:application
+      - --bind
+      - 0.0.0.0:8000
+      - --workers
+      - "3"
+      - --access-logfile
+      - '-'
+      - --error-logfile
+      - '-'
+      - --capture-output
+    expose:
+      - "8000"
+    volumes:
+      - media-data:/app/media
+      - static-data:/app/staticfiles:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os, urllib.request; r=urllib.request.Request('http://localhost:8000/readyz/', headers={'Host': os.environ['DJANGO_HEALTHCHECK_HOST'], 'X-Forwarded-Proto': 'https'}); urllib.request.urlopen(r, timeout=3).read()"
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+  worker:
+    <<: *backend-service
+    command: ["celery", "-A", "scitrek_backend", "worker", "--loglevel=info", "--concurrency=2"]
+    volumes:
+      - media-data:/app/media
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A scitrek_backend inspect ping --destination celery@$$HOSTNAME --timeout 5 | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    stop_grace_period: 60s
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    volumes:
+      - redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-
-  worker:
-    build:
-      context: backend/scitrek_backend
-      dockerfile: Dockerfile
-    entrypoint: []   # ⬅️ disables /entrypoint.sh so Celery runs instead of Gunicorn
-    command: celery -A scitrek_backend worker -l info --concurrency=2
-    env_file:
-      - backend/scitrek_backend/.env
-    environment:
-      - DJANGO_SETTINGS_MODULE=scitrek_backend.settings.production
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
-    depends_on:
-      redis:
-        condition: service_healthy
     restart: unless-stopped
-
-  beat:
-    build:
-      context: backend/scitrek_backend
-      dockerfile: Dockerfile
-    entrypoint: []
-    command: celery -A scitrek_backend beat -l info
-    env_file:
-      - backend/scitrek_backend/.env
-    environment:
-      - DJANGO_SETTINGS_MODULE=scitrek_backend.settings.production
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
+    logging: *default-logging
 
   nginx:
+    image: scitrek-nginx:${SCITREK_IMAGE_TAG:-local}
     build:
       context: .
       dockerfile: nginx/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+    environment:
+      TLS_DOMAIN: ${TLS_DOMAIN:-sci-trek.org}
+      TLS_WWW_DOMAIN: ${TLS_WWW_DOMAIN:-www.sci-trek.org}
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
       - certbot-etc:/etc/letsencrypt
       - certbot-var:/var/lib/letsencrypt
-      - ./certbot/www:/var/www/certbot
+      - certbot-www:/var/www/certbot:ro
+      - static-data:/srv/django-static:ro
     depends_on:
       web:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost/nginx-health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    logging: *default-logging
 
   certbot:
     image: certbot/certbot
+    entrypoint: ["/bin/sh", "/usr/local/bin/certbot-renew"]
     volumes:
       - certbot-etc:/etc/letsencrypt
       - certbot-var:/var/lib/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 1d & wait $${!}; done'"
+      - certbot-www:/var/www/certbot
+      - ./scripts/certbot-renew.sh:/usr/local/bin/certbot-renew:ro
+    depends_on:
+      nginx:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
 
 volumes:
   certbot-etc:
   certbot-var:
+  certbot-www:
+  media-data:
+  redis-data:
+  static-data:

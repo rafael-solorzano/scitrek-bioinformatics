@@ -1,60 +1,86 @@
 services:
-  web:
-    build:
-      context: backend/scitrek_backend
-      dockerfile: Dockerfile
+  migrate:
     env_file:
-      - backend/scitrek_backend/.env.dev
+      - ${SCITREK_DEV_ENV_FILE:-backend/scitrek_backend/.env.dev}
     environment:
-      - DJANGO_SETTINGS_MODULE=scitrek_backend.settings.development
+      DJANGO_SETTINGS_MODULE: scitrek_backend.settings.development
+      DATABASE_ENGINE: postgresql
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: scitrek_dev
+      DATABASE_USER: scitrek_dev
+      DATABASE_PASSWORD: scitrek_dev_only
     volumes:
       - ./backend/scitrek_backend:/app
-    entrypoint: []
-    command: sh -lc "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+      - static-data:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    env_file:
+      - ${SCITREK_DEV_ENV_FILE:-backend/scitrek_backend/.env.dev}
+    environment:
+      DJANGO_SETTINGS_MODULE: scitrek_backend.settings.development
+      DATABASE_ENGINE: postgresql
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: scitrek_dev
+      DATABASE_USER: scitrek_dev
+      DATABASE_PASSWORD: scitrek_dev_only
+      DJANGO_HEALTHCHECK_HOST: localhost
+    volumes:
+      - ./backend/scitrek_backend:/app
+      - media-data:/app/media
+      - static-data:/app/staticfiles:ro
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
     ports:
       - "8000:8000"
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
 
   worker:
-    build:
-      context: backend/scitrek_backend
-      dockerfile: Dockerfile
     env_file:
-      - backend/scitrek_backend/.env.dev
+      - ${SCITREK_DEV_ENV_FILE:-backend/scitrek_backend/.env.dev}
     environment:
-      - DJANGO_SETTINGS_MODULE=scitrek_backend.settings.development
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
-    entrypoint: []
-    command: celery -A scitrek_backend worker -l info --concurrency=1
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
+      DJANGO_SETTINGS_MODULE: scitrek_backend.settings.development
+      DATABASE_ENGINE: postgresql
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: scitrek_dev
+      DATABASE_USER: scitrek_dev
+      DATABASE_PASSWORD: scitrek_dev_only
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      REDIS_CACHE_URL: redis://redis:6379/2
+    volumes:
+      - ./backend/scitrek_backend:/app
+      - media-data:/app/media
+    command: ["celery", "-A", "scitrek_backend", "worker", "--loglevel=info", "--concurrency=1"]
 
-  beat:
-    build:
-      context: backend/scitrek_backend
-      dockerfile: Dockerfile
-    env_file:
-      - backend/scitrek_backend/.env.dev
+  db:
+    image: postgres:16-alpine
     environment:
-      - DJANGO_SETTINGS_MODULE=scitrek_backend.settings.development
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
-    entrypoint: []
-    command: celery -A scitrek_backend beat -l info
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
+      POSTGRES_DB: scitrek_dev
+      POSTGRES_USER: scitrek_dev
+      POSTGRES_PASSWORD: scitrek_dev_only
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U scitrek_dev -d scitrek_dev"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+    restart: unless-stopped
+
+  nginx:
+    profiles: ["production-only"]
+
+  certbot:
+    profiles: ["production-only"]
+
+volumes:
+  postgres-dev-data:

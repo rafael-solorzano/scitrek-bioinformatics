@@ -61,21 +61,28 @@ def _apply_templates_to_recipient(vs, recipient):
 
     return created_count, updated_count, deleted_dupes
 
+def seed_inbox_for_user_now(user_id: int):
+    """
+    Idempotently seed inbox for a single student user, synchronously.
+    """
+    vs = _get_or_create_vs_user()
+    recipient = User.objects.get(pk=user_id, is_student=True, is_active=True)
+    with transaction.atomic():
+        c, u, d = _apply_templates_to_recipient(vs, recipient)
+        return {"created": c, "updated": u, "deleted_dupes": d}
+
+
 @shared_task(bind=True, max_retries=3, default_retry_delay=15)
 def seed_inbox_for_user(self, user_id: int):
     """
     Idempotently seed inbox for a single student user.
     Safe to call on every signup/login.
     """
-    vs = _get_or_create_vs_user()
-    recipient = User.objects.get(pk=user_id, is_student=True, is_active=True)
-    with transaction.atomic():
-        try:
-            c, u, d = _apply_templates_to_recipient(vs, recipient)
-            return {"created": c, "updated": u, "deleted_dupes": d}
-        except IntegrityError:
-            # If a DB unique constraint exists and we race, try once more
-            self.retry(countdown=2)
+    try:
+        return seed_inbox_for_user_now(user_id)
+    except IntegrityError:
+        # If a DB unique constraint exists and we race, try once more.
+        self.retry(countdown=2)
 
 @shared_task
 def seed_inbox():

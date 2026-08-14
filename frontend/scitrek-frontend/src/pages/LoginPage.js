@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { loginUser, signupUser } from '../services/api';
+import { guestLogin, loginUser, signupUser } from '../services/api';
+import '../styles/scitrek-ui.css';
 import './LoginPage.css';
 
 const LoginPage = () => {
@@ -17,6 +18,9 @@ const LoginPage = () => {
   const [classroomName, setClassroomName] = useState('');
 
   const [error, setError] = useState('');
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Sign in handler
   const handleSignIn = async (e) => {
@@ -28,6 +32,18 @@ const LoginPage = () => {
       window.location.href = '/'; // Reload app after successful login
     } catch (err) {
       setError('Invalid credentials. Please try again.');
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setError('');
+    setIsGuestLoading(true);
+    try {
+      await guestLogin('1001');
+      window.location.href = '/';
+    } catch (err) {
+      setError('Guest login is unavailable right now. Please try again.');
+      setIsGuestLoading(false);
     }
   };
 
@@ -57,10 +73,27 @@ const LoginPage = () => {
 
   return (
     <div className="login-page">
-      <header className="login-header">
-        <img src="/images/scitrek_logo.png" alt="SciTrek Logo" className="login-logo" />
-        <h1>Welcome to SciTrek</h1>
-      </header>
+      <section className="login-brand-panel" aria-label="SciTrek introduction">
+        <div className="login-brand-content">
+          <img src="/images/scitrek_logo.png" alt="SciTrek Logo" className="login-logo" />
+          <p className="st-kicker">Bioinformatics learning lab</p>
+          <h1>Welcome to SciTrek</h1>
+          <p>
+            Step into a guided research experience where students investigate genes,
+            cancer biology, and real scientific data.
+          </p>
+          <div className="science-metrics" aria-label="SciTrek module highlights">
+            <span><strong>5</strong> guided days</span>
+            <span><strong>6</strong> starter messages</span>
+            <span><strong>1001</strong> demo class</span>
+          </div>
+        </div>
+        <div className="science-orbit" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+      </section>
 
       <div className="login-container">
         <div className="toggle-container">
@@ -83,62 +116,106 @@ const LoginPage = () => {
         {!isSignUp ? (
           <form onSubmit={handleSignIn}>
             <h2>Sign In to Your SciTrek Account</h2>
+            <p className="login-form-copy">
+              Continue your workbook, review messages, and track your module progress.
+            </p>
             <div className="form-field">
-              <label>Username:</label>
+              <label htmlFor="login-username">Username</label>
               <input
+                id="login-username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
               />
             </div>
-            <div className="form-field">
-              <label>Password:</label>
+            <div className="form-field password-field">
+              <label htmlFor="login-password">Password</label>
               <input
-                type="password"
+                id="login-password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-            </div>
-            <div className="forgot-link">
-              <a href="/forgot-password">Forgot Your Password?</a>
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(value => !value)}
+                aria-label={showPassword ? 'Hide secret' : 'Show secret'}
+              >
+                <i className={`fa ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`} aria-hidden="true" />
+              </button>
             </div>
             <button type="submit">Sign In</button>
+            <div className="guest-login-divider">
+              <span>or</span>
+            </div>
+            <button
+              type="button"
+              className="guest-login-button"
+              onClick={handleGuestLogin}
+              disabled={isGuestLoading}
+            >
+              {isGuestLoading ? 'Starting Guest Session...' : 'Continue as Guest'}
+            </button>
           </form>
         ) : (
           <form onSubmit={handleSignUp}>
             <h2>Create Your SciTrek Account</h2>
+            <p className="login-form-copy">
+              Join your classroom and unlock the full bioinformatics workbook.
+            </p>
             <div className="form-field">
-              <label>Username:</label>
+              <label htmlFor="signup-username">Username</label>
               <input
+                id="signup-username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
               />
             </div>
-            <div className="form-field">
-              <label>Password:</label>
+            <div className="form-field password-field">
+              <label htmlFor="signup-password">Password</label>
               <input
-                type="password"
+                id="signup-password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(value => !value)}
+                aria-label={showPassword ? 'Hide secret' : 'Show secret'}
+              >
+                <i className={`fa ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`} aria-hidden="true" />
+              </button>
             </div>
-            <div className="form-field">
-              <label>Confirm Password:</label>
+            <div className="form-field password-field">
+              <label htmlFor="signup-confirm-password">Confirm Password</label>
               <input
-                type="password"
+                id="signup-confirm-password"
+                type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
               />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowConfirmPassword(value => !value)}
+                aria-label={showConfirmPassword ? 'Hide confirmation' : 'Show confirmation'}
+              >
+                <i className={`fa ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`} aria-hidden="true" />
+              </button>
             </div>
             <div className="form-field">
-              <label>First Name:</label>
+              <label htmlFor="signup-first-name">First Name</label>
               <input
+                id="signup-first-name"
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
@@ -146,8 +223,9 @@ const LoginPage = () => {
               />
             </div>
             <div className="form-field">
-              <label>Last Name:</label>
+              <label htmlFor="signup-last-name">Last Name</label>
               <input
+                id="signup-last-name"
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
@@ -155,8 +233,9 @@ const LoginPage = () => {
               />
             </div>
             <div className="form-field">
-              <label>Classroom Name:</label>
+              <label htmlFor="signup-classroom-name">Classroom Name</label>
               <input
+                id="signup-classroom-name"
                 type="text"
                 value={classroomName}
                 onChange={(e) => setClassroomName(e.target.value)}

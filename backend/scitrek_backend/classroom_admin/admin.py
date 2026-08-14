@@ -1,6 +1,7 @@
 #classroom_admin/admin.py
 
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 from .models import (
     CustomUser,
     Classroom,
@@ -11,8 +12,14 @@ from .models import (
 )
 
 @admin.register(CustomUser)
-class CustomUserAdmin(admin.ModelAdmin):
-    list_display  = ('username', 'email', 'is_teacher', 'is_student')
+class CustomUserAdmin(UserAdmin):
+    fieldsets = UserAdmin.fieldsets + (
+        ('SciTrek roles', {'fields': ('is_teacher', 'is_student')}),
+    )
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        ('SciTrek roles', {'fields': ('is_teacher', 'is_student')}),
+    )
+    list_display  = ('username', 'email', 'is_staff', 'is_teacher', 'is_student')
     search_fields = ('username', 'email')
 
 @admin.register(Classroom)

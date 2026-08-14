@@ -1,8 +1,15 @@
 from django.core.management.base import BaseCommand
+from django.core.management.base import CommandError
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.utils import timezone
 
-from classroom_admin.models import Classroom, Student
+from classroom_admin.models import (
+    Classroom,
+    ModuleAssignment,
+    QuizAssignment,
+    Student,
+)
 
 try:
     from student_activities.models import Module
@@ -20,6 +27,9 @@ class Command(BaseCommand):
     help = "Seed a dev environment (teacher, classroom code 1001, demo content)."
 
     def handle(self, *args, **options):
+        if not settings.DEBUG:
+            raise CommandError("seed_dev is only allowed when DEBUG=True.")
+
         User = get_user_model()
 
         teacher_username = "teacher1001"
@@ -120,10 +130,21 @@ class Command(BaseCommand):
                 (5, "Telling the Gene Story", "Objective Today: Summarize findings in a scientific poster format."),
             ]
             for day, title, content in module_defaults:
-                Module.objects.get_or_create(
+                module, _ = Module.objects.get_or_create(
                     classroom_id=classroom.id,
                     day=day,
                     defaults={"title": title, "content": content},
+                )
+                ModuleAssignment.objects.get_or_create(
+                    classroom=classroom,
+                    module=module,
+                    defaults={'release_date': timezone.now()},
+                )
+            for quiz_type in ('pre', 'post'):
+                QuizAssignment.objects.get_or_create(
+                    classroom=classroom,
+                    quiz_type=quiz_type,
+                    defaults={'release_date': timezone.now()},
                 )
             self.stdout.write(self.style.SUCCESS("Seeded Modules (days 1–5)."))
 

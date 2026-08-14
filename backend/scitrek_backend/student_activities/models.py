@@ -39,10 +39,15 @@ class Message(models.Model):
 
 class Module(models.Model):
     DAY_CHOICES = [(i, f"Day {i}") for i in range(1, 6)]
-    day         = models.IntegerField(choices=DAY_CHOICES, unique=True)
+    day         = models.IntegerField(choices=DAY_CHOICES)
     title       = models.CharField(max_length=200)
     content     = models.TextField()
     classroom   = models.ForeignKey(Classroom, on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['classroom', 'day'], name='uniq_module_classroom_day'),
+        ]
 
     def __str__(self):
         return f"Day {self.day}: {self.title}"
@@ -99,13 +104,19 @@ class QuizAttempt(models.Model):
                        on_delete=models.CASCADE,
                        limit_choices_to={'is_student': True}
                    )
+    classroom    = models.ForeignKey(
+                       Classroom,
+                       on_delete=models.CASCADE,
+                       null=True,
+                       related_name='quiz_attempts'
+                   )
     quiz_type    = models.CharField(max_length=4, choices=TYPE_CHOICES)
     score        = models.FloatField()
     attempt_data = models.JSONField()
     timestamp    = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('student', 'quiz_type')
+        unique_together = ('student', 'classroom', 'quiz_type')
 
     def __str__(self):
         return f"{self.student.username} – {self.get_quiz_type_display()}"

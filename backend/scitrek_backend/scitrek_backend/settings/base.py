@@ -14,6 +14,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # Here BASE_DIR points to the outer project folder.
@@ -23,7 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-587lawqab2af+f6+l(142__^2avrm3phlb@gqvjjz6!0ybq%3m"
+SECRET_KEY = os.getenv(
+    "DJANGO_SECRET_KEY",
+    "dev-only-scitrek-local-fallback-secret-key-2026-change-for-production-7xQp42",
+)
 
 # Custom user model
 AUTH_USER_MODEL = 'classroom_admin.CustomUser'
@@ -55,7 +59,42 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
+def env_bool(name, default=False):
+    return os.getenv(name, str(default)).lower() in {"1", "true", "yes", "on"}
+
+
+def env_list(name, default=""):
+    return [value.strip() for value in os.getenv(name, default).split(",") if value.strip()]
+
+
+def env_int(name, default):
+    value = os.getenv(name, str(default))
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise ImproperlyConfigured(f"{name} must be an integer") from exc
+
+
+def require_env(name):
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        raise ImproperlyConfigured(f"{name} must be set")
+    return value
+
+
+def require_secret_env(name, min_length=50):
+    value = require_env(name)
+    if len(value) < min_length or "change-me" in value.lower():
+        raise ImproperlyConfigured(
+            f"{name} must be at least {min_length} characters and must not be an example placeholder"
+        )
+    return value
+
+
+CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", False)
+GUEST_LOGIN_ENABLED = env_bool("GUEST_LOGIN_ENABLED", False)
+GUEST_CLASSROOM_NAME = os.getenv("GUEST_CLASSROOM_NAME", "1001").strip()
+PUBLIC_SIGNUP_ENABLED = env_bool("PUBLIC_SIGNUP_ENABLED", False)
 
 
 # Update these references to reflect the new project module name.
@@ -94,6 +133,10 @@ REST_FRAMEWORK = {
         'anon':     '100/day',
         'response': '30/minute',   # scoped to ResponseUpsert
         'quiz':     '20/minute',   # scoped to QuizAttemptUpsert
+        'token_obtain': '10/minute',
+        'token_refresh': '30/minute',
+        'signup': '5/hour',
+        'guest_login': '10/hour',
     },
 
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
@@ -112,9 +155,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-]
+CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
 
 # Internationalization
 LANGUAGE_CODE = "en-us"
@@ -123,7 +164,7 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 
 # STATICFILES_DIRS for additional static files during development
 STATICFILES_DIRS = [
@@ -133,7 +174,7 @@ STATICFILES_DIRS = [
 # STATIC_ROOT where static files are collected for production
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-MEDIA_URL = "media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # Default primary key field type
@@ -141,11 +182,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Broker & result backend (e.g. Redis)
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
-CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', CELERY_BROKER_URL)
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_SOFT_TIME_LIMIT = 270
+CELERY_TASK_TIME_LIMIT = 300
 
 # Optional Celery settings:
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-
-print("🧠 Loaded settings:", os.environ.get("DJANGO_SETTINGS_MODULE"))

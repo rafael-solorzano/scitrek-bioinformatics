@@ -12,9 +12,11 @@ from .api_views import (
     QuizAssignmentDetailAPIView,
     ScheduledMessageListCreateAPIView,
     ScheduledMessageSendNowAPIView,
+    TeacherMessageAttachmentDownloadAPIView,
     ClassroomProgressAPIView,
     ClassroomQuizOverviewAPIView,
     StudentDetailAPIView,
+    TeacherResponseDownloadAPIView,
     ClassroomRosterExportAPIView,
     ClassroomProgressExportAPIView,
     ClassroomQuizExportAPIView,
@@ -41,11 +43,13 @@ urlpatterns = [
     # Scheduling messages
     path('classrooms/<int:pk>/messages/',                   ScheduledMessageListCreateAPIView.as_view(), name='teacher-schedule-messages'),
     path('classrooms/<int:pk>/messages/<int:msg_id>/send-now/', ScheduledMessageSendNowAPIView.as_view(), name='teacher-send-message-now'),
+    path('classrooms/<int:pk>/messages/<int:msg_id>/attachment/', TeacherMessageAttachmentDownloadAPIView.as_view(), name='teacher-message-attachment'),
 
     # Reporting
     path('classrooms/<int:pk>/progress/',                   ClassroomProgressAPIView.as_view(),       name='teacher-classroom-progress'),
     path('classrooms/<int:pk>/quizzes/',                    ClassroomQuizOverviewAPIView.as_view(),   name='teacher-classroom-quizzes'),
     path('classrooms/<int:pk>/students/<int:student_id>/details/', StudentDetailAPIView.as_view(),      name='teacher-student-details'),
+    path('classrooms/<int:pk>/students/<int:student_id>/responses/<int:response_id>/file/', TeacherResponseDownloadAPIView.as_view(), name='teacher-response-download'),
 
     # CSV Exports
     path('classrooms/<int:pk>/export/roster/',              ClassroomRosterExportAPIView.as_view(),   name='teacher-export-roster'),

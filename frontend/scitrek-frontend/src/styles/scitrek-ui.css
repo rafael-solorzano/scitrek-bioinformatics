@@ -1,0 +1,107 @@
+.st-surface,
+.login-page {
+  --st-primary: #f2a400;
+  --st-primary-strong: #d88400;
+  --st-primary-soft: #fff2cc;
+  --st-accent: #1f7a8c;
+  --st-accent-strong: #145e6c;
+  --st-ink: #17202a;
+  --st-text: #26313d;
+  --st-muted: #667085;
+  --st-subtle: #f6f8fb;
+  --st-surface: #ffffff;
+  --st-surface-raised: rgba(255, 255, 255, 0.92);
+  --st-border: #d9e2ec;
+  --st-border-strong: #b7c4d2;
+  --st-error: #c93245;
+  --st-success: #16805b;
+  --st-info: #2563eb;
+  --st-radius-sm: 6px;
+  --st-radius-md: 8px;
+  --st-radius-lg: 12px;
+  --st-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --st-shadow-md: 0 12px 32px rgba(23, 32, 42, 0.12);
+  --st-shadow-lg: 0 22px 60px rgba(23, 32, 42, 0.16);
+  color: var(--st-text);
+}
+
+.st-button {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--st-radius-md);
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 800;
+  gap: 0.55rem;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.st-button:hover {
+  transform: translateY(-1px);
+}
+
+.st-button:focus-visible {
+  box-shadow: 0 0 0 4px rgba(31, 122, 140, 0.2);
+  outline: none;
+}
+
+.st-button-primary {
+  background: var(--st-primary);
+  color: #151515;
+}
+
+.st-button-primary:hover {
+  background: #ffb31a;
+  color: #151515;
+}
+
+.st-button-secondary {
+  background: var(--st-accent);
+  color: #fff;
+}
+
+.st-button-secondary:hover {
+  background: var(--st-accent-strong);
+  color: #fff;
+}
+
+.st-button-ghost {
+  background: #fff;
+  border-color: var(--st-border);
+  color: var(--st-text);
+}
+
+.st-button-ghost:hover {
+  border-color: var(--st-border-strong);
+  color: var(--st-ink);
+}
+
+.st-card {
+  background: var(--st-surface-raised);
+  border: 1px solid rgba(217, 226, 236, 0.88);
+  border-radius: var(--st-radius-lg);
+  box-shadow: var(--st-shadow-sm);
+}
+
+.st-kicker {
+  color: var(--st-accent);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.st-loading {
+  align-items: center;
+  background: var(--st-subtle);
+  color: var(--st-muted);
+  display: flex;
+  font-size: 1rem;
+  font-weight: 700;
+  min-height: 50vh;
+  justify-content: center;
+}

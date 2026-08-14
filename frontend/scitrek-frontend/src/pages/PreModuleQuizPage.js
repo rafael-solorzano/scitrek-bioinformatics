@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import StudentProfileBanner from '../components/StudentProfileBanner';
 import Popup from '../components/Popup';
 import { getCurrentUser } from '../services/api';
+import '../styles/scitrek-ui.css';
 import './QuizPage.css';
+import './ModulePages.css';
 
 const PreModuleQuizPage = () => {
   const [user, setUser] = useState(null);
@@ -28,8 +30,8 @@ const PreModuleQuizPage = () => {
   if (!user) return <div className="loading">Loading…</div>;
 
   return (
-    <>
-      <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />
+    <div className="quiz-shell st-surface">
+      <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} variant="modern" />
 
       <div className="quiz-page-content">
         <iframe
@@ -48,7 +50,7 @@ const PreModuleQuizPage = () => {
           onConfirm={handleLogout}
         />
       )}
-    </>
+    </div>
   );
 };
 

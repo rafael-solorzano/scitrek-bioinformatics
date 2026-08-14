@@ -15,12 +15,16 @@ def schedule_message_task(msg_id):
     from classroom_admin.models import Student
     students = msg.classroom.students.all()
     for profile in students:
-        Message.objects.create(
+        Message.objects.update_or_create(
             sender=msg.classroom.teacher,
             recipient=profile.user,
             subject=msg.subject,
-            body=msg.body,
-            # copy attachment if needed
+            defaults={
+                "body": msg.body,
+                # Reuse the same private stored object rather than duplicating
+                # bytes for every recipient.
+                "attachment": msg.attachment.name if msg.attachment else None,
+            },
         )
     msg.sent   = True
     msg.sent_at = timezone.now()

@@ -21,6 +21,18 @@ Students step into the role of a scientist, guided through daily missions that c
 ![NGINX](https://img.shields.io/badge/Server-NGINX-009639?style=for-the-badge&logo=nginx&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 
+The production application uses a Vite-built React SPA, Django REST Framework,
+PostgreSQL, Redis/Celery, and nginx with TLS. Start with the implementation
+guides rather than older ad-hoc deployment commands:
+
+- [Architecture](docs/architecture.md)
+- [Local development](docs/local-development.md)
+- [Testing and CI](docs/testing.md)
+- [Production deployment](docs/deployment.md)
+- [Backup and restore](docs/backup-restore.md)
+- [Security and release controls](docs/security.md)
+- [Deployment smoke checklist](docs/smoke-checklist.md)
+
 ---
 
 ## 🚀 Getting Started
@@ -78,4 +90,3 @@ Our goal is to make authentic research experiences **accessible to every student
 
 ---
 © 2025 **SciTrek Research Group | UC Santa Barbara**  
-

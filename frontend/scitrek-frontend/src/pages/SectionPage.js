@@ -1,5 +1,6 @@
 // src/pages/SectionPage.js
 import React, { useState, useEffect } from 'react';
+import AuthenticatedImage from '../components/AuthenticatedImage';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { getWorkbookDetail, getCurrentUser } from '../services/api';
 import StudentProfileBanner from '../components/StudentProfileBanner';
@@ -70,7 +71,7 @@ const SectionPage = () => {
               <div className="section-images">
                 {section.images.map(img => (
                   <figure key={img.id}>
-                    <img src={img.image} alt={img.caption} />
+                    <AuthenticatedImage src={img.image} alt={img.caption} />
                     {img.caption && <figcaption>{img.caption}</figcaption>}
                   </figure>
                 ))}

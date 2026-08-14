@@ -30,7 +30,10 @@ const resources = [
 
 const ResourceSection = () => (
   <section className="ft-resources">
-    <h2>Bioinformatics Resources</h2>
+    <div className="resources-section-header">
+      <p className="st-kicker">Scientific toolkit</p>
+      <h2>Bioinformatics resources students will recognize.</h2>
+    </div>
     <div className="ft-resource-container">
       {resources.map(resource => (
         <div className="ft-resource" key={resource.id}>

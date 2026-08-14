@@ -1,8 +1,6 @@
 import axios from 'axios';
 import { getAccessToken, getRefreshToken, removeTokens } from '../utils/auth';
-
-// const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
-const API_BASE_URL = 'https://sci-trek.org/api';
+import { API_BASE_URL } from '../config/apiConfig';
 
 const api = axios.create({ baseURL: API_BASE_URL });
 
@@ -21,7 +19,7 @@ api.interceptors.response.use(
   response => response,
   async error => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       originalRequest._retry = true;
       const refresh = getRefreshToken();
       if (refresh) {
@@ -54,6 +52,15 @@ export const loginUser = async (username, password) => {
   const res = await axios.post(`${API_BASE_URL}/api/token/`, {
     username,
     password,
+  });
+  localStorage.setItem('accessToken', res.data.access);
+  localStorage.setItem('refreshToken', res.data.refresh);
+  return res.data;
+};
+
+export const guestLogin = async (classroomName = '1001') => {
+  const res = await axios.post(`${API_BASE_URL}/api/student/guest-login/`, {
+    classroom_name: classroomName,
   });
   localStorage.setItem('accessToken', res.data.access);
   localStorage.setItem('refreshToken', res.data.refresh);
@@ -94,7 +101,7 @@ export const addToRoster = async (classroomId, studentUsername) => {
 // Fetch paginated inbox messages
 export const fetchInbox = async () => {
   const res = await api.get('/api/student/inbox/');
-  return res.data.results;
+  return res.data.results || res.data;
 };
 
 // Toggle read/unread status on a message
@@ -111,7 +118,7 @@ export const toggleReadMessage = async (messageId, isRead) => {
 // Fetch list of all modules (Day 1–5)
 export const fetchModules = async () => {
   const res = await api.get('/api/student/modules/');
-  return res.data;
+  return res.data.results || res.data;
 };
 
 // Fetch one module’s detail

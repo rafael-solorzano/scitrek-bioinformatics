@@ -6,6 +6,7 @@ import TeamSection from '../components/TeamSection';
 import ResourceSection from '../components/ResourceSection';
 import Popup from '../components/Popup';
 import { getCurrentUser } from '../services/api';
+import '../styles/scitrek-ui.css';
 import './HomePage.css';
 
 const HomePage = () => {
@@ -38,11 +39,61 @@ const HomePage = () => {
   }
 
   return (
-    <div className="home-page">
+    <div className="home-page st-surface">
       <HomeHeader user={user} onLogout={() => setPopupVisible(true)} />
-      <Gallery />
-      <TeamSection />
-      <ResourceSection />
+
+      <main>
+        <section className="home-hero">
+          <div className="home-hero-copy">
+            <p className="st-kicker">Science discovery platform</p>
+            <h1>Investigate cancer biology through real bioinformatics thinking.</h1>
+            <p>
+              SciTrek guides students from gene regulation fundamentals to data-driven
+              discovery, team discussion, and scientific communication.
+            </p>
+            <div className="home-hero-actions">
+              <a className="st-button st-button-primary" href="/student_profile">
+                Open Dashboard
+                <i className="fa fa-arrow-right" aria-hidden="true" />
+              </a>
+              <a className="st-button st-button-ghost" href="/inbox">
+                Review Inbox
+              </a>
+            </div>
+          </div>
+          <div className="home-hero-visual" aria-label="Genomic variation preview">
+            <img
+              src="/images/genomic_variation.jpg"
+              alt="Illustration of genomic variation across DNA sequences"
+            />
+            <div className="home-hero-data-card">
+              <span>Signal scan</span>
+              <div className="data-bars" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+              </div>
+            </div>
+            <div className="home-hero-note">
+              <span>Bioinformatics workflow</span>
+              <strong>Compare sequence patterns and ask better questions</strong>
+            </div>
+          </div>
+        </section>
+
+        <section className="home-section home-gallery-section">
+          <div className="home-section-header">
+            <p className="st-kicker">Current research lens</p>
+            <h2>Start with the science students can see.</h2>
+          </div>
+          <Gallery />
+        </section>
+
+        <TeamSection />
+        <ResourceSection />
+      </main>
 
       {popupVisible && (
         <Popup

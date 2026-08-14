@@ -1,141 +1,381 @@
-/* src/pages/LoginPage.css */
-
 .login-page {
+  align-items: stretch;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(31, 122, 140, 0.18), transparent 22rem),
+    radial-gradient(circle at 78% 12%, rgba(242, 164, 0, 0.22), transparent 26rem),
+    linear-gradient(135deg, #fffaf0 0%, #eef6f8 48%, #f8fbff 100%);
+  display: grid;
+  gap: clamp(1.5rem, 4vw, 4rem);
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 32rem);
   min-height: 100vh;
-  background-color: #fff7f2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px; /* Reduced overall padding so content isn't pushed downward */
+  overflow: hidden;
+  padding: clamp(1rem, 3vw, 3rem);
   position: relative;
 }
 
-.login-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 20px; /* Space between header and login box */
-  /* Remove any additional top margin so the header sits near the top */
+.login-page::before {
+  background-image:
+    linear-gradient(rgba(31, 122, 140, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 122, 140, 0.08) 1px, transparent 1px);
+  background-size: 36px 36px;
+  content: "";
+  inset: 0;
+  opacity: 0.45;
+  pointer-events: none;
+  position: absolute;
 }
 
-.login-logo {
-  height: 150px;  /* Increased logo size */
-  margin-bottom: 10px;
-}
-
-.login-header h1 {
-  font-size: 60px;  /* Increased welcome text size */
-  color: #ff6600;
-  font-weight: bold;
-}
-
-/* Container for the login form */
+.login-brand-panel,
 .login-container {
-  background: #fff;
-  width: 600px;
-  padding: 40px 50px;
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-  margin-top: 50px;  /* Push login box down to separate it from the header */
   position: relative;
   z-index: 1;
 }
 
-.toggle-container {
+.login-brand-panel {
+  align-items: center;
   display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-bottom: 30px;
+  min-height: 100%;
+  padding: clamp(1rem, 5vw, 5rem);
+}
+
+.login-brand-content {
+  max-width: 43rem;
+}
+
+.login-logo {
+  height: clamp(5rem, 10vw, 8rem);
+  margin-bottom: clamp(1rem, 2vw, 1.5rem);
+  object-fit: contain;
+}
+
+.login-brand-content h1 {
+  color: var(--st-ink);
+  font-size: clamp(2.8rem, 7vw, 6.7rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 0.95;
+  margin: 0.45rem 0 1.25rem;
+}
+
+.login-brand-content p:not(.st-kicker) {
+  color: var(--st-muted);
+  font-size: clamp(1rem, 1.45vw, 1.25rem);
+  line-height: 1.7;
+  margin: 0;
+  max-width: 40rem;
+}
+
+.science-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.science-metrics span {
+  align-items: baseline;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(217, 226, 236, 0.92);
+  border-radius: var(--st-radius-md);
+  box-shadow: var(--st-shadow-sm);
+  color: var(--st-muted);
+  display: inline-flex;
+  gap: 0.45rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.science-metrics strong {
+  color: var(--st-accent);
+  font-size: 1.2rem;
+}
+
+.science-orbit {
+  aspect-ratio: 1;
+  border: 1px solid rgba(31, 122, 140, 0.14);
+  border-radius: 50%;
+  bottom: 5%;
+  height: min(44vw, 32rem);
+  position: absolute;
+  right: 36%;
+  transform: rotate(-18deg);
+}
+
+.science-orbit::before,
+.science-orbit::after,
+.science-orbit span {
+  border: 1px solid rgba(31, 122, 140, 0.16);
+  border-radius: 50%;
+  content: "";
+  inset: 11%;
+  position: absolute;
+}
+
+.science-orbit::after {
+  inset: 24%;
+}
+
+.science-orbit span {
+  background: var(--st-primary);
+  border: 0;
+  box-shadow: 0 0 0 8px rgba(242, 164, 0, 0.16);
+  height: 0.75rem;
+  inset: auto 18% 18% auto;
+  width: 0.75rem;
+}
+
+.science-orbit span:nth-child(2) {
+  background: var(--st-accent);
+  bottom: auto;
+  left: 18%;
+  right: auto;
+  top: 24%;
+}
+
+.science-orbit span:nth-child(3) {
+  background: #ff784f;
+  bottom: 48%;
+  right: 3%;
+}
+
+.login-container {
+  align-self: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--st-radius-lg);
+  box-shadow: var(--st-shadow-lg);
+  margin: 0;
+  max-height: calc(100vh - clamp(2rem, 6vw, 6rem));
+  overflow-y: auto;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  width: 100%;
+}
+
+.toggle-container {
+  background: #edf2f7;
+  border: 1px solid #dbe4ee;
+  border-radius: var(--st-radius-md);
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 1.5rem;
+  padding: 0.35rem;
 }
 
 .toggle-container button {
-  flex: 1;
-  padding: 12px 20px;
-  font-size: 18px;
-  background: #ddd;
-  border: none;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: var(--st-muted);
   cursor: pointer;
-  border-radius: 8px;
-  font-weight: bold;
-  transition: background 0.3s ease;
-  min-width: 120px;
+  font-size: 0.98rem;
+  font-weight: 850;
+  min-height: 2.7rem;
+  padding: 0.65rem 1rem;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
 
 .toggle-container button.active {
-  background: #ff6600;
-  color: #fff;
+  background: #fff;
+  box-shadow: var(--st-shadow-sm);
+  color: var(--st-ink);
 }
 
 .toggle-container button:hover {
-  background: #ff7f33;
+  color: var(--st-ink);
 }
 
 .error {
-  color: red;
-  margin-bottom: 15px;
-  font-weight: bold;
-  text-align: center;
+  background: #fff1f3;
+  border: 1px solid #ffc7d0;
+  border-radius: var(--st-radius-md);
+  color: var(--st-error);
+  font-weight: 800;
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  text-align: left;
 }
 
-form {
+.login-container form {
   display: flex;
   flex-direction: column;
 }
 
-form h2 {
-  text-align: center;
-  margin-bottom: 20px;
-  font-size: 28px;
-  color: #ff6600;
+.login-container form h2 {
+  color: var(--st-ink);
+  font-size: clamp(1.35rem, 2.4vw, 1.8rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.15;
+  margin: 0 0 0.55rem;
+  text-align: left;
+}
+
+.login-form-copy {
+  color: var(--st-muted);
+  font-size: 0.98rem;
+  line-height: 1.55;
+  margin: 0 0 1.4rem;
 }
 
 .form-field {
-  margin-bottom: 15px;
+  margin-bottom: 1rem;
+  position: relative;
 }
 
 .form-field label {
+  color: var(--st-text);
   display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-  color: #555;
+  font-size: 0.9rem;
+  font-weight: 850;
+  margin-bottom: 0.45rem;
 }
 
 .form-field input {
+  background: #fff;
+  border: 1px solid var(--st-border);
+  border-radius: var(--st-radius-md);
+  box-sizing: border-box;
+  color: var(--st-ink);
+  font-size: 1rem;
+  min-height: 3rem;
+  padding: 0.8rem 0.9rem;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
   width: 100%;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  font-size: 16px;
 }
 
-.forgot-link {
-  text-align: right;
-  margin-bottom: 15px;
+.form-field input:focus {
+  border-color: var(--st-accent);
+  box-shadow: 0 0 0 4px rgba(31, 122, 140, 0.14);
+  outline: none;
 }
 
-.forgot-link a {
-  font-size: 14px;
-  color: #ff6600;
-  text-decoration: none;
+.password-field input {
+  padding-right: 3rem;
 }
 
-.forgot-link a:hover {
-  text-decoration: underline;
-}
-
-form button {
-  background: #ff6600;
-  color: #fff;
-  border: none;
-  padding: 14px 25px;
-  border-radius: 8px;
-  font-weight: bold;
+.password-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: var(--st-muted);
   cursor: pointer;
-  font-size: 18px;
-  margin-top: 10px;
-  transition: background 0.3s ease;
+  display: inline-flex;
+  height: 2rem;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  right: 0.55rem;
+  top: 2.05rem;
+  width: 2rem;
 }
 
-form button:hover {
-  background: #ff7f33;
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  background: #eef6f8;
+  color: var(--st-accent);
+  outline: none;
+}
+
+.login-container form > button[type="submit"],
+.guest-login-button {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--st-radius-md);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 1rem;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.78rem 1rem;
+  transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.login-container form > button[type="submit"] {
+  background: var(--st-primary);
+  color: #151515;
+  margin-top: 0.25rem;
+}
+
+.login-container form > button[type="submit"]:hover,
+.guest-login-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.login-container form > button[type="submit"]:hover {
+  background: #ffb31a;
+}
+
+.login-container form button:disabled {
+  background: #c7d0da;
+  color: #667085;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.guest-login-divider {
+  align-items: center;
+  color: var(--st-muted);
+  display: flex;
+  font-size: 0.78rem;
+  font-weight: 900;
+  gap: 0.75rem;
+  margin: 1.2rem 0 0.8rem;
+  text-transform: uppercase;
+}
+
+.guest-login-divider::before,
+.guest-login-divider::after {
+  background: var(--st-border);
+  content: "";
+  flex: 1;
+  height: 1px;
+}
+
+.login-container form .guest-login-button {
+  background: var(--st-accent);
+  color: #fff;
+  margin-top: 0;
+}
+
+.login-container form .guest-login-button:hover:not(:disabled) {
+  background: var(--st-accent-strong);
+}
+
+@media (max-width: 920px) {
+  .login-page {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .login-brand-panel {
+    min-height: auto;
+    padding: clamp(1rem, 6vw, 2rem) 0 0;
+  }
+
+  .login-brand-content {
+    max-width: 100%;
+  }
+
+  .login-container {
+    max-height: none;
+  }
+
+  .science-orbit {
+    opacity: 0.4;
+    right: -14rem;
+    top: 2rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .login-page {
+    padding: 1rem;
+  }
+
+  .science-metrics {
+    display: none;
+  }
 }

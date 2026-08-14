@@ -53,7 +53,6 @@ const imageUrl = (filename) => `/images/${encodeURIComponent(filename)}`;
 const Day3Page = () => {
   const { day } = useParams();
   const moduleId = Number(day) || 3;
-  const isRealEyeMode = window.location.pathname.startsWith('/realeye/day-3');
 
   const [user, setUser] = useState(null);
   const [popupVisible, setPopupVisible] = useState(false);
@@ -68,7 +67,6 @@ const Day3Page = () => {
 
   // Lightbox
   const [lightbox, setLightbox] = useState(null); // {src, alt} | null
-  const prevLightboxOpenRef = useRef(false);
 
   // Academic honesty banner
   const [honestyAck, setHonestyAck] = useState(false);
@@ -109,34 +107,17 @@ const Day3Page = () => {
       preBiopsyMethods: '',
     },
   });
+  const answersDataRef = useRef(answersData);
 
   useEffect(() => {
-    if (!isRealEyeMode) return;
-    if (window.reSdk || document.querySelector('script[data-realeye-sdk]')) return;
-
-    const s = document.createElement('script');
-    s.type = 'module';
-    s.dataset.realeyeSdk = 'true';
-    s.textContent = `
-      import EmbeddedPageSdk from 'https://app.realeye.io/sdk/js/testRunnerEmbeddableSdk-1.9.js';
-      try {
-        if (!window.reSdk) window.reSdk = new EmbeddedPageSdk(false, null, false);
-      } catch (e) {
-        console.error('RealEye SDK init failed:', e);
-      }
-    `;
-    document.head.appendChild(s);
-  }, [isRealEyeMode]);
+    answersDataRef.current = answersData;
+  }, [answersData]);
 
   /* --------------------------- load user + saved answers --------------------------- */
   useEffect(() => {
     let isMounted = true;
     (async () => {
       try {
-        if (isRealEyeMode) {
-          return;
-        }
-
         const u = await getCurrentUser();
         if (!isMounted) return;
         setUser(u);
@@ -173,15 +154,14 @@ const Day3Page = () => {
       }
     })();
     return () => { isMounted = false; };
-  }, [moduleId, isRealEyeMode]);
+  }, [moduleId]);
 
   /* -------------------------------- helpers -------------------------------- */
   const saveAnswers = async ({ silent = true } = {}) => {
-    if (isRealEyeMode) return;
     if (saving) return;
     try {
       setSaving(true);
-      await upsertResponse(moduleId, answersData);
+      await upsertResponse(moduleId, answersDataRef.current);
       setDirty(false);
       setLastSavedAt(new Date());
       if (!silent) alert('Your work has been saved!');
@@ -194,8 +174,6 @@ const Day3Page = () => {
 
   // periodic autosave while dirty (every 15s)
   useEffect(() => {
-    if (isRealEyeMode) return;
-
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
       if (dirty && !saving) saveAnswers({ silent: true });
@@ -203,12 +181,11 @@ const Day3Page = () => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [dirty, saving, isRealEyeMode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty, saving]);
 
   // save on tab hide / close
   useEffect(() => {
-    if (isRealEyeMode) return;
-
     const handleBeforeUnload = (e) => {
       if (dirty) {
         e.preventDefault();
@@ -226,11 +203,10 @@ const Day3Page = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [dirty, saving, isRealEyeMode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty, saving]);
 
   const handleLogout = async () => {
-    if (isRealEyeMode) return;
-
     if (dirty && !saving) {
       await saveAnswers({ silent: true });
     }
@@ -243,16 +219,6 @@ const Day3Page = () => {
     await saveAnswers({ silent: false });
   };
 
-  const handleFinishEntireStudy = () => {
-    if (!isRealEyeMode) return;
-    const confirmed = window.confirm(
-      'Are you sure you want to finish the entire study? This will end the study immediately.'
-    );
-    if (confirmed) {
-      window.reSdk?.finishEntireStudy();
-    }
-  };
-
   // lightweight nested setter with autosave debounce (~2s)
   const setField = (path, value) => {
     setAnswersData((prev) => {
@@ -261,12 +227,16 @@ const Day3Page = () => {
       new Function('obj', 'value', `obj.${path} = value;`)(clone, value);
       return clone;
     });
-    if (isRealEyeMode) return;
     setDirty(true);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      if (dirty && !saving) saveAnswers({ silent: true });
+      setDirty((currentDirty) => {
+        if (currentDirty && !saving) {
+          saveAnswers({ silent: true });
+        }
+        return currentDirty;
+      });
     }, 2000);
   };
 
@@ -276,39 +246,25 @@ const Day3Page = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const isOpen = Boolean(lightbox);
-    if (!isRealEyeMode) {
-      prevLightboxOpenRef.current = isOpen;
-      return;
-    }
-    if (prevLightboxOpenRef.current !== isOpen) {
-      window.reSdk?.startNextExposure();
-    }
-    prevLightboxOpenRef.current = isOpen;
-  }, [lightbox, isRealEyeMode]);
-
   if (loading) return <div className="flex items-center justify-center h-screen">Loading…</div>;
 
   /* ---------------------------------- UI ----------------------------------- */
 
   return (
     <div className="font-sans bg-gray-50 text-gray-800">
-      {!isRealEyeMode && <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />}
+      <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />
 
       {/* autosave status badge (matches Day 5) */}
-      {!isRealEyeMode && (
-        <div className="fixed bottom-4 right-4 z-40">
-          <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
-            {saving
-              ? 'Autosaving…'
-              : lastSavedAt
-                ? `Saved • ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
-                : 'Ready'}
-            {dirty && !saving ? <span className="ml-2 text-amber-600">(unsaved)</span> : null}
-          </div>
+      <div className="fixed bottom-4 right-4 z-40">
+        <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
+          {saving
+            ? 'Autosaving…'
+            : lastSavedAt
+              ? `Saved • ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+              : 'Ready'}
+          {dirty && !saving ? <span className="ml-2 text-amber-600">(unsaved)</span> : null}
         </div>
-      )}
+      </div>
 
       {/* Academic honesty banner */}
       {!honestyAck && (
@@ -337,7 +293,7 @@ const Day3Page = () => {
         </div>
 
         {/* Objective */}
-        <section id="objective-section" data-re-aoi-name="Objective">
+        <section id="objective-section">
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border-l-4 border-primary-500">
             <h2 className="text-2xl font-bold mb-4 flex items-center text-primary-700">
               <i className="fa-solid fa-bullseye text-primary-500 mr-3" />
@@ -382,7 +338,7 @@ const Day3Page = () => {
           <h2 className="text-3xl font-bold text-center">Activities</h2>
 
           {/* 1. Intro to Gene Expression & Detection */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Activity 1 Gene Expression Signals">
+          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">What Does Gene Expression Look Like?</h3>
             <p className="text-gray-700 mb-4">
               Review your Day 1 and 2 notes on oncogenes, tumor suppressors, and DNA repair genes. Then answer:
@@ -392,7 +348,6 @@ const Day3Page = () => {
               oncogenes = often dangerous when <em>too loud</em>; tumor suppressors/repair = dangerous when <em>too quiet</em>.)
             </label>
             <textarea
-              data-re-aoi-name="Loud Quiet Meaning Textbox"
               value={answersData.intro.loudQuietMeaning}
               onChange={e => setField('intro.loudQuietMeaning', e.target.value)}
               onPaste={warnOnPaste}
@@ -403,7 +358,7 @@ const Day3Page = () => {
           </section>
 
           {/* 2. Comparing Gene Expression */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Activity 2 Comparing Gene Expression">
+          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Comparing Gene Expression</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -413,7 +368,6 @@ const Day3Page = () => {
                   Hint: housekeeping steady; cancer-linked genes within normal ranges and responding to signals.
                 </p>
                 <textarea
-                  data-re-aoi-name="Compare Healthy Textbox"
                   value={answersData.compare.healthyDesc}
                   onChange={e => setField('compare.healthyDesc', e.target.value)}
                   onPaste={warnOnPaste}
@@ -428,7 +382,6 @@ const Day3Page = () => {
                   Hint: examples of over/under-expression (e.g., MYC high; TP53 low) and why those matter.
                 </p>
                 <textarea
-                  data-re-aoi-name="Compare Cancer Textbox"
                   value={answersData.compare.cancerDesc}
                   onChange={e => setField('compare.cancerDesc', e.target.value)}
                   onPaste={warnOnPaste}
@@ -441,7 +394,7 @@ const Day3Page = () => {
 
             <h4 className="font-medium mb-2">Categorize each gene (Typical vs Suspicious)</h4>
             <p className="text-xs text-gray-600 mb-2">Use the cards below to help your decision.</p>
-            <div className="overflow-x-auto border border-gray-200 rounded-lg" data-re-aoi-name="Gene Comparison Table">
+            <div className="overflow-x-auto border border-gray-200 rounded-lg">
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50">
@@ -505,7 +458,6 @@ const Day3Page = () => {
                 Hint: trends across healthy vs cancerous; housekeeping vs candidates; “too loud/too quiet” pairs.
               </p>
               <textarea
-                data-re-aoi-name="Patterns Textbox"
                 value={answersData.compare.patterns}
                 onChange={e => setField('compare.patterns', e.target.value)}
                 onPaste={warnOnPaste}
@@ -526,13 +478,13 @@ const Day3Page = () => {
         {/* --- CARDS FIRST --- */}
 
         {/* Gene Cards */}
-        <section id="gene-cards" className="space-y-4 scroll-mt-24" data-re-aoi-name="Gene Cards Review">
+        <section id="gene-cards" className="space-y-4 scroll-mt-24">
           <h2 className="text-3xl font-bold text-center">Gene Cards</h2>
           <p className="text-center text-gray-600 max-w-3xl mx-auto">
             Use these visuals while you mark each gene <span className="font-medium">Typical</span> or <span className="font-medium">Suspicious</span>.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-re-aoi-name="Gene Cards Grid">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {GENE_CARDS.map(({ gene, file }, idx) => (
               <figure key={`${gene}-${idx}`} className="bg-white rounded-2xl shadow hover:shadow-lg transition-shadow border border-gray-100 overflow-hidden">
                 <button
@@ -559,14 +511,14 @@ const Day3Page = () => {
         </section>
 
         {/* Patient/Suspect Cards */}
-        <section id="suspect-cards" className="space-y-4 scroll-mt-24" data-re-aoi-name="Patient Cards Review">
+        <section id="suspect-cards" className="space-y-4 scroll-mt-24">
           <h2 className="text-3xl font-bold text-center">Patient Cards</h2>
           <p className="text-center text-gray-600 max-w-3xl mx-auto">
             These tissue profiles show real expression patterns. Compare with the gene cards to decide whether cancer is likely.
             Tap a card to zoom.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-re-aoi-name="Patient Cards Grid">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {SUSPECT_CARD_FILES.map((file, idx) => (
               <figure key={`suspect-${idx}`} className="bg-white rounded-2xl shadow hover:shadow-lg transition-shadow border border-gray-100 overflow-hidden">
                 <button
@@ -593,7 +545,7 @@ const Day3Page = () => {
         </section>
 
         {/* Background: Hypotheses & Techniques (after cards per your request) */}
-        <section id="background-hypothesis" className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Watch Learn Cancer Detection Explainer">
+        <section id="background-hypothesis" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
           <h3 className="text-2xl font-semibold mb-4">How Scientists Build a Testable Idea</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
             <div className="bg-primary-50 border border-primary-200 rounded-xl p-4">
@@ -635,7 +587,7 @@ const Day3Page = () => {
         </section>
 
         {/* 3. Gene Detective */}
-        <section id="gene-detective" className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Gene Detective Hypothesis Activity">
+        <section id="gene-detective" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
           <div className="flex items-start justify-between gap-3">
             <h3 className="text-2xl font-semibold mb-4">Gene Detective — Formulate a Hypothesis</h3>
             <div className="flex gap-3 mt-1">
@@ -651,7 +603,6 @@ const Day3Page = () => {
             Refer to specific genes/patterns (e.g., “MYC looks very high while TP53 looks low in Case 2”).
           </p>
           <textarea
-            data-re-aoi-name="Suspicious Notes Textbox"
             value={answersData.detective.suspiciousNotes}
             onChange={e => setField('detective.suspiciousNotes', e.target.value)}
             onPaste={warnOnPaste}
@@ -665,7 +616,6 @@ const Day3Page = () => {
             Include groups and measurement. Example: “In Patient Case 3, <b>BRCA1</b> expression is lower than in matched normal tissue as measured by qPCR.”
           </p>
           <textarea
-            data-re-aoi-name="Hypothesis Textbox"
             value={answersData.detective.hypothesis}
             onChange={e => setField('detective.hypothesis', e.target.value)}
             onPaste={warnOnPaste}
@@ -680,7 +630,6 @@ const Day3Page = () => {
             <em> decision rule</em> (what result would support your hypothesis?).
           </p>
           <textarea
-            data-re-aoi-name="Experiment Plan Textbox"
             value={answersData.detective.experimentPlan}
             onChange={e => setField('detective.experimentPlan', e.target.value)}
             onPaste={warnOnPaste}
@@ -697,7 +646,7 @@ const Day3Page = () => {
         </section>
 
         {/* 4. Detection & Diagnosis (content block) */}
-        <section className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Detection and Diagnosis">
+        <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
           <h3 className="text-2xl font-semibold mb-4">Detection & Diagnosis</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-gray-50 rounded-xl p-4 border">
@@ -722,7 +671,7 @@ const Day3Page = () => {
         </section>
 
         {/* Inquiry & Discussion */}
-        <section id="inquiry-section" className="mb-16" data-re-aoi-name="Inquiry and Discussion">
+        <section id="inquiry-section" className="mb-16">
           <div className="bg-primary-100 rounded-2xl shadow-md p-6 md:p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 -mt-10 -mr-10 text-primary-200">
               <i className="fa-solid fa-quote-right text-9xl opacity-30" />
@@ -733,7 +682,7 @@ const Day3Page = () => {
               Inquiry & Discussion
             </h2>
 
-            <div className="bg-white rounded-xl p-6 shadow-sm mb-6 relative z-10 space-y-4" data-re-aoi-name="Inquiry Accordion Questions">
+            <div className="bg-white rounded-xl p-6 shadow-sm mb-6 relative z-10 space-y-4">
               {[
                 { q: 'Why are housekeeping genes helpful in expression studies?', a: 'Their fairly constant expression provides a baseline for comparisons with variable, cancer-linked genes.' },
                 { q: 'Give one reason an oncogene might look “too loud.”', a: 'A mutation or amplification can increase transcription/translation, driving uncontrolled growth.' },
@@ -758,7 +707,6 @@ const Day3Page = () => {
                 Write one hypothesis and one measurement you’d use to test it (e.g., “qPCR of MYC and TP53 vs housekeeping gene”).
               </p>
               <textarea
-                data-re-aoi-name="Think Respond Textbox"
                 value={answersData.inquiry.think}
                 onChange={e => setField('inquiry.think', e.target.value)}
                 onPaste={warnOnPaste}
@@ -767,7 +715,7 @@ const Day3Page = () => {
                 placeholder="Type your response…"
               />
               <div className="mt-4 flex justify-end">
-                <button data-re-aoi-name="Submit Response Button" onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+                <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
                   Submit Response
                 </button>
               </div>
@@ -776,12 +724,12 @@ const Day3Page = () => {
         </section>
 
         {/* Wrap-Up & Reflection */}
-        <section id="wrap-up-section" className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Wrap Up and Reflection">
+        <section id="wrap-up-section" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
           <h3 className="text-2xl font-semibold mb-4 flex items-center">
             <i className="fa-solid fa-flag-checkered text-primary-500 mr-3" />
             Wrap-Up & Reflection
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-re-aoi-name="Wrap Up Reflection Inputs">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               { key: 'idSignals', label: 'What kinds of gene behavior can help identify cancer presence/absence?' },
               { key: 'overUnderExamples', label: 'Give one example of a gene being over-expressed (too loud) and one being under-expressed (too quiet). Why might each be concerning?' },
@@ -810,49 +758,37 @@ const Day3Page = () => {
 
         {/* Global Save */}
         <div className="flex justify-center">
-          {!isRealEyeMode ? (
-            <button
-              onClick={handleSave}
-              className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-lg"
-            >
-              Save
-            </button>
-          ) : (
-            <button
-              data-re-aoi-name="Finish Entire Study Button"
-              onClick={handleFinishEntireStudy}
-              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg"
-            >
-              Finish Entire Study
-            </button>
-          )}
+          <button
+            onClick={handleSave}
+            className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-lg"
+          >
+            Save
+          </button>
         </div>
 
         {/* Page Nav */}
-        {!isRealEyeMode && (
-          <div className="flex justify-between">
-            <Link
-              to="/sections/day-2"
-              className="inline-flex items-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg"
-            >
-              <i className="fa-solid fa-arrow-left mr-2" />
-              Back to Day 2
-            </Link>
-            <Link
-              to="/sections/day-4"
-              className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
-            >
-              Go to Day 4
-              <i className="fa-solid fa-arrow-right ml-2" />
-            </Link>
-          </div>
-        )}
+        <div className="flex justify-between">
+          <Link
+            to="/sections/day-2"
+            className="inline-flex items-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg"
+          >
+            <i className="fa-solid fa-arrow-left mr-2" />
+            Back to Day 2
+          </Link>
+          <Link
+            to="/sections/day-4"
+            className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+          >
+            Go to Day 4
+            <i className="fa-solid fa-arrow-right ml-2" />
+          </Link>
+        </div>
       </main>
 
       <footer className="bg-white border-t border-gray-200 py-6 text-center" />
 
       {/* Logout popup */}
-      {!isRealEyeMode && popupVisible && (
+      {popupVisible && (
         <Popup
           message="Are you sure you want to logout?"
           onCancel={() => setPopupVisible(false)}
@@ -863,7 +799,6 @@ const Day3Page = () => {
       {/* Simple lightbox for cards */}
       {lightbox && (
         <div
-          data-re-aoi-name="Lightbox Overlay"
           className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
           onClick={() => setLightbox(null)}
           role="dialog"
@@ -875,7 +810,6 @@ const Day3Page = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              data-re-aoi-name="Lightbox Close Button"
               className="absolute -top-10 right-0 text-white text-xl"
               onClick={() => setLightbox(null)}
               aria-label="Close"
@@ -883,7 +817,6 @@ const Day3Page = () => {
               ✕
             </button>
             <img
-              data-re-aoi-name="Lightbox Image"
               src={lightbox.src}
               alt={lightbox.alt}
               className="max-w-full max-h-[85vh] w-auto h-auto object-contain rounded-xl shadow-2xl bg-white"

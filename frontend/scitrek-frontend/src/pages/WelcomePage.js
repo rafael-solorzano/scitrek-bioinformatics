@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import StudentProfileBanner from '../components/StudentProfileBanner';
 import Popup from '../components/Popup';
 import { getCurrentUser } from '../services/api';
+import '../styles/scitrek-ui.css';
+import './ModulePages.css';
 
 const WelcomePage = () => {
   const [user, setUser] = useState(null);
@@ -26,10 +28,10 @@ const WelcomePage = () => {
   }
 
   return (
-    <div className="font-sans bg-gray-50 text-gray-800 min-h-screen flex flex-col">
-      <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />
+    <div className="module-page st-surface font-sans text-gray-800 min-h-screen flex flex-col">
+      <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} variant="modern" />
 
-      <main className="container mx-auto px-4 py-8 space-y-16 flex-1">
+      <main className="module-main container mx-auto px-4 py-8 space-y-16 flex-1">
         {/* Hero / Welcome */}
         <section className="text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-3">Welcome to SciTrek!</h1>
@@ -134,7 +136,7 @@ const WelcomePage = () => {
       </main>
 
       {/* Footer nav (matches Day 1 style) */}
-      <footer className="bg-white border-t border-gray-200 py-6 text-center">
+      <footer className="module-footer bg-white border-t border-gray-200 py-6 text-center">
         {/* No previous page here; show only Next
         <Link to="/sections/what-youll-learn" className="text-primary-600 hover:text-primary-700 ml-4">
           <i className="fa-solid fa-arrow-right" />

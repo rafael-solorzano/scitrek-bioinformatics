@@ -147,7 +147,6 @@ function EmbedWithFallback({
 const Day2Page = () => {
   const { day } = useParams();
   const moduleId = Number(day) || 2;
-  const isRealEyeMode = window.location.pathname.startsWith('/realeye/day-2');
 
   const [user, setUser] = useState(null);
   const [popupVisible, setPopupVisible] = useState(false);
@@ -219,26 +218,13 @@ const Day2Page = () => {
       favSim: '',
     },
   });
-
-  /* -------------------------- lifecycle & data load ------------------------- */
+  const answersDataRef = useRef(answersData);
 
   useEffect(() => {
-    if (!isRealEyeMode) return;
-    if (window.reSdk || document.querySelector('script[data-realeye-sdk]')) return;
+    answersDataRef.current = answersData;
+  }, [answersData]);
 
-    const s = document.createElement('script');
-    s.type = 'module';
-    s.dataset.realeyeSdk = 'true';
-    s.textContent = `
-      import EmbeddedPageSdk from 'https://app.realeye.io/sdk/js/testRunnerEmbeddableSdk-1.9.js';
-      try {
-        if (!window.reSdk) window.reSdk = new EmbeddedPageSdk(false, null, false);
-      } catch (e) {
-        console.error('RealEye SDK init failed:', e);
-      }
-    `;
-    document.head.appendChild(s);
-  }, [isRealEyeMode]);
+  /* -------------------------- lifecycle & data load ------------------------- */
 
   useEffect(() => {
     return () => {
@@ -258,11 +244,6 @@ const Day2Page = () => {
 
     (async () => {
       try {
-        if (isRealEyeMode) {
-          normalizeAnswers(null);
-          return;
-        }
-
         const u = await getCurrentUser();
         if (!active) return;
         setUser(u);
@@ -291,17 +272,16 @@ const Day2Page = () => {
     return () => {
       active = false;
     };
-  }, [moduleId, isRealEyeMode]);
+  }, [moduleId]);
 
   /* ------------------------------ saving logic ------------------------------ */
 
   const saveAnswers = async ({ silent = true } = {}) => {
-    if (isRealEyeMode) return;
     if (saving) return;
 
     try {
       setSaving(true);
-      await upsertResponse(moduleId, answersData);
+      await upsertResponse(moduleId, answersDataRef.current);
       if (!unmountedRef.current) {
         setDirty(false);
         setLastSavedAt(new Date());
@@ -315,8 +295,6 @@ const Day2Page = () => {
   };
 
   const markDirtyAndDebounce = () => {
-    if (isRealEyeMode) return;
-
     setDirty(true);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -330,8 +308,6 @@ const Day2Page = () => {
   };
 
   useEffect(() => {
-    if (isRealEyeMode) return;
-
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
       if (dirty && !saving) saveAnswers({ silent: true });
@@ -340,11 +316,10 @@ const Day2Page = () => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [dirty, saving, isRealEyeMode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty, saving]);
 
   useEffect(() => {
-    if (isRealEyeMode) return;
-
     const handleBeforeUnload = (e) => {
       if (dirty) {
         e.preventDefault();
@@ -365,33 +340,20 @@ const Day2Page = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [dirty, saving, isRealEyeMode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty, saving]);
 
   const handleSave = async () => {
     await saveAnswers({ silent: false });
   };
 
   const handleLogout = async () => {
-    if (isRealEyeMode) return;
-
     if (dirty && !saving) {
       await saveAnswers({ silent: true });
     }
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     window.location.href = '/login';
-  };
-
-  const handleFinishEntireStudy = () => {
-    if (!isRealEyeMode) return;
-
-    const confirmed = window.confirm(
-      'Are you sure you want to finish the entire study? This will end the study immediately.'
-    );
-
-    if (confirmed) {
-      window.reSdk?.finishEntireStudy();
-    }
   };
 
   /* ------------------------------- helpers --------------------------------- */
@@ -418,26 +380,24 @@ const Day2Page = () => {
 
   return (
     <div className="font-sans bg-gray-50 text-gray-800">
-      {!isRealEyeMode && (
-        <div className="fixed bottom-4 right-4 z-40">
-          <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
-            {saving
-              ? 'Autosaving…'
-              : lastSavedAt
-                ? `Saved • ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
-                : 'Ready'}
-            {dirty && !saving ? <span className="ml-2 text-amber-600">(unsaved)</span> : null}
-          </div>
+      <div className="fixed bottom-4 right-4 z-40">
+        <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1 shadow border text-xs text-gray-700">
+          {saving
+            ? 'Autosaving…'
+            : lastSavedAt
+              ? `Saved • ${lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+              : 'Ready'}
+          {dirty && !saving ? <span className="ml-2 text-amber-600">(unsaved)</span> : null}
         </div>
-      )}
+      </div>
 
-      {!isRealEyeMode && user ? (
+      {user ? (
         <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />
-      ) : !isRealEyeMode ? (
+      ) : (
         <div className="container mx-auto px-4">
           <div className="animate-pulse h-14 bg-gray-200 rounded-xl mb-4" />
         </div>
-      ) : null}
+      )}
 
       <main className="container mx-auto px-4 py-8 space-y-16">
         <div className="text-center mb-8">
@@ -445,7 +405,7 @@ const Day2Page = () => {
           <h2 className="text-xl md:text-2xl text-gray-600">Cell Cycle, Mutations & Regulation Gone Wrong</h2>
         </div>
 
-        <section id="scenario" className="mb-4" data-re-aoi-name="Case Spark Genetic Risk and Decisions">
+        <section id="scenario" className="mb-4">
           <div className="bg-primary-50 border border-primary-200 rounded-2xl p-6">
             <h3 className="text-xl font-semibold mb-2 flex items-center text-primary-800">
               <i className="fa-solid fa-user-doctor text-primary-500 mr-2" /> Case Spark: Genetic Risk & Decisions
@@ -462,7 +422,7 @@ const Day2Page = () => {
           </div>
         </section>
 
-        <section id="objective-section" className="mb-12" data-re-aoi-name="Objective">
+        <section id="objective-section" className="mb-12">
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border-l-4 border-primary-500">
             <h2 className="text-2xl font-bold mb-4 flex items-center text-primary-700">
               <i className="fa-solid fa-bullseye text-primary-500 mr-3" />
@@ -476,7 +436,7 @@ const Day2Page = () => {
           </div>
         </section>
 
-        <section id="plan-section" className="mb-12" data-re-aoi-name="Daily Plan">
+        <section id="plan-section" className="mb-12">
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h2 className="text-2xl font-bold mb-6 flex items-center">
               <i className="fa-solid fa-list-check text-primary-500 mr-3" />
@@ -505,13 +465,13 @@ const Day2Page = () => {
           <h2 className="text-3xl font-bold text-center">Activities</h2>
         </section>
 
-        <section id="watch-part-1" className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Watch Learn Part 1 Cell Cycle">
+        <section id="watch-part-1" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
           <h3 className="text-2xl font-semibold mb-4 flex items-center">
             <i className="fa-solid fa-video text-primary-500 mr-3" />
             Watch & Learn — Part 1: Cell Cycle
           </h3>
 
-          <div className="rounded-xl overflow-hidden mb-4" data-re-aoi-name="Cell Cycle Video Player">
+          <div className="rounded-xl overflow-hidden mb-4">
             <iframe
               className="w-full h-80 rounded-xl"
               src="https://www.youtube-nocookie.com/embed/zNJJ_C2j4gk"
@@ -524,7 +484,7 @@ const Day2Page = () => {
             />
           </div>
 
-          <div className="border border-gray-200 rounded-2xl p-4 md:p-6" data-re-aoi-name="Cell Cycle Questions Block">
+          <div className="border border-gray-200 rounded-2xl p-4 md:p-6">
             <h4 className="text-xl font-semibold mb-4">Key Questions</h4>
 
             <div className="space-y-6 text-sm">
@@ -624,13 +584,13 @@ const Day2Page = () => {
           </div>
         </section>
 
-        <section id="watch-part-2" className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Watch Learn Part 2 What is Cancer">
+        <section id="watch-part-2" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
           <h3 className="text-2xl font-semibold mb-4 flex items-center">
             <i className="fa-solid fa-video text-primary-500 mr-3" />
             Watch & Learn — Part 2: What is Cancer?
           </h3>
 
-          <div className="rounded-xl overflow-hidden mb-4" data-re-aoi-name="Cancer Video Player">
+          <div className="rounded-xl overflow-hidden mb-4">
             <iframe
               className="w-full h-80 rounded-xl"
               src="https://www.youtube-nocookie.com/embed/tsXnVu3kUnM"
@@ -643,7 +603,7 @@ const Day2Page = () => {
             />
           </div>
 
-          <div className="border border-gray-200 rounded-2xl p-4 md:p-6" data-re-aoi-name="Cancer Questions Block">
+          <div className="border border-gray-200 rounded-2xl p-4 md:p-6">
             <h4 className="text-xl font-semibold mb-4">After the video</h4>
             <div className="space-y-5 text-sm">
               <div>
@@ -705,7 +665,7 @@ const Day2Page = () => {
           </div>
         </section>
 
-        <section id="sim-p53" className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="p53 Gene and Cancer Simulation">
+        <section id="sim-p53" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
           <h3 className="text-2xl font-semibold mb-4 flex items-center">
             <i className="fa-solid fa-flask-vial text-primary-500 mr-3" />
             Activity: Online Simulation — p53 Gene & Cancer
@@ -723,7 +683,7 @@ const Day2Page = () => {
             </ol>
           </div>
 
-          <div data-re-aoi-name="p53 Simulation Embed">
+          <div>
             <EmbedWithFallback
               src="https://media.hhmi.org/biointeractive/click/p53/01.html?_gl=1*1pyukss*_ga*NjQ2NDY1NDE5LjE3NDc0MTYwNDE.*_ga_H0E1KHGJBH*czE3NTc2NDgyOTQkbzIkZzEkdDE3NTc2NDkzNjQkajYwJGwwJGgw"
               title="HHMI BioInteractive — p53 Gene & Cancer"
@@ -788,7 +748,6 @@ const Day2Page = () => {
 
             <div className="flex justify-end pt-2">
               <button
-                data-re-aoi-name="p53 Save Answers Button"
                 onClick={handleSave}
                 className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
               >
@@ -798,7 +757,7 @@ const Day2Page = () => {
           </div>
         </section>
 
-        <section id="sim-cycle" className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Eukaryotic Cell Cycle and Cancer Simulation">
+        <section id="sim-cycle" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
           <h3 className="text-2xl font-semibold mb-4 flex items-center">
             <i className="fa-solid fa-microscope text-primary-500 mr-3" />
             Activity: Online Simulation — Eukaryotic Cell Cycle & Cancer
@@ -818,7 +777,7 @@ const Day2Page = () => {
             </p>
           </div>
 
-          <div data-re-aoi-name="Cell Cycle Cancer Simulation Embed">
+          <div>
             <EmbedWithFallback
               src="https://media.hhmi.org/biointeractive/click/cellcycle/?_gl=1*1e5q9o3*_ga*NjQ2NDY1NDE5LjE3NDc0MTYwNDE.*_ga_H0E1KHGJBH*czE3NTgwNzEzOTAkbzMkZzAkdDE3NTgwNzEzOTAkajYwJGwwJGgw"
               title="HHMI BioInteractive — Eukaryotic Cell Cycle & Cancer"
@@ -939,7 +898,6 @@ const Day2Page = () => {
 
             <div className="flex justify-end pt-2">
               <button
-                data-re-aoi-name="Cell Cycle Simulation Save Answers Button"
                 onClick={handleSave}
                 className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
               >
@@ -953,7 +911,7 @@ const Day2Page = () => {
           </p>
         </section>
 
-        <section id="inquiry-section" className="mb-16" data-re-aoi-name="Inquiry and Discussion">
+        <section id="inquiry-section" className="mb-16">
           <div className="bg-primary-100 rounded-2xl shadow-md p-6 md:p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 -mt-10 -mr-10 text-primary-200">
               <i className="fa-solid fa-quote-right text-9xl opacity-30" />
@@ -964,7 +922,7 @@ const Day2Page = () => {
               Inquiry & Discussion
             </h2>
 
-            <div className="bg-white rounded-xl p-6 shadow-sm mb-6 relative z-10 space-y-4" data-re-aoi-name="Inquiry Accordion Questions">
+            <div className="bg-white rounded-xl p-6 shadow-sm mb-6 relative z-10 space-y-4">
               {[
                 {
                   q: 'If p53 is mutated and cannot activate repair or apoptosis, what happens to the cell cycle?',
@@ -996,7 +954,6 @@ const Day2Page = () => {
                 happens at the G1/S checkpoint.
               </p>
               <AutoResizeTextarea
-                data-re-aoi-name="Think Respond Textbox"
                 value={answersData.inquiry.think}
                 onChange={(e) => setField('inquiry.think', e.target.value)}
                 className="w-full border border-gray-300 rounded-lg p-3"
@@ -1005,7 +962,6 @@ const Day2Page = () => {
               />
               <div className="mt-4 flex justify-end">
                 <button
-                  data-re-aoi-name="Submit Response Button"
                   onClick={handleSave}
                   className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
                 >
@@ -1016,13 +972,13 @@ const Day2Page = () => {
           </div>
         </section>
 
-        <section id="wrap-up-section" className="bg-white rounded-2xl shadow-md p-6 md:p-8" data-re-aoi-name="Wrap Up and Reflection">
+        <section id="wrap-up-section" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
           <h3 className="text-2xl font-semibold mb-4 flex items-center">
             <i className="fa-solid fa-flag-checkered text-primary-500 mr-3" />
             Wrap-Up & Reflection
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-re-aoi-name="Wrap Up Reflection Inputs">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               {
                 key: 'healthyDivision',
@@ -1070,47 +1026,35 @@ const Day2Page = () => {
         </section>
 
         <div className="flex justify-center">
-          {!isRealEyeMode ? (
-            <button
-              onClick={handleSave}
-              className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-lg"
-            >
-              Save
-            </button>
-          ) : (
-            <button
-              data-re-aoi-name="Finish Entire Study Button"
-              onClick={handleFinishEntireStudy}
-              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg"
-            >
-              Finish Entire Study
-            </button>
-          )}
+          <button
+            onClick={handleSave}
+            className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-lg"
+          >
+            Save
+          </button>
         </div>
 
-        {!isRealEyeMode && (
-          <div className="flex justify-between">
-            <Link
-              to="/sections/day-1"
-              className="inline-flex items-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg"
-            >
-              <i className="fa-solid fa-arrow-left mr-2" />
-              Back to Day 1
-            </Link>
-            <Link
-              to="/sections/day-3"
-              className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
-            >
-              Go to Day 3
-              <i className="fa-solid fa-arrow-right ml-2" />
-            </Link>
-          </div>
-        )}
+        <div className="flex justify-between">
+          <Link
+            to="/sections/day-1"
+            className="inline-flex items-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg"
+          >
+            <i className="fa-solid fa-arrow-left mr-2" />
+            Back to Day 1
+          </Link>
+          <Link
+            to="/sections/day-3"
+            className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+          >
+            Go to Day 3
+            <i className="fa-solid fa-arrow-right ml-2" />
+          </Link>
+        </div>
       </main>
 
       <footer className="bg-white border-t border-gray-200 py-6 text-center" />
 
-      {!isRealEyeMode && popupVisible && (
+      {popupVisible && (
         <Popup
           message="Are you sure you want to logout?"
           onCancel={() => setPopupVisible(false)}

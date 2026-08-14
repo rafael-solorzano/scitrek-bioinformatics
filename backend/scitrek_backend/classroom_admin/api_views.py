@@ -2,12 +2,16 @@ import csv
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.text import slugify
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import BasePermission
+from rest_framework.exceptions import APIException, ValidationError
+from rest_framework.reverse import reverse
+from kombu.exceptions import OperationalError
 
 from .models import (
     Classroom,
@@ -26,11 +30,32 @@ from .serializers import (
     ScheduledMessageSerializer,
 )
 from .tasks import schedule_message_task, send_scheduled_message_task
+from scitrek_backend.private_files import private_file_response
+
+
+CSV_FORMULA_PREFIXES = ('=', '+', '-', '@', '\t', '\r')
+
+
+def csv_safe(value):
+    text = '' if value is None else str(value)
+    return f"'{text}" if text.startswith(CSV_FORMULA_PREFIXES) else text
+
+
+def csv_export_filename(prefix, classroom_name):
+    """Build a conservative ASCII filename for Content-Disposition."""
+    classroom_slug = slugify(str(classroom_name), allow_unicode=False) or 'classroom'
+    return f'{prefix}_{classroom_slug}.csv'
 
 
 class IsTeacherUser(BasePermission):
     def has_permission(self, request, view):
         return bool(request.user and request.user.is_authenticated and request.user.is_teacher)
+
+
+class TaskQueueUnavailable(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = 'Task queue is unavailable; the operation was not scheduled.'
+    default_code = 'task_queue_unavailable'
 
 
 # — Classroom CRUD —
@@ -46,7 +71,7 @@ class ClassroomListCreateAPIView(generics.ListCreateAPIView):
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
-        return Classroom.objects.filter(teacher=self.request.user)
+        return Classroom.objects.filter(teacher=self.request.user).order_by('id')
 
     def perform_create(self, serializer):
         serializer.save(teacher=self.request.user)
@@ -55,6 +80,9 @@ class ClassroomListCreateAPIView(generics.ListCreateAPIView):
 class ClassroomDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsTeacherUser]
     serializer_class = ClassroomSerializer
+    # Classroom deletion cascades into curriculum and student work. Until an
+    # explicit archival/retention workflow exists, the API must not expose it.
+    http_method_names = ['get', 'put', 'patch', 'head', 'options']
 
     @swagger_auto_schema(
         operation_summary="Retrieve, update, or delete a classroom",
@@ -81,7 +109,7 @@ class RosterListAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         classroom = get_object_or_404(Classroom, pk=self.kwargs['pk'], teacher=self.request.user)
-        return Student.objects.filter(classroom=classroom)
+        return Student.objects.filter(classroom=classroom).order_by('user_id')
 
 
 class RosterAddAPIView(APIView):
@@ -129,10 +157,15 @@ class ModuleAssignmentListCreateAPIView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         classroom = get_object_or_404(Classroom, pk=self.kwargs['pk'], teacher=self.request.user)
-        return ModuleAssignment.objects.filter(classroom=classroom)
+        return ModuleAssignment.objects.filter(classroom=classroom).order_by('id')
 
     def perform_create(self, serializer):
         classroom = get_object_or_404(Classroom, pk=self.kwargs['pk'], teacher=self.request.user)
+        module = serializer.validated_data['module']
+        if module.classroom_id != classroom.id:
+            raise ValidationError({'module': 'Module must belong to this classroom.'})
+        if ModuleAssignment.objects.filter(classroom=classroom, module=module).exists():
+            raise ValidationError({'module': 'Module is already assigned to this classroom.'})
         serializer.save(classroom=classroom)
 
 
@@ -166,10 +199,13 @@ class QuizAssignmentListCreateAPIView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         classroom = get_object_or_404(Classroom, pk=self.kwargs['pk'], teacher=self.request.user)
-        return QuizAssignment.objects.filter(classroom=classroom)
+        return QuizAssignment.objects.filter(classroom=classroom).order_by('id')
 
     def perform_create(self, serializer):
         classroom = get_object_or_404(Classroom, pk=self.kwargs['pk'], teacher=self.request.user)
+        quiz_type = serializer.validated_data['quiz_type']
+        if QuizAssignment.objects.filter(classroom=classroom, quiz_type=quiz_type).exists():
+            raise ValidationError({'quiz_type': 'Quiz is already assigned to this classroom.'})
         serializer.save(classroom=classroom)
 
 
@@ -203,13 +239,18 @@ class ScheduledMessageListCreateAPIView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         classroom = get_object_or_404(Classroom, pk=self.kwargs['pk'], teacher=self.request.user)
-        return ScheduledMessage.objects.filter(classroom=classroom)
+        return ScheduledMessage.objects.filter(classroom=classroom).order_by('id')
 
     def perform_create(self, serializer):
         classroom = get_object_or_404(Classroom, pk=self.kwargs['pk'], teacher=self.request.user)
         msg = serializer.save(classroom=classroom)
-        # schedule via Celery
-        schedule_message_task.apply_async((msg.id,), eta=msg.scheduled_time)
+        try:
+            schedule_message_task.apply_async((msg.id,), eta=msg.scheduled_time)
+        except OperationalError as exc:
+            if msg.attachment:
+                msg.attachment.delete(save=False)
+            msg.delete()
+            raise TaskQueueUnavailable() from exc
 
 
 class ScheduledMessageSendNowAPIView(APIView):
@@ -222,8 +263,20 @@ class ScheduledMessageSendNowAPIView(APIView):
     def patch(self, request, pk, msg_id):
         classroom = get_object_or_404(Classroom, pk=pk, teacher=self.request.user)
         msg = get_object_or_404(ScheduledMessage, pk=msg_id, classroom=classroom)
-        send_scheduled_message_task.delay(msg.id)
+        try:
+            send_scheduled_message_task.delay(msg.id)
+        except OperationalError:
+            send_scheduled_message_task(msg.id)
         return Response({'status': 'scheduled for immediate send'})
+
+
+class TeacherMessageAttachmentDownloadAPIView(APIView):
+    permission_classes = [IsTeacherUser]
+
+    def get(self, request, pk, msg_id):
+        classroom = get_object_or_404(Classroom, pk=pk, teacher=request.user)
+        msg = get_object_or_404(ScheduledMessage, pk=msg_id, classroom=classroom)
+        return private_file_response(msg.attachment)
 
 
 # — Reporting —
@@ -241,6 +294,7 @@ class ClassroomProgressAPIView(APIView):
         for day in range(1, 6):
             completed = StudentResponse.objects.filter(
                 student__student_profile__classroom=classroom,
+                module__classroom=classroom,
                 module__day=day
             ).count()
             percent = (completed / total_students * 100) if total_students else 0
@@ -260,7 +314,7 @@ class ClassroomQuizOverviewAPIView(APIView):
         result = {}
         for qtype in [QuizAttempt.PRE, QuizAttempt.POST]:
             attempts = QuizAttempt.objects.filter(
-                student__student_profile__classroom=classroom,
+                classroom=classroom,
                 quiz_type=qtype
             )
             scores = list(attempts.values_list('score', flat=True))
@@ -280,13 +334,41 @@ class StudentDetailAPIView(APIView):
         classroom = get_object_or_404(Classroom, pk=pk, teacher=self.request.user)
         profile = get_object_or_404(Student, user__id=student_id, classroom=classroom)
 
-        responses = StudentResponse.objects.filter(student=profile.user).values(
-            'module__day', 'answers', 'file_upload', 'completed_at'
-        )
-        quizzes = QuizAttempt.objects.filter(student=profile.user).values(
+        response_records = StudentResponse.objects.filter(
+            student=profile.user,
+            module__classroom=classroom,
+        ).select_related('module')
+        responses = [
+            {
+                'id': record.pk,
+                'module__day': record.module.day,
+                'answers': record.answers,
+                'file_upload': (
+                    reverse(
+                        'teacher-response-download',
+                        kwargs={
+                            'pk': classroom.pk,
+                            'student_id': profile.user_id,
+                            'response_id': record.pk,
+                        },
+                        request=request,
+                    )
+                    if record.file_upload else None
+                ),
+                'completed_at': record.completed_at,
+            }
+            for record in response_records
+        ]
+        quizzes = QuizAttempt.objects.filter(
+            student=profile.user,
+            classroom=classroom,
+        ).values(
             'quiz_type', 'score', 'attempt_data', 'timestamp'
         )
-        inbox = Message.objects.filter(recipient=profile.user).values(
+        inbox = Message.objects.filter(
+            recipient=profile.user,
+            sender=classroom.teacher,
+        ).values(
             'subject', 'body', 'timestamp', 'is_read'
         )
 
@@ -297,10 +379,25 @@ class StudentDetailAPIView(APIView):
                 'first_name': profile.first_name,
                 'last_name':  profile.last_name,
             },
-            'responses': list(responses),
+            'responses': responses,
             'quizzes':   list(quizzes),
             'inbox':     list(inbox),
         })
+
+
+class TeacherResponseDownloadAPIView(APIView):
+    permission_classes = [IsTeacherUser]
+
+    def get(self, request, pk, student_id, response_id):
+        classroom = get_object_or_404(Classroom, pk=pk, teacher=request.user)
+        profile = get_object_or_404(Student, user_id=student_id, classroom=classroom)
+        response = get_object_or_404(
+            StudentResponse,
+            pk=response_id,
+            student=profile.user,
+            module__classroom=classroom,
+        )
+        return private_file_response(response.file_upload)
 
 
 # — CSV Export Endpoints —
@@ -316,11 +413,13 @@ class ClassroomRosterExportAPIView(APIView):
         students = Student.objects.filter(classroom=classroom)
 
         response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="roster_{classroom.name}.csv"'
+        response['Content-Disposition'] = (
+            f'attachment; filename="{csv_export_filename("roster", classroom.name)}"'
+        )
         writer = csv.writer(response)
         writer.writerow(['id', 'username', 'first_name', 'last_name'])
         for s in students:
-            writer.writerow([s.user.id, s.user.username, s.first_name, s.last_name])
+            writer.writerow([s.user.id, csv_safe(s.user.username), csv_safe(s.first_name), csv_safe(s.last_name)])
         return response
 
 
@@ -336,12 +435,15 @@ class ClassroomProgressExportAPIView(APIView):
         total_students = classroom.students.count()
 
         response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="progress_{classroom.name}.csv"'
+        response['Content-Disposition'] = (
+            f'attachment; filename="{csv_export_filename("progress", classroom.name)}"'
+        )
         writer = csv.writer(response)
         writer.writerow(['day', 'completed', 'percent'])
         for day in range(1, 6):
             completed = StudentResponse.objects.filter(
                 student__student_profile__classroom=classroom,
+                module__classroom=classroom,
                 module__day=day
             ).count()
             percent = (completed / total_students * 100) if total_students else 0
@@ -360,16 +462,18 @@ class ClassroomQuizExportAPIView(APIView):
         classroom = get_object_or_404(Classroom, pk=pk, teacher=request.user)
 
         response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="quizzes_{classroom.name}.csv"'
+        response['Content-Disposition'] = (
+            f'attachment; filename="{csv_export_filename("quizzes", classroom.name)}"'
+        )
         writer = csv.writer(response)
         writer.writerow(['quiz_type', 'student_id', 'username', 'score'])
         for attempt in QuizAttempt.objects.filter(
-            student__student_profile__classroom=classroom
+            classroom=classroom
         ):
             writer.writerow([
                 attempt.quiz_type,
                 attempt.student.id,
-                attempt.student.username,
+                csv_safe(attempt.student.username),
                 attempt.score
             ])
         return response

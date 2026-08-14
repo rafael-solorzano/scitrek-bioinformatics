@@ -1,8 +1,10 @@
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
+from rest_framework.reverse import reverse
 
 from .models import (
     Classroom, Student,
@@ -38,11 +40,20 @@ class RosterAddSerializer(serializers.Serializer):
 
     def save(self, classroom):
         user = self.validated_data['student_username']
-        profile, _ = Student.objects.get_or_create(user=user)
-        profile.classroom  = classroom
-        profile.first_name = user.first_name
-        profile.last_name  = user.last_name
-        profile.save()
+        with transaction.atomic():
+            profile = Student.objects.select_for_update().filter(user=user).first()
+            if profile and profile.classroom_id not in (None, classroom.id):
+                raise serializers.ValidationError({
+                    'student_username': 'Student already belongs to another classroom.'
+                })
+
+            if profile is None:
+                profile = Student(user=user)
+
+            profile.classroom = classroom
+            profile.first_name = user.first_name
+            profile.last_name = user.last_name
+            profile.save()
         return profile
 
 
@@ -82,6 +93,18 @@ class ScheduledMessageSerializer(serializers.ModelSerializer):
         if value < timezone.now():
             raise ValidationError("scheduled_time cannot be in the past.")
         return value
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['attachment'] = (
+            reverse(
+                'teacher-message-attachment',
+                kwargs={'pk': instance.classroom_id, 'msg_id': instance.pk},
+                request=self.context.get('request'),
+            )
+            if instance.attachment else None
+        )
+        return data
 
 
 class CustomStudentSignupSerializer(serializers.ModelSerializer):

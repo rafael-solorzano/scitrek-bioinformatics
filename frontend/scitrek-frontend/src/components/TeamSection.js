@@ -42,7 +42,10 @@ const teamMembers = [
 
 const TeamSection = () => (
   <section className="team-section">
-    <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>Meet Our Team</h2>
+    <div className="team-section-header">
+      <p className="st-kicker">Research mentors</p>
+      <h2>Meet the people behind the module.</h2>
+    </div>
     <div className="team-container">
       {teamMembers.map((member) => (
         <div className="team-member" key={member.id}>

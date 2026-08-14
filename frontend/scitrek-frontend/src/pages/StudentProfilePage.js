@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import StudentProfileBanner from '../components/StudentProfileBanner';
 import Popup from '../components/Popup';
 import { getCurrentUser } from '../services/api';
+import '../styles/scitrek-ui.css';
 import './StudentProfilePage.css';
 
 const StudentProfilePage = () => {
@@ -49,31 +50,50 @@ const StudentProfilePage = () => {
 
   return (
     <div className="student-profile-page">
-      <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />
+      <StudentProfileBanner
+        user={user}
+        onLogout={() => setPopupVisible(true)}
+        variant="modern"
+      />
 
-      <div className="profile-header">
-        <h1>Welcome to SciTrek, {displayName}!</h1>
-      </div>
+      <main className="profile-shell st-surface">
+        <section className="profile-hero">
+          <p className="st-kicker">Student dashboard</p>
+          <h1>Welcome to SciTrek, {displayName}!</h1>
+          <p>
+            Your bioinformatics workspace is ready. Check messages, review the module path,
+            and keep building your scientific notebook.
+          </p>
+        </section>
 
-      <div className="profile-main">
-        <img
-          src="/images/bioinformatics_module.gif"
-          alt="Bioinformatics Module Animation"
-          className="bioinfo-gif"
-        />
+        <section className="profile-main">
+          <div className="profile-media-card">
+            <img
+              src="/images/bioinformatics_module.gif"
+              alt="Bioinformatics Module Animation"
+              className="bioinfo-gif"
+            />
+          </div>
 
-        <ul className="profile-biography">
-          <li>
-            <strong>Name:</strong> {displayName} {user.last_name}
-          </li>
-          <li>
-            <strong>Class:</strong> {classroomName}
-          </li>
-          <li>
-            <strong>Title:</strong> Junior Bioinformatics Scientist
-          </li>
-        </ul>
-      </div>
+          <div className="profile-info-card st-card">
+            <h2>Research Identity</h2>
+            <ul className="profile-biography">
+              <li>
+                <span>Name</span>
+                <strong>{displayName} {user.last_name}</strong>
+              </li>
+              <li>
+                <span>Class</span>
+                <strong>{classroomName}</strong>
+              </li>
+              <li>
+                <span>Title</span>
+                <strong>Junior Bioinformatics Scientist</strong>
+              </li>
+            </ul>
+          </div>
+        </section>
+      </main>
 
       {popupVisible && (
         <Popup

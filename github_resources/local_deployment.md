@@ -3,7 +3,7 @@
 ## Requirements
 
 - Docker Desktop installed and running  
-- Node **20** installed (recommended)  
+- Node **20.19.5+** installed (recommended)
 - npm installed  
 
 ---
@@ -17,12 +17,16 @@ cd scitrek-bioinformatics
 
 ---
 
-## 2. Start the Backend (Django + SQLite + Redis)
+## 2. Start the Backend (Django + PostgreSQL + Redis)
 
 From the project root:
 
+Create the ignored development environment file, then start PostgreSQL, Redis,
+the one-shot migration, Django, and the Celery worker:
+
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build web redis
+cp backend/scitrek_backend/.env.dev.example backend/scitrek_backend/.env.dev
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build db redis migrate web worker
 ```
 
 Backend will be available at:
@@ -31,12 +35,13 @@ http://localhost:8000
 
 ---
 
-## 3. Run Migrations (First Time Only)
+## 3. Run Migrations
 
-Open a **new terminal** in the project root:
+The one-shot `migrate` service applies migrations automatically before web and
+worker start. To apply a newly added migration explicitly:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml exec web python manage.py migrate
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm migrate
 ```
 
 ---
@@ -68,13 +73,13 @@ Open a **new terminal window**:
 
 ```bash
 cd frontend/scitrek-frontend
-npm install
+npm ci
 npm start
 ```
 
 Frontend will be available at:
 
-http://localhost:3000
+http://127.0.0.1:3000
 
 ---
 
@@ -103,22 +108,15 @@ If you want a clean development database:
 docker compose -f docker-compose.yml -f docker-compose.dev.yml down --volumes --remove-orphans
 ```
 
-Delete SQLite file (if using `.devdata`):
-
-```bash
-rm -rf backend/scitrek_backend/.devdata/db.sqlite3
-```
-
 Rebuild:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build web redis
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build db redis migrate web worker
 ```
 
 Then run:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml exec web python manage.py migrate
 docker compose -f docker-compose.yml -f docker-compose.dev.yml exec web python manage.py seed_dev
 ```
 

@@ -1,0 +1,27 @@
+[run]
+branch = True
+source =
+    classroom_admin
+    scitrek_backend
+    student_activities
+    workbooks
+omit =
+    */migrations/*
+    */management/commands/seed_dev.py
+    */settings/*
+    */tests.py
+    */test_*.py
+    */tests/*
+    */urls.py
+    */asgi.py
+    */wsgi.py
+    manage.py
+
+[report]
+fail_under = 85
+precision = 1
+show_missing = True
+skip_covered = True
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:

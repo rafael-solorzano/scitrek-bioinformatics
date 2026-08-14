@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import './Gallery.css';
 
 const slides = [
@@ -78,19 +78,19 @@ const Gallery = () => {
   const slideCount = slides.length;
 
   // Start or restart the auto-advance timer
-  const startAutoAdvance = () => {
+  const startAutoAdvance = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
     intervalRef.current = setInterval(() => {
       setCurrentSlide((prevIndex) => (prevIndex + 1) % slideCount);
-    }, 10000);
-  };
+    }, 1500);
+  }, [slideCount]);
 
   useEffect(() => {
     startAutoAdvance();
     return () => clearInterval(intervalRef.current);
-  }, [slideCount]);
+  }, [startAutoAdvance]);
 
   // When a dot is clicked, reset the timer and navigate to the selected slide
   const goToSlide = (index) => {
@@ -139,10 +139,13 @@ const Gallery = () => {
 
       <div className="carousel-indicators">
         {slides.map((_, index) => (
-          <span
+          <button
+            type="button"
             key={index}
             className={`indicator ${currentSlide === index ? 'active' : ''}`}
             onClick={() => goToSlide(index)}
+            aria-label={`Show slide ${index + 1}`}
+            aria-current={currentSlide === index ? 'true' : undefined}
           />
         ))}
       </div>

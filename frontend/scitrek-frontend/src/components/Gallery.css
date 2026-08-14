@@ -1,12 +1,12 @@
-/* src/components/Gallery.css */
-
 .gallery {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(217, 226, 236, 0.92);
+  border-radius: 12px;
+  box-shadow: var(--st-shadow-sm);
+  margin: 0;
+  overflow: hidden;
   position: relative;
   width: 100%;
-  /* No fixed min-height so it adjusts based on content */
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
 }
 
 .gallery-content {
@@ -15,69 +15,104 @@
 }
 
 .gallery-slide {
-  display: flex;
+  align-items: stretch;
   box-sizing: border-box;
-  padding: 15px;       /* Increased slightly from 10px for more breathing room */
-  align-items: flex-start; /* Keep top alignment for a compact look */
+  display: grid;
+  gap: clamp(1rem, 3vw, 2rem);
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.72fr);
+  padding: clamp(1rem, 3vw, 2rem);
 }
 
 .gallery-text {
-  flex: 1;
-  padding-right: 15px;  /* Slightly increased horizontal padding */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: 0;
 }
 
 .gallery-text h2 {
-  font-size: 32px;
-  margin-bottom: 10px;  /* A bit more spacing than before */
+  color: var(--st-ink);
+  font-size: clamp(1.45rem, 3vw, 2.3rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.08;
+  margin: 0 0 0.8rem;
 }
 
 .gallery-text p {
-  font-size: 18px;
-  margin-bottom: 10px;  /* A little extra spacing */
-  line-height: 1.4;
+  color: var(--st-muted);
+  font-size: clamp(0.95rem, 1.2vw, 1.05rem);
+  line-height: 1.7;
+  margin: 0 0 0.8rem;
+}
+
+.gallery-text a {
+  color: var(--st-accent);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.gallery-text a:hover {
+  text-decoration: underline;
 }
 
 .gallery-media {
-  flex: 1;
+  align-items: center;
+  background: #101820;
+  border-radius: 10px;
   display: flex;
   justify-content: center;
-  align-items: flex-start; /* Keep media aligned at the top */
+  min-height: 16rem;
+  overflow: hidden;
 }
 
-/* Constrain the media so it doesn't force the container to be too tall */
 .gallery-media img,
 .gallery-media video {
+  border: 0;
+  border-radius: 0;
+  height: 100%;
+  max-height: 22rem;
   max-width: 100%;
-  max-height: 350px; /* Increased from 300px to 350px for a bit more display area */
-  height: auto;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+  object-fit: contain;
+  width: 100%;
 }
 
-/* Indicators (dots) positioned at the bottom center */
 .carousel-indicators {
-  position: absolute;
-  bottom: 15px; /* original value */
+  align-items: center;
+  bottom: 1rem;
+  display: flex;
+  gap: 0.45rem;
+  justify-content: center;
   left: 0;
+  position: absolute;
   right: 0;
-  text-align: center;
-  transform: translateY(15px);  /* Moves the indicators down by 35px */
 }
-
-
-
 
 .indicator {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  background: #ccc;
-  margin: 0 5px;
-  border-radius: 50%;
+  background: #c4cfda;
+  border: 0;
+  border-radius: 999px;
   cursor: pointer;
-  transition: background 0.3s;
+  height: 0.5rem;
+  padding: 0;
+  transition: background-color 160ms ease, width 160ms ease;
+  width: 0.5rem;
 }
 
 .indicator.active {
-  background: #333;
+  background: var(--st-primary);
+  width: 1.5rem;
+}
+
+.indicator:focus-visible {
+  box-shadow: 0 0 0 4px rgba(31, 122, 140, 0.2);
+  outline: none;
+}
+
+@media (max-width: 760px) {
+  .gallery-slide {
+    grid-template-columns: 1fr;
+    padding-bottom: 3rem;
+  }
 }

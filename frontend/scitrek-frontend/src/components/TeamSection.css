@@ -1,29 +1,65 @@
 .team-section {
-  padding: 20px;
-  background: #fff;
-  margin-top: 40px;
+  background: transparent;
+  margin: 0;
+  padding: clamp(2rem, 5vw, 4.5rem) clamp(1rem, 3.5vw, 4rem);
+}
+
+.team-section-header {
+  margin-bottom: 1.25rem;
+  max-width: 42rem;
 }
 
 .team-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
 }
 
 .team-member {
-  border: 1px solid #ddd;
-  padding: 10px;
-  flex: 1 1 200px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(217, 226, 236, 0.92);
+  border-radius: 12px;
+  box-shadow: var(--st-shadow-sm);
+  display: grid;
+  gap: 0.9rem;
+  min-width: 0;
+  padding: 1rem;
   text-align: center;
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.team-member:hover {
+  border-color: var(--st-border-strong);
+  transform: translateY(-2px);
+}
+
+.team-photo {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
 }
 
 .team-photo img {
+  height: 100%;
+  object-fit: cover;
   width: 100%;
-  border-radius: 50%;
 }
 
-/* ─────────────────────────────────────────── */
-/* Inbox‑badge styles */
+.team-info h3 {
+  color: var(--st-ink);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.team-info p {
+  color: var(--st-muted);
+  font-size: 0.8rem;
+  font-weight: 750;
+  line-height: 1.35;
+  margin: 0.25rem 0 0;
+}
 
 .inbox-link {
   position: relative;

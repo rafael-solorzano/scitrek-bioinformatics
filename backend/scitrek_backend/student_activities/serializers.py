@@ -1,8 +1,13 @@
 # student_activities/serializers.py
 
+from pathlib import Path
+
 from rest_framework import serializers
-from django.shortcuts import get_object_or_404
+from rest_framework.reverse import reverse
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 
 from classroom_admin.models import Classroom, Student as StudentProfile
 from .models import Module, StudentResponse, QuizAttempt, Message, QuizQuestion
@@ -20,8 +25,25 @@ class CustomStudentSignupSerializer(serializers.ModelSerializer):
 
     def validate_classroom_name(self, value):
         # Ensure the classroom exists by its name
-        return get_object_or_404(Classroom, name=value)
+        try:
+            return Classroom.objects.get(name=value)
+        except Classroom.DoesNotExist:
+            raise serializers.ValidationError("Classroom does not exist.")
 
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        candidate = User(
+            username=attrs.get('username', ''),
+            first_name=attrs.get('first_name', ''),
+            last_name=attrs.get('last_name', ''),
+        )
+        try:
+            validate_password(attrs['password'], user=candidate)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({'password': list(exc.messages)}) from exc
+        return attrs
+
+    @transaction.atomic
     def create(self, validated_data):
         classroom = validated_data.pop('classroom_name')
         password  = validated_data.pop('password')
@@ -82,15 +104,46 @@ class StudentResponseSerializer(serializers.ModelSerializer):
         max_size = 5 * 1024 * 1024
         if file.size > max_size:
             raise serializers.ValidationError("File too large (max 5 MB).")
-        allowed = ['application/pdf', 'text/csv', 'image/png', 'image/jpeg']
+        allowed = {
+            '.pdf': ('application/pdf', b'%PDF-'),
+            '.csv': ('text/csv', None),
+            '.png': ('image/png', b'\x89PNG\r\n\x1a\n'),
+            '.jpg': ('image/jpeg', b'\xff\xd8\xff'),
+            '.jpeg': ('image/jpeg', b'\xff\xd8\xff'),
+        }
+        suffix = Path(file.name or '').suffix.lower()
+        if suffix not in allowed:
+            raise serializers.ValidationError("Unsupported file extension.")
+
+        expected_type, magic = allowed[suffix]
         content_type = getattr(file, 'content_type', None)
-        if content_type and content_type not in allowed:
+        if content_type and content_type != expected_type:
             raise serializers.ValidationError("Unsupported file type.")
+        if magic is not None:
+            position = file.tell() if hasattr(file, 'tell') else None
+            header = file.read(len(magic))
+            if position is not None and hasattr(file, 'seek'):
+                file.seek(position)
+            if header != magic:
+                raise serializers.ValidationError("File content does not match its declared type.")
         return file
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['file_upload'] = (
+            reverse(
+                'api-response-file',
+                kwargs={'pk': instance.pk},
+                request=self.context.get('request'),
+            )
+            if instance.file_upload else None
+        )
+        return data
 
 
 class QuizAttemptSerializer(serializers.ModelSerializer):
     quiz_type = serializers.ChoiceField(choices=QuizAttempt.TYPE_CHOICES)
+    score = serializers.FloatField(read_only=True)
 
     class Meta:
         model  = QuizAttempt
@@ -101,15 +154,31 @@ class QuizAttemptSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Invalid quiz_type.")
         return value
 
+    def validate_attempt_data(self, value):
+        if not isinstance(value, dict) or not isinstance(value.get('answers'), dict):
+            raise serializers.ValidationError(
+                'attempt_data must contain an answers object keyed by question ID.'
+            )
+        return value
+
 
 class ReadOnlyMessageSerializer(serializers.ModelSerializer):
     id         = serializers.IntegerField(read_only=True)
     is_read    = serializers.BooleanField(read_only=True)
-    attachment = serializers.FileField(read_only=True)
+    attachment = serializers.SerializerMethodField()
 
     class Meta:
         model  = Message
         fields = ['id', 'subject', 'body', 'timestamp', 'is_read', 'attachment']
+
+    def get_attachment(self, obj):
+        if not obj.attachment:
+            return None
+        return reverse(
+            'api-inbox-attachment',
+            kwargs={'pk': obj.pk},
+            request=self.context.get('request'),
+        )
 
 
 class QuizQuestionSerializer(serializers.ModelSerializer):

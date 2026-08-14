@@ -1,0 +1,95 @@
+name: scitrek-e2e
+
+x-backend: &backend
+  image: scitrek-backend:e2e
+  build:
+    context: backend/scitrek_backend
+    dockerfile: Dockerfile
+  entrypoint: []
+  environment: &backend-environment
+    DJANGO_SETTINGS_MODULE: scitrek_backend.settings.e2e
+    DJANGO_SECRET_KEY: e2e-only-not-for-any-deployment-4y1xC7v9pN2mK8sQ
+    DATABASE_NAME: scitrek_e2e
+    DATABASE_USER: scitrek_e2e
+    DATABASE_PASSWORD: scitrek_e2e_only
+    DATABASE_HOST: db
+    DATABASE_PORT: "5432"
+    CELERY_BROKER_URL: redis://redis:6379/0
+    CELERY_RESULT_BACKEND: redis://redis:6379/1
+    CELERY_TASK_ALWAYS_EAGER: "0"
+    SCITREK_E2E_RESET_ALLOWED: "1"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: scitrek_e2e
+      POSTGRES_USER: scitrek_e2e
+      POSTGRES_PASSWORD: scitrek_e2e_only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scitrek_e2e -d scitrek_e2e"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    <<: *backend
+    command: python manage.py migrate --noinput
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  seed:
+    <<: *backend
+    command: python manage.py seed_e2e --reset
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    <<: *backend
+    command: gunicorn scitrek_backend.wsgi:application --bind 0.0.0.0:8000 --workers 2 --access-logfile -
+    ports:
+      - "127.0.0.1:${SCITREK_E2E_BACKEND_PORT:-8011}:8000"
+    volumes:
+      - media-e2e:/app/media
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/readyz/', timeout=2).read()\""]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  worker:
+    <<: *backend
+    command: celery -A scitrek_backend worker --loglevel=info --concurrency=1
+    volumes:
+      - media-e2e:/app/media
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A scitrek_backend inspect ping --destination celery@$$HOSTNAME --timeout 5 | grep -q pong"]
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  media-e2e:

@@ -1,61 +1,62 @@
 .ft-resources {
-  padding: 40px 20px;
-  background: #fff;
-  margin-top: 40px;
+  background: transparent;
+  margin: 0;
+  padding: clamp(2rem, 5vw, 4.5rem) clamp(1rem, 3.5vw, 4rem);
 }
 
-.ft-resources h2 {
-  text-align: center;
-  font-size: 28px;
-  margin-bottom: 30px;
-  color: #333;
+.resources-section-header {
+  margin-bottom: 1.25rem;
+  max-width: 44rem;
 }
 
-/* center all cards; if a row has only one card, it stays in the middle */
 .ft-resource-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: center;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
 }
 
 .ft-resource {
-  background: #fdfdfd;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 20px;
-  box-sizing: border-box;
-
-  /* three per row, but shrink/wrap as needed */
-  flex: 1 1 calc(33% - 40px);
-  max-width: calc(33% - 40px);
-
-  /* center contents */
-  display: flex;
-  flex-direction: column;
   align-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(217, 226, 236, 0.92);
+  border-radius: 12px;
+  box-shadow: var(--st-shadow-sm);
+  display: grid;
+  gap: 1rem;
+  grid-template-rows: 9rem auto;
+  min-width: 0;
+  padding: 1.25rem;
   text-align: center;
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.ft-resource:hover {
+  border-color: var(--st-border-strong);
+  transform: translateY(-2px);
 }
 
 .ft-resource-photo {
+  align-items: center;
+  display: flex;
+  height: 100%;
+  justify-content: center;
   width: 100%;
-  margin-bottom: 15px;
 }
 
 .ft-resource-photo img {
-  max-width: 80%;
-  height: auto;
   display: block;
-  margin: 0 auto;
+  max-height: 8rem;
+  max-width: min(90%, 18rem);
+  object-fit: contain;
 }
 
 .ft-resource-info a {
-  display: block;
-  font-size: 20px;
-  font-weight: bold;
-  color: #007bff;
+  color: var(--st-accent);
+  display: inline-flex;
+  font-size: 1rem;
+  font-weight: 900;
+  margin-bottom: 0.45rem;
   text-decoration: none;
-  margin-bottom: 10px;
 }
 
 .ft-resource-info a:hover {
@@ -63,8 +64,8 @@
 }
 
 .ft-resource-info p {
+  color: var(--st-muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
   margin: 0;
-  font-size: 14px;
-  color: #555;
-  line-height: 1.5;
 }
