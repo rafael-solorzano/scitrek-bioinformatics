@@ -53,7 +53,6 @@ const StudentProfilePage = () => {
       <StudentProfileBanner
         user={user}
         onLogout={() => setPopupVisible(true)}
-        variant="modern"
       />
 
       <main className="profile-shell st-surface">

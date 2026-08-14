@@ -66,7 +66,6 @@ const Inbox = () => {
       <StudentProfileBanner
         user={user}
         onLogout={() => setPopupVisible(true)}
-        variant="modern"
       />
 
       <div className="inbox-page st-surface">

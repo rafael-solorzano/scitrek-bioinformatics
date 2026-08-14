@@ -29,7 +29,7 @@ const ImportantVocabularyPage = () => {
 
   return (
     <div className="module-page st-surface font-sans text-gray-800 min-h-screen flex flex-col">
-      <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} variant="modern" />
+      <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />
 
       <main className="module-main container mx-auto px-4 py-8 space-y-16 flex-1">
         {/* Header */}

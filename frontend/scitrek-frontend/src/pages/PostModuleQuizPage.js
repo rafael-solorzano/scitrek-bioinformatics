@@ -31,7 +31,7 @@ const PostModuleQuizPage = () => {
 
   return (
     <div className="quiz-shell st-surface">
-      <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} variant="modern" />
+      <StudentProfileBanner user={user} onLogout={() => setPopupVisible(true)} />
 
       <div className="quiz-page-content">
         <iframe

@@ -5,11 +5,10 @@ import { fetchInbox } from '../services/api';
 import '../styles/scitrek-ui.css';
 import './StudentProfileBanner.css';
 
-const StudentProfileBanner = ({ user, onLogout, variant = 'classic' }) => {
+const StudentProfileBanner = ({ user, onLogout }) => {
   const displayName = user.first_name || user.username;
   const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
-  const isModern = variant === 'modern';
   const isActive = path => location.pathname === path;
 
   useEffect(() => {
@@ -25,28 +24,24 @@ const StudentProfileBanner = ({ user, onLogout, variant = 'classic' }) => {
   }, []);
 
   return (
-    <header className={`profile-header ${isModern ? 'profile-header--modern st-surface' : ''}`}>
+    <header className="profile-header profile-header--modern st-surface">
       <div className="logo">
         <Link to="/">
-          <img
-            src="/images/scitrek_logo.png"
-            alt="SciTrek Logo"
-            style={isModern ? undefined : { height: 50 }}
-          />
+          <img src="/images/scitrek_logo.png" alt="SciTrek Logo" />
         </Link>
       </div>
 
       <nav className="profile-nav">
         <Link
           to="/student_profile"
-          className={`nav-item ${isModern && isActive('/student_profile') ? 'is-active' : ''}`}
+          className={`nav-item ${isActive('/student_profile') ? 'is-active' : ''}`}
         >
           Home
         </Link>
 
         <Link
           to="/inbox"
-          className={`nav-item inbox-link ${isModern && isActive('/inbox') ? 'is-active' : ''}`}
+          className={`nav-item inbox-link ${isActive('/inbox') ? 'is-active' : ''}`}
         >
           Inbox
           <span className="badge">{unreadCount}</span>
