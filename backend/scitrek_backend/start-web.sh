@@ -17,6 +17,14 @@ if [[ ! "$workers" =~ ^[1-9][0-9]*$ ]]; then
   exit 2
 fi
 
+# In the Compose topology a one-shot migrate service collects static into a
+# volume shared with web. A platform without shared volumes gives each instance
+# its own filesystem, and a pre-deploy command runs somewhere else again, so this
+# instance has to collect its own or whitenoise serves an unstyled Django admin.
+if [[ "${COLLECT_STATIC_ON_START:-1}" == "1" ]]; then
+  python manage.py collectstatic --noinput
+fi
+
 exec gunicorn scitrek_backend.wsgi:application \
   --bind "0.0.0.0:${port}" \
   --workers "${workers}" \
