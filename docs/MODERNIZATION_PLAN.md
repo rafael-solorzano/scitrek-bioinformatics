@@ -30,6 +30,8 @@ Verification is recorded only for commands executed in this working tree.
 | HYG-001 | P2 | 53 compiled `__pycache__/*.pyc` files were tracked in Git, and the artifact guard did not reject compiled bytecode, so running any Python locally rewrote tracked files. | **Fixed during release qualification.** The bytecode is untracked (files remain on disk, already covered by `.gitignore`) and the guard now rejects `__pycache__/` and `*.pyc`/`*.pyo`. | Guard reproduces the failure on all 53 paths before the change and exits 0 after; no tracked `.pyc` remains |
 | SEC-006 | P2 | `require_secret_env` accepted 40-character secrets, below the 50-character floor Django's own `security.W009` deploy check warns about, so `check --deploy` emitted a warning inside a release gate. | **Fixed during release qualification.** The floor is 50 characters and the deploy-check key in CI was lengthened. | Regression test added (46-character key rejected); 184-test suite green; `check --deploy` now reports no issues and no warnings |
 
+| RENDER-001 | P1 | The deployment assumed an nginx edge and a shared media volume, neither of which exists on a platform that routes straight to Django. CSP and Permissions-Policy would have disappeared, health checks would have been answered with a 301, the image could not bind a runtime-assigned port, and the worker could not read an upload the web service saved. | **Implemented ahead of the Render deploy.** `SecurityHeadersMiddleware` emits both policies when `SECURITY_HEADERS_FROM_APP` says the application owns them; `SECURE_REDIRECT_EXEMPT` covers the four health endpoints; `start-web.sh` binds `$PORT`; media reads go through the storage API with `MEDIA_STORAGE_BACKEND=s3` available. All four default to the existing Compose behaviour. | Live header/redirect/port checks; volumeless web-to-worker S3 probe; 198 tests green on both media backends at 87.2% |
+
 ## Decision record
 
 | Decision | Result | Why |
@@ -38,10 +40,10 @@ Verification is recorded only for commands executed in this working tree.
 | Edge proxy | Keep nginx | Existing topology retained; explicit TLS bootstrap/renewal, proxy trust, upload limit, CSP, cache, compression, and health behavior close the demonstrated gaps. |
 | Production database | Managed PostgreSQL | Keeps backup/PITR ownership with the database provider; disposable PostgreSQL remains in dev/CI/E2E. |
 | Migrations | One-shot service | Prevents concurrent/rerun migration and seed behavior on ordinary web restarts. |
-| Media | Host-local private volume now; private object storage later | Fixes single-host durability and worker access without exposing student files publicly. Multi-host scaling requires object storage. |
+| Media | Host-local private volume by default; S3-compatible object storage selectable | Fixes single-host durability and worker access without exposing student files publicly. Object storage is not optional on a platform whose disks cannot be shared between services, so the backend is now a configuration choice rather than future work. |
 | Celery | Keep worker; remove beat | Workbook parsing needs a worker; no required periodic task justified a beat process. |
 | Browser testing | Retain fast mocked suite and add distinct real suite | Mocks give fast UI feedback; only PostgreSQL-backed browser tests count as persistence evidence. |
-| Coverage | Backend 85% branch-aware; frontend explicit four-metric floors | Preserves regression protection without padding low-value tests. Backend application result is 87.1%. |
+| Coverage | Backend 85% branch-aware; frontend explicit four-metric floors | Preserves regression protection without padding low-value tests. Backend application result is 87.2%. |
 | Router advisories | Do not force Router 7 during release hardening | Remaining two advisories are moderate, current exposure is constrained, and npm offers only a semver-major change requiring its own regression cycle. |
 | Historical secrets | Release blocked pending owner attestation | Current-tree deletion cannot invalidate leaked credentials or remove Git objects. |
 

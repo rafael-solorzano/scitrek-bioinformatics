@@ -7,8 +7,8 @@ Verified: 2026-08-14
 
 | Gate | Verified starting point | Current evidence |
 | --- | ---: | ---: |
-| Django tests | 137 | **184 collected, 184 passed** against PostgreSQL on the current tree (release-qualification run) |
-| Backend coverage | about 85% branch-aware | **87.1% branch-aware** on the current tree; 85% gate passed |
+| Django tests | 137 | **198 collected, 198 passed** against PostgreSQL on the current tree, on both the filesystem and S3 media backends |
+| Backend coverage | about 85% branch-aware | **87.2% branch-aware** on the current tree; 85% gate passed |
 | Frontend tests | 64 Jest/RTL | **70 passed** in Vitest |
 | Frontend coverage | 57.76% statements / 46.05% branches / 45.85% functions / 58.82% lines | **58.84% / 49.86% / 46.07% / 60.09%**, floors 57/46/45/58 |
 | Mocked Playwright | 12 | **12 passed** across desktop/mobile Chromium at the browser milestone |
@@ -31,8 +31,8 @@ observing student work, and a student being denied teacher reporting.
 
 | Check | Result |
 | --- | --- |
-| `coverage run manage.py test` in the isolated PostgreSQL/Redis E2E container | **184 collected, 184 passed** in 114.566s on the current tree |
-| `coverage report` with `.coveragerc` | **87.1%** branch-aware; 85% gate passed (exit 0) on the current tree |
+| `coverage run manage.py test` in the isolated PostgreSQL/Redis E2E container | **198 collected, 198 passed** in 152.326s on the current tree (exit 0) |
+| `coverage report` with `.coveragerc` | **87.2%** branch-aware; 85% gate passed (exit 0) on the current tree |
 | post-review backend rerun | **Executed and green.** The suite was rebuilt from the final post-adversarial-review sources and run against PostgreSQL 16 and Redis 7 |
 | `npm run coverage` | **70 passed**; 58.84/49.86/46.07/60.09 and all four floors passed |
 | `npm run build` | **Passed**; Vite produced the production bundle and 15-route sitemap |
@@ -47,6 +47,10 @@ observing student work, and a student being denied teacher reporting.
 | `npm audit --json` | **2 moderate** React Router findings; 0 high/critical |
 | database backup and restore | **Passed:** disposable restore matched users=4, classrooms=1, responses=0, messages=12 |
 | media backup/restore | **Drill executed** in an isolated Compose project: seeded media archived, volume emptied, restored byte-identical with `scitrek:scitrek` ownership. Both refusal guards (missing confirmation, non-empty target) also fired |
+| isolated web-to-worker S3 media probe | **Passed** against a live S3-compatible server with no volume on either container: web stored the 1,927,935-byte workbook in the bucket, `.path` raised `NotImplementedError`, and a worker on a different host with an empty media directory read and parsed it. Stream and path reads give byte-identical text. Anonymous read of the object returns 403; authorized download streams all bytes with `private, no-store` and `nosniff` |
+| security headers without an edge proxy | **Passed.** Under production settings with `SECURITY_HEADERS_FROM_APP=1`, a live response carries CSP, Permissions-Policy, HSTS, `X-Frame-Options`, `nosniff`, and Referrer-Policy, each exactly once |
+| runtime-assigned port | **Passed.** The image serves on an injected `PORT=9123` and on the default 8000; invalid `PORT` or `GUNICORN_WORKERS` exit 2 rather than starting misconfigured |
+| health-check redirect exemption | **Passed.** With `SECURE_SSL_REDIRECT=True`, `/healthz/` answers 200 over plain HTTP while `/api/student/modules/` still returns 301 to HTTPS |
 | isolated web-to-worker media volume probe | **Passed** on the current tree (web wrote, worker read the same bytes) |
 | migration drift and production deploy checks | **Passed on the current tree.** `makemigrations --check --dry-run` reports no changes; `check --deploy` reports no issues and no warnings |
 | shell syntax, workflow YAML, Python compilation, artifact guard, Compose config, `git diff --check` | **Passed after final review** |
