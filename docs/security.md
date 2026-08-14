@@ -13,6 +13,14 @@
   policy strings, and a test asserts the two sources have not drifted apart.
   A static frontend served outside Django needs the headers configured on that
   host separately; Django only covers responses it generates.
+- Uploaded media is private on either storage backend. With
+  `MEDIA_STORAGE_BACKEND=s3` no ACL is sent, so objects inherit the bucket's own
+  private default instead of this code granting public-read; URL generation stays
+  signed and short-lived, and `file_overwrite` is off so one upload cannot
+  replace another student's file. No code path calls `.url` on a media field, so
+  every download still goes through the authorized `private_file_response`
+  endpoints rather than a direct bucket URL. Verified against a live
+  S3-compatible server: an anonymous read of a stored object returns 403.
 - Platform health checks arrive over plain HTTP without a forwarded-proto
   header, so `SECURE_REDIRECT_EXEMPT` lets the four health endpoints answer
   directly instead of returning a 301 that would fail the check. Those views

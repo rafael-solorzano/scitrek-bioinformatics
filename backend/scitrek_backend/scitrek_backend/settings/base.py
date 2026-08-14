@@ -220,6 +220,52 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Where uploaded media lives. "filesystem" keeps the shared private volume the
+# Compose topology uses. "s3" is required on any platform where web and worker
+# run on separate hosts and cannot share a volume: the worker opens the workbook
+# PDF the web service saved, so a per-host filesystem would break every import.
+# Any S3-compatible provider works; only the endpoint and credentials differ.
+MEDIA_STORAGE_BACKEND = os.getenv("MEDIA_STORAGE_BACKEND", "filesystem").strip().lower()
+
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+    },
+}
+
+if MEDIA_STORAGE_BACKEND == "s3":
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": require_env("MEDIA_S3_BUCKET"),
+            "access_key": require_env("MEDIA_S3_ACCESS_KEY_ID"),
+            "secret_key": require_env("MEDIA_S3_SECRET_ACCESS_KEY"),
+            # Cloudflare R2, Backblaze B2, and MinIO each need their own
+            # endpoint. Empty means real AWS S3, which infers it from the region.
+            "endpoint_url": os.getenv("MEDIA_S3_ENDPOINT_URL", "").strip() or None,
+            "region_name": os.getenv("MEDIA_S3_REGION", "auto").strip(),
+            # MinIO and some providers only serve path-style requests.
+            "addressing_style": os.getenv(
+                "MEDIA_S3_ADDRESSING_STYLE", "virtual"
+            ).strip(),
+            "signature_version": "s3v4",
+            # Student uploads must never be world-readable. No ACL is sent at
+            # all, so objects inherit the bucket's own private default rather
+            # than this code silently granting public-read.
+            "default_acl": None,
+            "querystring_auth": True,
+            "querystring_expire": env_int("MEDIA_S3_URL_EXPIRE_SECONDS", 300),
+            # Uploads keep Django's suffixed name instead of silently replacing
+            # another student's file that happens to share a name.
+            "file_overwrite": False,
+        },
+    }
+elif MEDIA_STORAGE_BACKEND != "filesystem":
+    raise ImproperlyConfigured(
+        'MEDIA_STORAGE_BACKEND must be either "filesystem" or "s3"'
+    )
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

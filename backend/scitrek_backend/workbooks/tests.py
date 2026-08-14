@@ -3,8 +3,9 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APITestCase
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 from kombu.exceptions import OperationalError
+import io
 import shutil
 import tempfile
 
@@ -559,12 +560,21 @@ class WorkbookParserTaskTests(TemporaryMediaRootMixin, TestCase):
     ]
 
     def make_workbook(self):
-        return Workbook.objects.create(
+        # Store real bytes rather than only a name. The parser reads the upload
+        # through the storage API, so a name with nothing behind it would not
+        # exist on any backend; pdfplumber is mocked, so the content is
+        # irrelevant beyond being present.
+        workbook = Workbook.objects.create(
             role='student',
             title='Parser Workbook',
             description='Parser fixture',
-            file='workbooks/pdfs/parser.pdf',
         )
+        workbook.file.save(
+            'parser.pdf',
+            SimpleUploadedFile('parser.pdf', b'%PDF-1.4\n%%EOF'),
+            save=True,
+        )
+        return workbook
 
     def mock_pdf_text(self, mock_open, text):
         page = MagicMock()
@@ -594,6 +604,27 @@ class WorkbookParserTaskTests(TemporaryMediaRootMixin, TestCase):
         self.assertEqual(workbook.import_error, '')
         self.assertIsNotNone(workbook.import_started)
         self.assertIsNotNone(workbook.import_finished)
+
+    def test_parser_reads_upload_through_storage_not_a_filesystem_path(self):
+        # Object storage has no .path: accessing it raises NotImplementedError.
+        # The worker can run on a different host from the web service that saved
+        # the upload, so the task must read bytes through the storage API. This
+        # reproduces the object-storage contract without needing a live bucket.
+        workbook = self.make_workbook()
+        text = "\n".join(f"{heading}\nBody" for heading in self.HEADINGS)
+
+        with patch(
+            'django.db.models.fields.files.FieldFile.path',
+            new_callable=PropertyMock,
+            side_effect=NotImplementedError('object storage exposes no local path'),
+        ), patch('workbooks.tasks.pdfplumber.open') as mock_open:
+            self.mock_pdf_text(mock_open, text)
+            parse_workbook_task(workbook.id)
+
+        workbook.refresh_from_db()
+        self.assertEqual(workbook.import_error, '')
+        self.assertEqual(workbook.sections.count(), 8)
+        self.assertIsInstance(mock_open.call_args.args[0], io.BytesIO)
 
     def test_blank_pdf_records_error_and_creates_no_sections(self):
         workbook = self.make_workbook()

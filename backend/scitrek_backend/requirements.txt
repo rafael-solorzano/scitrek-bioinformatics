@@ -2,6 +2,8 @@ amqp==5.3.1
 asgiref==3.8.1
 beautifulsoup4==4.13.4
 billiard==4.2.1
+boto3==1.43.72
+botocore==1.43.72
 celery==5.5.1
 cffi==2.0.0
 charset-normalizer==3.4.2
@@ -13,11 +15,13 @@ coverage==7.6.10
 cryptography==50.0.0
 Django==5.2.16
 django-cors-headers==4.7.0
+django-storages==1.14.6
 djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.1
 drf-yasg==1.21.10
 gunicorn==23.0.0
 inflection==0.5.1
+jmespath==1.1.0
 kombu==5.5.3
 packaging==24.2
 pdf2image==1.17.0
@@ -33,12 +37,14 @@ python-dateutil==2.9.0.post0
 pytz==2025.2
 PyYAML==6.0.2
 redis==5.2.1
+s3transfer==0.19.2
 six==1.17.0
 soupsieve==2.8.4
 sqlparse==0.5.4
 typing_extensions==4.13.2
 tzdata==2025.2
 uritemplate==4.1.1
+urllib3==2.7.0
 vine==5.1.0
 wcwidth==0.2.13
 whitenoise==6.9.0

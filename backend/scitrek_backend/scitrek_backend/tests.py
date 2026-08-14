@@ -258,3 +258,75 @@ class HealthCheckRedirectExemptionTests(TestCase):
         response = self.client.get('/api/student/modules/', secure=False)
         self.assertEqual(response.status_code, 301)
         self.assertTrue(response['Location'].startswith('https://'))
+
+
+class MediaStorageBackendTests(SimpleTestCase):
+    """MEDIA_STORAGE_BACKEND selects the media backend and rejects typos."""
+
+    def _load(self, env):
+        from scitrek_backend.settings import base
+
+        with patch.dict("os.environ", env, clear=True):
+            return importlib.reload(base)
+
+    def tearDown(self):
+        from scitrek_backend.settings import base
+
+        with patch.dict("os.environ", {}, clear=True):
+            importlib.reload(base)
+
+    def test_defaults_to_the_shared_filesystem_volume(self):
+        base = self._load({})
+        self.assertEqual(base.MEDIA_STORAGE_BACKEND, "filesystem")
+        self.assertEqual(
+            base.STORAGES["default"]["BACKEND"],
+            "django.core.files.storage.FileSystemStorage",
+        )
+
+    def test_s3_backend_is_configured_privately(self):
+        base = self._load(
+            {
+                "MEDIA_STORAGE_BACKEND": "s3",
+                "MEDIA_S3_BUCKET": "scitrek-media",
+                "MEDIA_S3_ACCESS_KEY_ID": "probe-key-id",
+                "MEDIA_S3_SECRET_ACCESS_KEY": "probe-secret",
+                "MEDIA_S3_ENDPOINT_URL": "https://example.r2.cloudflarestorage.com",
+            }
+        )
+        options = base.STORAGES["default"]["OPTIONS"]
+
+        self.assertEqual(
+            base.STORAGES["default"]["BACKEND"], "storages.backends.s3.S3Storage"
+        )
+        self.assertEqual(options["bucket_name"], "scitrek-media")
+        self.assertEqual(
+            options["endpoint_url"], "https://example.r2.cloudflarestorage.com"
+        )
+        # Student uploads must never become world-readable, and a URL must never
+        # be usable without a signature that expires.
+        self.assertIsNone(options["default_acl"])
+        self.assertTrue(options["querystring_auth"])
+        self.assertLessEqual(options["querystring_expire"], 3600)
+        # A second upload must not overwrite another student's file.
+        self.assertFalse(options["file_overwrite"])
+
+    def test_s3_backend_requires_its_credentials(self):
+        for missing in (
+            "MEDIA_S3_BUCKET",
+            "MEDIA_S3_ACCESS_KEY_ID",
+            "MEDIA_S3_SECRET_ACCESS_KEY",
+        ):
+            env = {
+                "MEDIA_STORAGE_BACKEND": "s3",
+                "MEDIA_S3_BUCKET": "scitrek-media",
+                "MEDIA_S3_ACCESS_KEY_ID": "probe-key-id",
+                "MEDIA_S3_SECRET_ACCESS_KEY": "probe-secret",
+            }
+            del env[missing]
+            with self.subTest(missing=missing):
+                with self.assertRaises(ImproperlyConfigured):
+                    self._load(env)
+
+    def test_unknown_backend_is_rejected_rather_than_ignored(self):
+        with self.assertRaises(ImproperlyConfigured):
+            self._load({"MEDIA_STORAGE_BACKEND": "s4"})

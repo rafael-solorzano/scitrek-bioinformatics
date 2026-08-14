@@ -3,6 +3,7 @@
 from celery import shared_task
 from django.db import transaction
 from django.utils import timezone
+import io
 import re
 import pdfplumber
 from django.utils.html import escape, linebreaks
@@ -25,8 +26,13 @@ def parse_workbook_task(workbook_id):
             wb.import_error = ''
             wb.save(update_fields=['import_started', 'import_finished', 'import_error'])
 
-            # 1) Extract the full text of the PDF.
-            with pdfplumber.open(wb.file.path) as pdf:
+            # 1) Extract the full text of the PDF. Read through the storage API
+            # rather than a filesystem path: the worker and the web service that
+            # saved this upload may be on separate hosts, and object storage has
+            # no .path at all. Uploads are capped well below memory concerns.
+            with wb.file.open('rb') as handle:
+                pdf_bytes = handle.read()
+            with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
                 full_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
 
             # 2) Locate each full section title on its own line.
