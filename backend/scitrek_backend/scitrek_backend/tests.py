@@ -6,6 +6,7 @@ from django.test import SimpleTestCase, TestCase, override_settings
 
 from scitrek_backend.settings.base import (
     env_bool,
+    env_bool_required,
     env_int,
     env_list,
     require_env,
@@ -151,3 +152,109 @@ class HealthEndpointTests(TestCase):
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json(), {'status': 'unavailable'})
         self.assertNotContains(response, 'sensitive redis detail', status_code=503)
+
+
+class EnvBoolRequiredTests(SimpleTestCase):
+    """SECURITY_HEADERS_FROM_APP must never silently default."""
+
+    def test_accepts_documented_true_and_false_spellings(self):
+        for raw, expected in (
+            ("1", True), ("true", True), ("TRUE", True), ("yes", True), ("on", True),
+            ("0", False), ("false", False), ("FALSE", False), ("no", False), ("off", False),
+        ):
+            with patch.dict("os.environ", {"FLAG": raw}, clear=True):
+                self.assertIs(env_bool_required("FLAG"), expected, msg=raw)
+
+    def test_rejects_missing_value(self):
+        with patch.dict("os.environ", {}, clear=True):
+            with self.assertRaises(ImproperlyConfigured):
+                env_bool_required("FLAG")
+
+    def test_rejects_unparseable_value(self):
+        with patch.dict("os.environ", {"FLAG": "maybe"}, clear=True):
+            with self.assertRaises(ImproperlyConfigured):
+                env_bool_required("FLAG")
+
+
+class SecurityHeadersMiddlewareTests(TestCase):
+    """Platforms without an edge proxy get CSP/Permissions-Policy from Django."""
+
+    MIDDLEWARE_WITH_HEADERS = [
+        'django.middleware.security.SecurityMiddleware',
+        'django.middleware.common.CommonMiddleware',
+        'scitrek_backend.middleware.SecurityHeadersMiddleware',
+    ]
+
+    def test_adds_both_policies_when_middleware_is_enabled(self):
+        with override_settings(MIDDLEWARE=self.MIDDLEWARE_WITH_HEADERS):
+            response = self.client.get('/healthz/')
+
+        from django.conf import settings
+
+        self.assertEqual(
+            response['Content-Security-Policy'], settings.CONTENT_SECURITY_POLICY
+        )
+        self.assertEqual(
+            response['Permissions-Policy'], settings.PERMISSIONS_POLICY
+        )
+
+    def test_default_policies_match_the_nginx_edge_policies(self):
+        # The two topologies must not drift apart; nginx is the existing source.
+        from pathlib import Path
+
+        from django.conf import settings
+
+        snippet = (
+            Path(settings.BASE_DIR).parent.parent
+            / 'nginx' / 'snippets' / 'security-headers.conf'
+        )
+        if not snippet.exists():  # pragma: no cover - nginx config not in image
+            self.skipTest('nginx snippet is not present in this build context')
+
+        text = snippet.read_text()
+        self.assertIn(settings.CONTENT_SECURITY_POLICY, text)
+        self.assertIn(settings.PERMISSIONS_POLICY, text)
+
+    def test_does_not_overwrite_a_policy_the_response_already_carries(self):
+        from django.http import HttpResponse
+
+        from scitrek_backend.middleware import SecurityHeadersMiddleware
+
+        def get_response(request):
+            response = HttpResponse()
+            response['Content-Security-Policy'] = "default-src 'none'"
+            return response
+
+        middleware = SecurityHeadersMiddleware(get_response)
+        response = middleware(None)
+
+        from django.conf import settings
+
+        self.assertEqual(response['Content-Security-Policy'], "default-src 'none'")
+        # The header it did not already have is still added.
+        self.assertEqual(response['Permissions-Policy'], settings.PERMISSIONS_POLICY)
+
+    def test_policies_are_absent_without_the_middleware(self):
+        response = self.client.get('/healthz/')
+        self.assertNotIn('Content-Security-Policy', response)
+        self.assertNotIn('Permissions-Policy', response)
+
+
+class HealthCheckRedirectExemptionTests(TestCase):
+    """A platform health check over plain HTTP must not be answered with a 301."""
+
+    @override_settings(SECURE_SSL_REDIRECT=True)
+    def test_health_endpoints_answer_directly_over_plain_http(self):
+        for path in ('/healthz/', '/readyz/', '/api/health/', '/api/ready/'):
+            with self.subTest(path=path):
+                with patch('scitrek_backend.health.database_is_ready'), patch(
+                    'scitrek_backend.health.cache_is_ready'
+                ):
+                    response = self.client.get(path, secure=False)
+                self.assertEqual(response.status_code, 200)
+
+    @override_settings(SECURE_SSL_REDIRECT=True)
+    def test_other_paths_are_still_redirected_to_https(self):
+        response = self.client.get('/api/student/modules/', secure=False)
+        self.assertEqual(response.status_code, 301)
+        self.assertTrue(response['Location'].startswith('https://'))

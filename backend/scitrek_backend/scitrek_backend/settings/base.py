@@ -82,6 +82,20 @@ def require_env(name):
     return value
 
 
+def env_bool_required(name):
+    """Like env_bool, but refuses to assume a default.
+
+    For settings where both values are legitimate in different topologies and a
+    silently wrong guess is a security regression rather than an inconvenience.
+    """
+    value = require_env(name).strip().lower()
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    raise ImproperlyConfigured(f"{name} must be a boolean value")
+
+
 def require_secret_env(name, min_length=50):
     value = require_env(name)
     if len(value) < min_length or "change-me" in value.lower():
@@ -95,6 +109,35 @@ CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", False)
 GUEST_LOGIN_ENABLED = env_bool("GUEST_LOGIN_ENABLED", False)
 GUEST_CLASSROOM_NAME = os.getenv("GUEST_CLASSROOM_NAME", "1001").strip()
 PUBLIC_SIGNUP_ENABLED = env_bool("PUBLIC_SIGNUP_ENABLED", False)
+
+# Content-Security-Policy and Permissions-Policy have no Django setting of their
+# own. These values are the same policies the nginx edge applies, kept here so a
+# platform without an edge proxy can emit them from the application instead via
+# SecurityHeadersMiddleware. Changing one source without the other would make
+# the two deployment topologies disagree.
+# Platform health checks (Render's, for example) reach the container directly
+# over HTTP without a forwarded-proto header, and SECURE_SSL_REDIRECT would
+# answer 301, which fails the check. These four endpoints return only a
+# liveness/readiness status, so exempting them from the redirect leaks nothing.
+# Inert unless SECURE_SSL_REDIRECT is enabled, which only production does.
+SECURE_REDIRECT_EXEMPT = [
+    r'^healthz/$',
+    r'^readyz/$',
+    r'^api/health/$',
+    r'^api/ready/$',
+]
+
+CONTENT_SECURITY_POLICY = os.getenv(
+    "CONTENT_SECURITY_POLICY",
+    "default-src 'self'; base-uri 'self'; connect-src 'self'; font-src 'self' data:; "
+    "frame-ancestors 'none'; frame-src https:; img-src 'self' data: https:; "
+    "media-src 'self'; object-src 'none'; script-src 'self'; "
+    "style-src 'self' 'unsafe-inline'; upgrade-insecure-requests",
+)
+PERMISSIONS_POLICY = os.getenv(
+    "PERMISSIONS_POLICY",
+    "camera=(), microphone=(), geolocation=(), payment=()",
+)
 
 
 # Update these references to reflect the new project module name.

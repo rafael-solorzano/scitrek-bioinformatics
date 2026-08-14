@@ -17,10 +17,11 @@ RUN addgroup --system scitrek \
 
 COPY --chown=scitrek:scitrek . .
 COPY --chmod=0755 entrypoint.sh /entrypoint.sh
+COPY --chmod=0755 start-web.sh /start-web.sh
 
 USER scitrek
 
 EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["gunicorn", "scitrek_backend.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--access-logfile", "-", "--error-logfile", "-", "--capture-output"]
+CMD ["/start-web.sh"]

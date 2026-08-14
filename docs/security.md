@@ -4,6 +4,19 @@
 
 - nginx replaces client-supplied forwarding headers and Django trusts exactly
   one proxy hop in production.
+- Content-Security-Policy and Permissions-Policy are emitted by exactly one
+  layer, chosen explicitly by `SECURITY_HEADERS_FROM_APP`, which production
+  requires and does not default. In this Compose topology nginx owns both
+  headers, so the value is `0`. On a platform that routes straight to Django
+  with no edge proxy — Render, for example — the value is `1` and
+  `SecurityHeadersMiddleware` emits them instead. Both layers use the same
+  policy strings, and a test asserts the two sources have not drifted apart.
+  A static frontend served outside Django needs the headers configured on that
+  host separately; Django only covers responses it generates.
+- Platform health checks arrive over plain HTTP without a forwarded-proto
+  header, so `SECURE_REDIRECT_EXEMPT` lets the four health endpoints answer
+  directly instead of returning a 301 that would fail the check. Those views
+  return only a liveness/readiness status.
 - Redis-backed throttles are shared across Gunicorn workers. Login, refresh,
   signup, and guest creation use distinct rates.
 - Guest creation and public signup are disabled by production-safe defaults.
