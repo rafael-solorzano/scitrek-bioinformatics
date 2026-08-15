@@ -1,0 +1,213 @@
+# Render Blueprint for SciTrek.
+#
+# This is the platform deployment path only. The Compose/nginx topology in
+# docker-compose.yml is unchanged and remains the EC2 path; nothing here
+# replaces it.
+#
+# Read docs/render-deployment.md before applying this. It covers the plan costs
+# (the background worker has no free instance type), the values marked
+# `sync: false` that must be entered in the dashboard, and how to verify the
+# deploy.
+
+databases:
+  - name: scitrek-postgres
+    databaseName: scitrek
+    user: scitrek
+    plan: free               # free Postgres is deleted 30 days after creation
+    postgresMajorVersion: "16"
+
+# Values the backend and the worker must agree on exactly. A group keeps them
+# from drifting: the worker reads back the same bucket the web service wrote to,
+# and both must verify tokens with the same secret key.
+envVarGroups:
+  - name: scitrek-shared
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: scitrek_backend.settings.production
+      # Not generateValue: production rejects a secret shorter than 50
+      # characters and the generated length is not guaranteed. Paste a 50+
+      # character random value that has never been committed to Git.
+      - key: DJANGO_SECRET_KEY
+        sync: false
+      # The static site's hostname. The backend's own onrender.com hostname is
+      # appended automatically from RENDER_EXTERNAL_HOSTNAME, so listing both
+      # covers the rewrite whichever Host header it forwards.
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false
+
+      - key: DATABASE_ENGINE
+        value: postgresql
+      - key: DATABASE_SSLMODE
+        value: require
+
+      # Web and worker are separate hosts with separate filesystems, so the
+      # worker cannot read a PDF the web service wrote to a local disk.
+      - key: MEDIA_STORAGE_BACKEND
+        value: s3
+      - key: MEDIA_S3_BUCKET
+        sync: false
+      - key: MEDIA_S3_ACCESS_KEY_ID
+        sync: false
+      - key: MEDIA_S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: MEDIA_S3_ENDPOINT_URL
+        sync: false
+      - key: MEDIA_S3_REGION
+        sync: false
+
+services:
+  # ---------------------------------------------------------------- key value
+  # Celery broker, Celery results, and the Django throttle cache. The free plan
+  # has no persistence, which is acceptable for all three: results and cache
+  # entries are disposable, and a lost queue only delays a workbook import.
+  - name: scitrek-keyvalue
+    type: keyvalue
+    plan: free
+    region: oregon
+    ipAllowList: []          # empty list = reachable only from inside Render
+
+  # ------------------------------------------------------------------ backend
+  - name: scitrek-api
+    type: web
+    runtime: docker
+    plan: free               # spins down after 15 minutes idle; ~1 min cold start
+    region: oregon
+    dockerfilePath: ./backend/scitrek_backend/Dockerfile
+    dockerContext: ./backend/scitrek_backend
+    healthCheckPath: /healthz/
+    envVarGroups:
+      - scitrek-shared
+    envVars:
+      # https://<static-site-host>. Django admin login fails without it.
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+
+      - key: DATABASE_HOST
+        fromDatabase: { name: scitrek-postgres, property: host }
+      - key: DATABASE_PORT
+        fromDatabase: { name: scitrek-postgres, property: port }
+      - key: DATABASE_NAME
+        fromDatabase: { name: scitrek-postgres, property: database }
+      - key: DATABASE_USER
+        fromDatabase: { name: scitrek-postgres, property: user }
+      - key: DATABASE_PASSWORD
+        fromDatabase: { name: scitrek-postgres, property: password }
+
+      # All three share logical database 0: Render exposes one connection
+      # string and the blueprint cannot append a database index. See the
+      # "Redis database numbers" section of docs/render-deployment.md for the
+      # one hazard this creates.
+      - key: CELERY_BROKER_URL
+        fromService: { name: scitrek-keyvalue, type: keyvalue, property: connectionString }
+      - key: CELERY_RESULT_BACKEND
+        fromService: { name: scitrek-keyvalue, type: keyvalue, property: connectionString }
+      - key: REDIS_CACHE_URL
+        fromService: { name: scitrek-keyvalue, type: keyvalue, property: connectionString }
+
+      # There is no edge proxy here, so Django emits CSP and Permissions-Policy
+      # itself. This would double the headers under nginx, hence the explicit 1.
+      - key: SECURITY_HEADERS_FROM_APP
+        value: "1"
+      - key: TRUSTED_PROXY_COUNT
+        value: "1"
+
+      # No shared static volume, and a pre-deploy command needs a paid plan, so
+      # this instance applies migrations and collects its own static at startup.
+      - key: RUN_MIGRATIONS_ON_START
+        value: "1"
+      - key: COLLECT_STATIC_ON_START
+        value: "1"
+      - key: GUNICORN_WORKERS
+        value: "2"           # 512 MB free instance
+
+      - key: GUEST_LOGIN_ENABLED
+        value: "0"
+      - key: PUBLIC_SIGNUP_ENABLED
+        value: "0"
+
+  # ------------------------------------------------------------------- worker
+  # Background workers have no free instance type; starter is the minimum.
+  # Without this service, workbook imports never parse and teacher messages
+  # scheduled for a future time never send.
+  - name: scitrek-worker
+    type: worker
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./backend/scitrek_backend/Dockerfile
+    dockerContext: ./backend/scitrek_backend
+    dockerCommand: celery -A scitrek_backend worker --loglevel=info --concurrency=2
+    envVarGroups:
+      - scitrek-shared
+    envVars:
+      - key: DATABASE_HOST
+        fromDatabase: { name: scitrek-postgres, property: host }
+      - key: DATABASE_PORT
+        fromDatabase: { name: scitrek-postgres, property: port }
+      - key: DATABASE_NAME
+        fromDatabase: { name: scitrek-postgres, property: database }
+      - key: DATABASE_USER
+        fromDatabase: { name: scitrek-postgres, property: user }
+      - key: DATABASE_PASSWORD
+        fromDatabase: { name: scitrek-postgres, property: password }
+
+      - key: CELERY_BROKER_URL
+        fromService: { name: scitrek-keyvalue, type: keyvalue, property: connectionString }
+      - key: CELERY_RESULT_BACKEND
+        fromService: { name: scitrek-keyvalue, type: keyvalue, property: connectionString }
+      - key: REDIS_CACHE_URL
+        fromService: { name: scitrek-keyvalue, type: keyvalue, property: connectionString }
+
+      - key: SECURITY_HEADERS_FROM_APP
+        value: "0"           # the worker serves no HTTP responses at all
+      - key: RUN_MIGRATIONS_ON_START
+        value: "0"           # the web service owns schema migration
+      - key: COLLECT_STATIC_ON_START
+        value: "0"
+
+  # ----------------------------------------------------------------- frontend
+  # The browser talks to one origin: this static site. /api and /admin are
+  # rewritten to the backend, so no CORS is involved and JWTs are never sent
+  # cross-origin. A static site has no server-side code, so its security headers
+  # are declared here rather than emitted by the app. Replace the destination
+  # hostnames if the backend service is created under a different name.
+  - name: scitrek-web
+    type: web
+    runtime: static
+    region: oregon
+    rootDir: frontend/scitrek-frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: ""            # empty = same-origin requests through the rewrites
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://scitrek-api.onrender.com/api/*
+      - type: rewrite
+        source: /admin/*
+        destination: https://scitrek-api.onrender.com/admin/*
+      - type: rewrite
+        source: /static/*
+        destination: https://scitrek-api.onrender.com/static/*
+      # SPA fallback. Must stay last: it matches every remaining path.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; base-uri 'self'; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none'; frame-src https:; img-src 'self' data: https:; media-src 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; upgrade-insecure-requests"
+      - path: /*
+        name: Permissions-Policy
+        value: "camera=(), microphone=(), geolocation=(), payment=()"
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: same-origin
+      - path: /*
+        name: X-Frame-Options
+        value: DENY

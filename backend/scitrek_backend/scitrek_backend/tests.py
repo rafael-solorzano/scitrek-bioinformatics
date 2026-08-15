@@ -215,6 +215,22 @@ class SecurityHeadersMiddlewareTests(TestCase):
         self.assertIn(settings.CONTENT_SECURITY_POLICY, text)
         self.assertIn(settings.PERMISSIONS_POLICY, text)
 
+    def test_default_policies_match_the_render_static_site_policies(self):
+        # A static site has no application layer, so its headers are declared in
+        # the blueprint. Three sources now state the same policy; this keeps the
+        # third from drifting.
+        from pathlib import Path
+
+        from django.conf import settings
+
+        blueprint = Path(settings.BASE_DIR).parent.parent / 'render.yaml'
+        if not blueprint.exists():  # pragma: no cover - not in the image context
+            self.skipTest('render.yaml is not present in this build context')
+
+        text = blueprint.read_text()
+        self.assertIn(settings.CONTENT_SECURITY_POLICY, text)
+        self.assertIn(settings.PERMISSIONS_POLICY, text)
+
     def test_does_not_overwrite_a_policy_the_response_already_carries(self):
         from django.http import HttpResponse
 

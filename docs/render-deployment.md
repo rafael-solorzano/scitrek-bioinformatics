@@ -4,13 +4,61 @@ This is the platform deployment path. The Compose/nginx topology in
 `docs/deployment.md` is unchanged and remains the EC2 path; nothing here
 replaces it.
 
+## What this costs
+
+Render's free tier does not cover every service this application needs.
+
+| Service | Plan | Cost | Why |
+| --- | --- | --- | --- |
+| `scitrek-web` (static site) | free | $0 | |
+| `scitrek-api` (web) | free | $0 | Spins down after 15 minutes idle; the next request waits roughly a minute. |
+| `scitrek-postgres` | free | $0 for 30 days | **Free Postgres is deleted 30 days after creation**, with a 14-day grace period to upgrade. Plan for this before real classroom data goes in. |
+| `scitrek-keyvalue` | free | $0 | No persistence on the free plan. |
+| `scitrek-worker` | starter | paid | **Background workers have no free instance type.** Starter (512 MB, 0.5 CPU) is the minimum. |
+
+The worker is not optional. Dropping it would mean uploaded workbooks are never
+parsed into sections, and teacher messages scheduled for a future time never
+send. Running the tasks inline on the web service instead is not an equivalent
+substitute: eager execution ignores the `eta` on a scheduled message, so those
+messages would fire immediately rather than at the requested time.
+
+Two consequences follow from the free plans rather than from the code:
+`preDeployCommand` requires a paid web service, so migrations run at startup
+(`RUN_MIGRATIONS_ON_START=1`) instead; and free Postgres expiry means the first
+30 days are a trial, not a deployment.
+
+## The blueprint
+
+[`render.yaml`](../render.yaml) at the repository root declares all five
+resources. Applying it creates them together and wires the database and Key
+Value connection details automatically. Everything marked `sync: false` in that
+file has to be entered in the dashboard — those are the secrets and the values
+that depend on the hostnames Render assigns.
+
+Two details in the blueprint are worth checking on the first deploy rather than
+assuming:
+
+- The static site rewrites `/api/*`, `/admin/*`, and `/static/*` to the backend
+  so the browser only ever talks to one origin. The destinations hard-code
+  `https://scitrek-api.onrender.com`; if the service is created under a
+  different name, update them. Render's documentation confirms a rewrite
+  destination may be a full external URL and that `*` carries the captured path
+  through, but it does not state which `Host` header the rewrite forwards —
+  which is why `DJANGO_ALLOWED_HOSTS` should list the static site's hostname
+  and the backend's own hostname is appended automatically. That covers either
+  behaviour.
+- The static site declares its own Content-Security-Policy and
+  Permissions-Policy. A static site has no application layer to emit them, so
+  the policy strings appear in three places now — `base.py`, the nginx snippet,
+  and `render.yaml` — and a test asserts all three agree.
+
 ## Why the configuration differs from Compose
 
 | Compose assumption | On Render |
 | --- | --- |
 | nginx terminates TLS and adds CSP/Permissions-Policy | No nginx. Django emits both headers via `SECURITY_HEADERS_FROM_APP=1`, and the static site declares its own. |
 | web and worker share a media volume | Disks cannot be shared between services, so media must live in S3-compatible object storage (`MEDIA_STORAGE_BACKEND=s3`). |
-| a one-shot service migrates and collects static into a shared volume | Migrations run as a pre-deploy command; each web instance collects its own static at startup. |
+| a one-shot service migrates and collects static into a shared volume | There is no one-shot service and no shared volume, and a pre-deploy command needs a paid plan, so the web instance migrates and collects its own static at startup. |
 | the container binds port 8000 | The platform assigns `$PORT`, which `start-web.sh` reads. |
 | health checks come through nginx with `X-Forwarded-Proto: https` | Platform checks arrive over plain HTTP, so the health endpoints are in `SECURE_REDIRECT_EXEMPT`. |
 
@@ -62,6 +110,7 @@ service stores the upload and the worker reads it back.
 | `MEDIA_S3_ADDRESSING_STYLE` | `virtual` | `path` if the provider requires path-style requests. |
 | `MEDIA_S3_URL_EXPIRE_SECONDS` | `300` | Signed-URL lifetime. |
 | `COLLECT_STATIC_ON_START` | `1` | Set `0` only if static files are baked into the image instead. |
+| `RUN_MIGRATIONS_ON_START` | `0` | `1` on the web service here, because a free plan has no pre-deploy command. Leave at `0` for Compose and on the worker: only one service may own migration. |
 | `GUEST_LOGIN_ENABLED` | off | Leave off unless a demo classroom is wanted. |
 | `PUBLIC_SIGNUP_ENABLED` | off | Leave off until an approved join policy exists. |
 | `DATABASE_PORT` | `5432` | |

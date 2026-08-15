@@ -7,7 +7,7 @@ Verified: 2026-08-14
 
 | Gate | Verified starting point | Current evidence |
 | --- | ---: | ---: |
-| Django tests | 137 | **198 collected, 198 passed** against PostgreSQL on the current tree, on both the filesystem and S3 media backends |
+| Django tests | 137 | **199 collected, 199 passed** against PostgreSQL on the current tree, on both the filesystem and S3 media backends |
 | Backend coverage | about 85% branch-aware | **87.2% branch-aware** on the current tree; 85% gate passed |
 | Frontend tests | 64 Jest/RTL | **70 passed** in Vitest |
 | Frontend coverage | 57.76% statements / 46.05% branches / 45.85% functions / 58.82% lines | **58.84% / 49.86% / 46.07% / 60.09%**, floors 57/46/45/58 |
@@ -31,7 +31,7 @@ observing student work, and a student being denied teacher reporting.
 
 | Check | Result |
 | --- | --- |
-| `coverage run manage.py test` in the isolated PostgreSQL/Redis E2E container | **198 collected, 198 passed** in 152.326s on the current tree (exit 0) |
+| `coverage run manage.py test` in the isolated PostgreSQL/Redis E2E container | **199 collected, 199 passed** in 114.744s on the current tree (exit 0) |
 | `coverage report` with `.coveragerc` | **87.2%** branch-aware; 85% gate passed (exit 0) on the current tree |
 | post-review backend rerun | **Executed and green.** The suite was rebuilt from the final post-adversarial-review sources and run against PostgreSQL 16 and Redis 7 |
 | `npm run coverage` | **70 passed**; 58.84/49.86/46.07/60.09 and all four floors passed |
@@ -53,6 +53,8 @@ observing student work, and a student being denied teacher reporting.
 | health-check redirect exemption | **Passed.** With `SECURE_SSL_REDIRECT=True`, `/healthz/` answers 200 over plain HTTP while `/api/student/modules/` still returns 301 to HTTPS |
 | isolated web-to-worker media volume probe | **Passed** on the current tree (web wrote, worker read the same bytes) |
 | migration drift and production deploy checks | **Passed on the current tree.** `makemigrations --check --dry-run` reports no changes; `check --deploy` reports no issues and no warnings |
+| `render.yaml` parses and declares the expected resources | **Passed.** YAML loads and yields one Postgres database, one env var group, and four services (key value, backend web, worker, static site) |
+| security policy drift across all three sources | **Passed.** The CSP and Permissions-Policy strings in `render.yaml` are byte-identical to the Django settings defaults and to the nginx snippet; a test asserts each pairing |
 | shell syntax, workflow YAML, Python compilation, artifact guard, Compose config, `git diff --check` | **Passed after final review** |
 
 ## Release status

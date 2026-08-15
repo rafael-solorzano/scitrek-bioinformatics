@@ -17,6 +17,14 @@ if [[ ! "$workers" =~ ^[1-9][0-9]*$ ]]; then
   exit 2
 fi
 
+# Compose runs migrations in a one-shot service, and a paid platform plan can
+# run them as a pre-deploy command. Neither exists on a free plan, so the web
+# instance has to apply them itself. Default off: the Compose path must not
+# migrate from inside the serving container.
+if [[ "${RUN_MIGRATIONS_ON_START:-0}" == "1" ]]; then
+  python manage.py migrate --noinput
+fi
+
 # In the Compose topology a one-shot migrate service collects static into a
 # volume shared with web. A platform without shared volumes gives each instance
 # its own filesystem, and a pre-deploy command runs somewhere else again, so this
