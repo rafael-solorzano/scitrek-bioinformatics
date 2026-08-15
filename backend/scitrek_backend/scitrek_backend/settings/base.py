@@ -279,6 +279,24 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_SOFT_TIME_LIMIT = 270
 CELERY_TASK_TIME_LIMIT = 300
 
+# Run tasks inline in the calling process instead of handing them to a worker.
+# For platforms with no worker process at all: the free tier of a host that
+# charges for background workers. Correct for every task here except a
+# ScheduledMessage, because eager execution ignores an eta and would send a
+# message the moment a teacher saved it. SCHEDULED_MESSAGE_SWEEP covers that.
+CELERY_TASK_ALWAYS_EAGER = env_bool('CELERY_TASK_ALWAYS_EAGER', False)
+
+# Who delivers a ScheduledMessage. False: the API enqueues it with an eta and a
+# Celery worker holds it until then. True: the API enqueues nothing, the row's
+# scheduled_time is the whole schedule, and `manage.py send_due_messages`
+# delivers what has come due. The two must not both run, or a message sends
+# twice -- though schedule_message_task is idempotent, so it would be harmless.
+SCHEDULED_MESSAGE_SWEEP = env_bool('SCHEDULED_MESSAGE_SWEEP', False)
+
+# Shared secret for the endpoint that triggers the sweep from an external
+# scheduler. Empty disables the endpoint outright rather than leaving it open.
+TASK_RUNNER_TOKEN = os.getenv('TASK_RUNNER_TOKEN', '').strip()
+
 # Optional Celery settings:
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'

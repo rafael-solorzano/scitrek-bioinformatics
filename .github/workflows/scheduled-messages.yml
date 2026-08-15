@@ -1,0 +1,61 @@
+# The clock for teacher messages scheduled in the future.
+#
+# The Render deployment has no Celery worker to hold a task with an eta, so the
+# ScheduledMessage row is the schedule and this workflow is what asks the app to
+# deliver whatever has come due. The endpoint is idempotent, so a missed run
+# delays a message rather than losing it, and a duplicate run sends nothing
+# twice.
+#
+# Two facts to know about GitHub's scheduler: it is best-effort and can run
+# several minutes late under load, and it disables scheduled workflows in a repo
+# with 60 days of no activity. Neither loses a message; both delay one.
+name: Deliver scheduled messages
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:        # so it can be triggered by hand while testing
+
+# A run that overlaps its predecessor would do no harm, but there is no point
+# paying for two.
+concurrency:
+  group: scheduled-messages
+  cancel-in-progress: false
+
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger the sweep
+        env:
+          URL: ${{ secrets.TASK_RUNNER_URL }}
+          TOKEN: ${{ secrets.TASK_RUNNER_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${URL:-}" ] || [ -z "${TOKEN:-}" ]; then
+            echo "TASK_RUNNER_URL and TASK_RUNNER_TOKEN must both be set as repository secrets." >&2
+            exit 1
+          fi
+
+          # --max-time 180 because a free Render instance spins down after 15
+          # minutes idle and the first request pays a cold start of about a
+          # minute. --retry covers the case where it does not wake in time.
+          status=$(curl --silent --show-error \
+            --request POST \
+            --header "X-Task-Token: ${TOKEN}" \
+            --max-time 180 \
+            --retry 2 --retry-delay 20 --retry-all-errors \
+            --output response.txt \
+            --write-out '%{http_code}' \
+            "${URL}")
+
+          echo "HTTP ${status}"
+          cat response.txt || true
+          echo
+
+          if [ "${status}" != "200" ]; then
+            echo "Sweep did not run." >&2
+            exit 1
+          fi

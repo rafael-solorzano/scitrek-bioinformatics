@@ -346,3 +346,36 @@ class MediaStorageBackendTests(SimpleTestCase):
     def test_unknown_backend_is_rejected_rather_than_ignored(self):
         with self.assertRaises(ImproperlyConfigured):
             self._load({"MEDIA_STORAGE_BACKEND": "s4"})
+
+
+@override_settings(TASK_RUNNER_TOKEN='a-long-shared-secret-value')
+class TaskRunnerEndpointTests(TestCase):
+    url = '/internal/run-due-messages/'
+
+    def test_runs_the_sweep_with_the_right_token(self):
+        response = self.client.post(self.url, HTTP_X_TASK_TOKEN='a-long-shared-secret-value')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'ok')
+
+    def test_rejects_a_wrong_token(self):
+        response = self.client.post(self.url, HTTP_X_TASK_TOKEN='not-the-secret')
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_rejects_a_missing_token(self):
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_rejects_get(self):
+        response = self.client.get(self.url, HTTP_X_TASK_TOKEN='a-long-shared-secret-value')
+
+        self.assertEqual(response.status_code, 405)
+
+    @override_settings(TASK_RUNNER_TOKEN='')
+    def test_is_absent_when_no_token_is_configured(self):
+        # An unconfigured deployment should not advertise the endpoint at all.
+        response = self.client.post(self.url, HTTP_X_TASK_TOKEN='anything')
+
+        self.assertEqual(response.status_code, 404)

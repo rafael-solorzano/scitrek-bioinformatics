@@ -4,10 +4,13 @@
 # docker-compose.yml is unchanged and remains the EC2 path; nothing here
 # replaces it.
 #
-# Read docs/render-deployment.md before applying this. It covers the plan costs
-# (the background worker has no free instance type), the values marked
-# `sync: false` that must be entered in the dashboard, and how to verify the
-# deploy.
+# Read docs/render-deployment.md before applying this. It covers the values
+# marked `sync: false` that must be entered in the dashboard, how to verify the
+# deploy, and what the absence of a Celery worker costs.
+#
+# Every resource here is on a free plan. Render charges for background workers
+# with no free tier, so there is no worker: the web service runs tasks inline
+# and an external scheduler drives the one task that genuinely needed a clock.
 
 databases:
   - name: scitrek-postgres
@@ -16,9 +19,9 @@ databases:
     plan: free               # free Postgres is deleted 30 days after creation
     postgresMajorVersion: "16"
 
-# Values the backend and the worker must agree on exactly. A group keeps them
-# from drifting: the worker reads back the same bucket the web service wrote to,
-# and both must verify tokens with the same secret key.
+# Shared between every service that runs Django. Only the web service does so
+# today, but the group is what keeps a second one from drifting away from it if
+# a worker is ever added back.
 envVarGroups:
   - name: scitrek-shared
     envVars:
@@ -127,46 +130,22 @@ services:
       - key: PUBLIC_SIGNUP_ENABLED
         value: "0"
 
-  # ------------------------------------------------------------------- worker
-  # Background workers have no free instance type; starter is the minimum.
-  # Without this service, workbook imports never parse and teacher messages
-  # scheduled for a future time never send.
-  - name: scitrek-worker
-    type: worker
-    runtime: docker
-    plan: starter
-    region: oregon
-    dockerfilePath: ./backend/scitrek_backend/Dockerfile
-    dockerContext: ./backend/scitrek_backend
-    dockerCommand: celery -A scitrek_backend worker --loglevel=info --concurrency=2
-    envVars:
-      # Same group as the web service, so the two cannot drift apart.
-      - fromGroup: scitrek-shared
-
-      - key: DATABASE_HOST
-        fromDatabase: { name: scitrek-postgres, property: host }
-      - key: DATABASE_PORT
-        fromDatabase: { name: scitrek-postgres, property: port }
-      - key: DATABASE_NAME
-        fromDatabase: { name: scitrek-postgres, property: database }
-      - key: DATABASE_USER
-        fromDatabase: { name: scitrek-postgres, property: user }
-      - key: DATABASE_PASSWORD
-        fromDatabase: { name: scitrek-postgres, property: password }
-
-      - key: CELERY_BROKER_URL
-        fromService: { name: scitrek-keyvalue, type: keyvalue, property: connectionString }
-      - key: CELERY_RESULT_BACKEND
-        fromService: { name: scitrek-keyvalue, type: keyvalue, property: connectionString }
-      - key: REDIS_CACHE_URL
-        fromService: { name: scitrek-keyvalue, type: keyvalue, property: connectionString }
-
-      - key: SECURITY_HEADERS_FROM_APP
-        value: "0"           # the worker serves no HTTP responses at all
-      - key: RUN_MIGRATIONS_ON_START
-        value: "0"           # the web service owns schema migration
-      - key: COLLECT_STATIC_ON_START
-        value: "0"
+      # There is no Celery worker in this topology: Render has no free instance
+      # type for one. Tasks run inline in the request that triggers them, which
+      # is correct for workbook parsing and inbox seeding -- they only need to
+      # happen, not to happen elsewhere.
+      - key: CELERY_TASK_ALWAYS_EAGER
+        value: "1"
+      # The exception. Eager execution ignores a task's eta, so a message a
+      # teacher scheduled for Friday would send the moment they saved it. With
+      # this set the API enqueues nothing and `send_due_messages` delivers what
+      # is due, triggered on a period by .github/workflows/scheduled-messages.yml.
+      - key: SCHEDULED_MESSAGE_SWEEP
+        value: "1"
+      # Shared secret the external scheduler presents. Must match the
+      # TASK_RUNNER_TOKEN secret in GitHub Actions. Empty disables the endpoint.
+      - key: TASK_RUNNER_TOKEN
+        sync: false
 
   # ----------------------------------------------------------------- frontend
   # The browser talks to one origin: this static site. /api and /admin are

@@ -1,4 +1,5 @@
 import csv
+from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -244,6 +245,11 @@ class ScheduledMessageListCreateAPIView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         classroom = get_object_or_404(Classroom, pk=self.kwargs['pk'], teacher=self.request.user)
         msg = serializer.save(classroom=classroom)
+        if settings.SCHEDULED_MESSAGE_SWEEP:
+            # No worker to hold the eta. The saved row is the schedule, and
+            # send_due_messages delivers it once scheduled_time has passed.
+            # Enqueuing here would run the task inline and send it immediately.
+            return
         try:
             schedule_message_task.apply_async((msg.id,), eta=msg.scheduled_time)
         except OperationalError as exc:

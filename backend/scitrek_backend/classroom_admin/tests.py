@@ -794,3 +794,91 @@ class CsvSafetyTests(APITestCase):
         for value in ["=1+1", "+SUM(A1:A2)", "-10", "@cmd", "\t=tab", "\r=return"]:
             with self.subTest(value=value):
                 self.assertEqual(csv_safe(value), f"'{value}")
+
+
+@override_settings(SCHEDULED_MESSAGE_SWEEP=True)
+class ScheduledMessageSweepModeTests(TeacherAPITestCase):
+    """Delivery without a Celery worker.
+
+    On a platform with no worker process there is nothing to hold a task with a
+    future eta, so the row itself is the schedule and a periodic sweep delivers
+    what has come due.
+    """
+
+    def test_create_does_not_enqueue_when_the_sweep_owns_delivery(self):
+        self.as_teacher()
+
+        with patch("classroom_admin.api_views.schedule_message_task.apply_async") as apply_async:
+            response = self.client.post(
+                reverse("teacher-schedule-messages", args=[self.classroom.id]),
+                {
+                    "subject": "Later",
+                    "body": "Bring notebooks",
+                    "scheduled_time": (timezone.now() + timedelta(hours=1)).isoformat(),
+                },
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, 201)
+        # Enqueuing here would deliver immediately: eager mode ignores the eta.
+        apply_async.assert_not_called()
+        self.assertTrue(ScheduledMessage.objects.filter(subject="Later", sent=False).exists())
+
+
+class SendDueMessagesCommandTests(TeacherAPITestCase):
+    def _message(self, subject, offset):
+        return ScheduledMessage.objects.create(
+            classroom=self.classroom,
+            subject=subject,
+            body="Body",
+            scheduled_time=timezone.now() + offset,
+        )
+
+    def test_sends_a_message_whose_time_has_passed(self):
+        msg = self._message("Due", timedelta(minutes=-1))
+
+        out = StringIO()
+        call_command("send_due_messages", stdout=out)
+
+        msg.refresh_from_db()
+        self.assertTrue(msg.sent)
+        self.assertIsNotNone(msg.sent_at)
+        self.assertTrue(
+            Message.objects.filter(recipient=self.student, subject="Due").exists()
+        )
+
+    def test_leaves_a_message_scheduled_for_the_future_alone(self):
+        msg = self._message("Future", timedelta(hours=1))
+
+        call_command("send_due_messages", stdout=StringIO())
+
+        msg.refresh_from_db()
+        self.assertFalse(msg.sent)
+        self.assertFalse(Message.objects.filter(subject="Future").exists())
+
+    def test_does_not_resend_on_a_second_run(self):
+        self._message("Once", timedelta(minutes=-1))
+
+        call_command("send_due_messages", stdout=StringIO())
+        first = Message.objects.filter(subject="Once").count()
+        call_command("send_due_messages", stdout=StringIO())
+
+        self.assertEqual(Message.objects.filter(subject="Once").count(), first)
+
+    def test_one_failing_message_does_not_block_the_rest(self):
+        self._message("Broken", timedelta(minutes=-2))
+        self._message("Fine", timedelta(minutes=-1))
+
+        real = ScheduledMessage.objects.get
+
+        def explode_on_broken(*args, **kwargs):
+            found = real(*args, **kwargs)
+            if found.subject == "Broken":
+                raise RuntimeError("boom")
+            return found
+
+        with patch("classroom_admin.tasks.ScheduledMessage.objects.get", explode_on_broken):
+            call_command("send_due_messages", stdout=StringIO())
+
+        self.assertTrue(Message.objects.filter(subject="Fine").exists())
+        self.assertFalse(ScheduledMessage.objects.get(subject="Broken").sent)

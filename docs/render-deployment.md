@@ -6,7 +6,7 @@ replaces it.
 
 ## What this costs
 
-Render's free tier does not cover every service this application needs.
+Every resource in the blueprint is on a free plan.
 
 | Service | Plan | Cost | Why |
 | --- | --- | --- | --- |
@@ -14,18 +14,58 @@ Render's free tier does not cover every service this application needs.
 | `scitrek-api` (web) | free | $0 | Spins down after 15 minutes idle; the next request waits roughly a minute. |
 | `scitrek-postgres` | free | $0 for 30 days | **Free Postgres is deleted 30 days after creation**, with a 14-day grace period to upgrade. Plan for this before real classroom data goes in. |
 | `scitrek-keyvalue` | free | $0 | No persistence on the free plan. |
-| `scitrek-worker` | starter | paid | **Background workers have no free instance type.** Starter (512 MB, 0.5 CPU) is the minimum. |
 
-The worker is not optional. Dropping it would mean uploaded workbooks are never
-parsed into sections, and teacher messages scheduled for a future time never
-send. Running the tasks inline on the web service instead is not an equivalent
-substitute: eager execution ignores the `eta` on a scheduled message, so those
-messages would fire immediately rather than at the requested time.
-
-Two consequences follow from the free plans rather than from the code:
+Three consequences follow from the free plans rather than from the code:
 `preDeployCommand` requires a paid web service, so migrations run at startup
-(`RUN_MIGRATIONS_ON_START=1`) instead; and free Postgres expiry means the first
-30 days are a trial, not a deployment.
+(`RUN_MIGRATIONS_ON_START=1`) instead; free Postgres expiry means the first 30
+days are a trial, not a deployment; and there is no Celery worker, because
+**Render has no free instance type for background workers**.
+
+## Running without a worker
+
+`CELERY_TASK_ALWAYS_EAGER=1` makes each task run inline in the process that
+triggered it. For three of this application's four tasks that is simply correct
+— parsing a workbook and seeding an inbox need to *happen*, not to happen
+elsewhere. The costs are that a workbook upload holds its request open for the
+few seconds the PDF takes to parse, and that a task failure is no longer
+retried.
+
+The fourth is different. `schedule_message_task` is enqueued with an `eta`, and
+eager execution ignores an `eta` — a message a teacher scheduled for Friday
+would send the instant they saved it. So `SCHEDULED_MESSAGE_SWEEP=1` changes who
+delivers it:
+
+| | Worker topology | Sweep topology |
+| --- | --- | --- |
+| On create | `apply_async(eta=...)`; the worker holds the task | Nothing is enqueued; the row is the schedule |
+| Delivery | The worker fires at `eta` | `manage.py send_due_messages` sends what is due |
+| Trigger | The worker's own clock | `POST /internal/run-due-messages/`, every 10 minutes from `.github/workflows/scheduled-messages.yml` |
+| Resolution | To the second | To the sweep period, and later if GitHub's scheduler is lagging |
+
+`send_due_messages` is idempotent and locks each row with `skip_locked`, so
+overlapping runs divide the work rather than double-sending, and a missed run
+delays a message instead of losing it. The endpoint returns 404 unless
+`TASK_RUNNER_TOKEN` is set, and 403 unless the caller presents it in
+`X-Task-Token`.
+
+To move to a real worker later: add a `worker` service to the blueprint running
+`celery -A scitrek_backend worker`, set `CELERY_TASK_ALWAYS_EAGER=0` and
+`SCHEDULED_MESSAGE_SWEEP=0`, and disable the GitHub workflow. No application
+code changes.
+
+### GitHub Actions setup
+
+Two repository secrets, under Settings → Secrets and variables → Actions:
+
+| Secret | Value |
+| --- | --- |
+| `TASK_RUNNER_URL` | `https://<backend-host>.onrender.com/internal/run-due-messages/` |
+| `TASK_RUNNER_TOKEN` | the same random string as the `TASK_RUNNER_TOKEN` env var on `scitrek-api` |
+
+GitHub disables scheduled workflows after 60 days without repository activity,
+and its scheduler runs late under load. Both delay a message; neither loses one.
+The 10-minute ping also keeps the free web service from spinning down, which
+removes the cold start for everyone else.
 
 ## The blueprint
 

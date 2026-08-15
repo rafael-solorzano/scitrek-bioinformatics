@@ -4,6 +4,7 @@ from django.urls import path, include
 from django.conf import settings
 from student_activities.auth_views import MyTokenObtainPairView, ScopedTokenRefreshView
 from .health import liveness, readiness
+from .cron import run_due_messages
 if settings.DEBUG:
     from drf_yasg.views import get_schema_view
     from drf_yasg import openapi
@@ -24,6 +25,10 @@ urlpatterns = [
     path('readyz/', readiness, name='readyz'),
     path('api/health/', liveness, name='api-health'),
     path('api/ready/', readiness, name='api-ready'),
+
+    # Driven by an external scheduler; token-gated, and absent unless
+    # TASK_RUNNER_TOKEN is configured. See scitrek_backend/cron.py.
+    path('internal/run-due-messages/', run_due_messages, name='run-due-messages'),
     path('admin/', admin.site.urls),
 
     # JWT auth (custom obtain, stock refresh)
