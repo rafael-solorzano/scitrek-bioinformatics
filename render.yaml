@@ -174,10 +174,11 @@ services:
   # cross-origin. A static site has no server-side code, so its security headers
   # are declared here rather than emitted by the app. Replace the destination
   # hostnames if the backend service is created under a different name.
+  # No region: a static site is served from the global CDN, and Render rejects
+  # the field outright. Only the three backing services are pinned to oregon.
   - name: scitrek-web
     type: web
     runtime: static
-    region: oregon
     rootDir: frontend/scitrek-frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
