@@ -75,9 +75,11 @@ services:
     dockerfilePath: ./backend/scitrek_backend/Dockerfile
     dockerContext: ./backend/scitrek_backend
     healthCheckPath: /healthz/
-    envVarGroups:
-      - scitrek-shared
     envVars:
+      # Attaches every key from the shared group above. A service references a
+      # group through fromGroup; envVarGroups is only the top-level definition.
+      - fromGroup: scitrek-shared
+
       # https://<static-site-host>. Django admin login fails without it.
       - key: CSRF_TRUSTED_ORIGINS
         sync: false
@@ -137,9 +139,10 @@ services:
     dockerfilePath: ./backend/scitrek_backend/Dockerfile
     dockerContext: ./backend/scitrek_backend
     dockerCommand: celery -A scitrek_backend worker --loglevel=info --concurrency=2
-    envVarGroups:
-      - scitrek-shared
     envVars:
+      # Same group as the web service, so the two cannot drift apart.
+      - fromGroup: scitrek-shared
+
       - key: DATABASE_HOST
         fromDatabase: { name: scitrek-postgres, property: host }
       - key: DATABASE_PORT
