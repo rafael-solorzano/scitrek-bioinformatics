@@ -125,8 +125,12 @@ services:
       - key: GUNICORN_WORKERS
         value: "2"           # 512 MB free instance
 
+      # On: the login page offers a guest button, and hiding a feature behind a
+      # flag that makes the button fail is worse than not having the button.
+      # Bounded by a 10/hour throttle and confined to the GUEST_CLASSROOM_NAME
+      # classroom, which must exist or the endpoint 404s.
       - key: GUEST_LOGIN_ENABLED
-        value: "0"
+        value: "1"
       - key: PUBLIC_SIGNUP_ENABLED
         value: "0"
 
