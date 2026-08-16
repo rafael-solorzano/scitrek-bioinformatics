@@ -102,6 +102,27 @@ assuming:
 | the container binds port 8000 | The platform assigns `$PORT`, which `start-web.sh` reads. |
 | health checks come through nginx with `X-Forwarded-Proto: https` | Platform checks arrive over plain HTTP, so the health endpoints are in `SECURE_REDIRECT_EXEMPT`. |
 
+## One-off admin commands
+
+A free web service has no shell, so `createsuperuser` and anything else one-off
+cannot be run on the instance. The managed database does accept external
+connections, so run the command locally against it:
+
+```bash
+export RENDER_DATABASE_URL='<External Database URL from the scitrek-postgres page>'
+export DJANGO_SECRET_KEY='<the value in the scitrek-shared env group>'
+scripts/render-manage.sh createsuperuser
+```
+
+`scripts/render-manage.sh` splits that URL into the five `DATABASE_*` variables
+production settings require and supplies placeholders for the broker and media
+settings, which fail-fast demands but no admin command touches. It is pointed at
+production data and has no confirmation prompt.
+
+The first login page a fresh deployment needs is `/admin/`, and guest login
+additionally needs a `Classroom` named `1001` (`GUEST_CLASSROOM_NAME`) to exist
+— without it the guest endpoint 404s.
+
 ## Environment variable checklist
 
 Production settings **fail fast**: a missing required variable raises
