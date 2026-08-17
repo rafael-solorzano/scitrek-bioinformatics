@@ -10,8 +10,8 @@ module.exports = {
           200: "#fed7aa",
           300: "#fdba74",
           400: "#fb923c",
-          500: "#c2410c",
-          600: "#9a3412",
+          500: "#f2a400",
+          600: "#d18f00",
           700: "#c2410c",
           800: "#9a3412",
           900: "#7c2d12",
@@ -38,5 +38,8 @@ module.exports = {
       },
     },
   },
-  plugins: [require("@tailwindcss/aspect-ratio")],
+  // NOTE: @tailwindcss/aspect-ratio is deliberately not loaded. That plugin
+  // disables Tailwind's native aspect-* utilities, which silently collapsed the
+  // Day 1 video and PhET iframes to the 150px default iframe height.
+  plugins: [],
 };

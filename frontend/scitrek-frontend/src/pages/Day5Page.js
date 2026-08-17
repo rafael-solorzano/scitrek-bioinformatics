@@ -3,7 +3,58 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import StudentProfileBanner from '../components/StudentProfileBanner';
 import Popup from '../components/Popup';
+import {
+  PredictThenReveal,
+  SentenceStarters,
+  StepFlow,
+  StageDesk,
+  StructuredReflection,
+  composeParts,
+  decomposeText,
+} from '../components/interactions';
 import { getCurrentUser, getResponseDetail, upsertResponse } from '../services/api';
+
+const TEMPLATE_URL =
+  'https://docs.google.com/presentation/d/1v-u2kytUM2MXvtG2qnFLdON0U4pX2Ey0y1cVEgj6zFY/edit?usp=sharing';
+
+// The Results prompt already names the four things it wants; they are fields now.
+const RESULTS_PARTS = [
+  {
+    key: 'resNormal',
+    label: 'Normal function of the gene',
+    placeholder: 'What does this gene usually do in a healthy breast cell?',
+  },
+  {
+    key: 'resCancer',
+    label: 'How it behaves differently in cancer',
+    placeholder: 'Is it louder or quieter? Mutated? What changes?',
+  },
+  {
+    key: 'resWhy',
+    label: 'Why it matters for doctors and patients',
+    placeholder: 'Clinical relevance — diagnosis, prognosis, or treatment choice.',
+  },
+  {
+    key: 'resSurprise',
+    label: 'Anything unexpected you found',
+    placeholder: 'It is fine to write “nothing surprised me” and say why.',
+  },
+];
+
+const DAY5_INQUIRY = [
+  {
+    q: 'What makes a scientific figure credible?',
+    a: 'Clear labeling, appropriate axes/scales, defined controls, and sources you can cite.',
+  },
+  {
+    q: 'How do you present uncertainty honestly?',
+    a: 'Show error bars or ranges, note limitations, and avoid overstating conclusions.',
+  },
+  {
+    q: 'What changed after peer feedback?',
+    a: 'Summarize one edit you made to improve clarity, evidence, or design.',
+  },
+];
 
 const Day5Page = () => {
   const { day } = useParams();
@@ -27,11 +78,12 @@ const Day5Page = () => {
     step2: { oneLineExplanation: '' },
     step3: { procedureSummary: '', topSources: ['', '', '', '', ''] },
     step4: { visualLink: '', caption: '' },
-    step5: { resultsSummary: '' },
+    // `resultsSummaryParts` is additive; `resultsSummary` still holds the prose.
+    step5: { resultsSummary: '', resultsSummaryParts: {} },
     step6: { conclusion: '', challenges: '', improvements: '' },
     step7: { assemblyNotes: '', designNotes: '' },
     step8: { presentationNotes: '', peerFeedbackGiven: '', peerFeedbackReceived: '' },
-    inquiry: { think: '' },
+    inquiry: { think: '', predictions: ['', '', ''] },
     spotlight: { takeaways: '' },
     wrap: { whyCommMatters: '', lookingAhead: '', finalReflection: '' },
   });
@@ -66,7 +118,13 @@ const Day5Page = () => {
               merged.step3 = merged.step3 || {};
               merged.step3.topSources = ['', '', '', '', ''];
             }
-            if (!merged.inquiry) merged.inquiry = { think: '' };
+            merged.inquiry = {
+              think: merged.inquiry?.think || '',
+              predictions: Array.isArray(merged.inquiry?.predictions)
+                ? merged.inquiry.predictions.slice(0, DAY5_INQUIRY.length)
+                : Array(DAY5_INQUIRY.length).fill(''),
+            };
+            merged.step5 = { resultsSummaryParts: {}, ...(merged.step5 || {}) };
             return merged;
           });
           setDirty(false);
@@ -173,7 +231,352 @@ const Day5Page = () => {
     };
   }, []);
 
+  const setStructured = (partsPath, prosePath, parts, nextValues) => {
+    setField(partsPath, nextValues);
+    setField(prosePath, composeParts(parts, nextValues));
+  };
+
+  const appendTo = (path, current, text) => setField(path, current ? `${current} ${text}` : text);
+
   if (loading) return <div className="flex items-center justify-center h-screen">Loading…</div>;
+
+  const a = answersData;
+  const resultsCarry = Object.keys(a.step5.resultsSummaryParts || {}).length
+    ? ''
+    : decomposeText(RESULTS_PARTS, a.step5.resultsSummary).carryOver;
+
+  const filled = (v) => Boolean((v || '').trim());
+
+  // Live preview of the poster the student is assembling. Keeping it on screen
+  // is the point: the eight prompts were previously eight separate cards, so
+  // nobody could see the whole poster while writing any one part of it.
+  const posterPreview = (
+    <div className="space-y-3">
+      <div className="rounded-xl border border-primary-200 bg-primary-50 p-4 text-sm">
+        <div className="font-semibold text-primary-800 mb-1">Slideshow template</div>
+        <a href={TEMPLATE_URL} target="_blank" rel="noreferrer noopener" className="text-primary-700 underline">
+          Open the Google Slides template
+        </a>
+      </div>
+
+      <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <h4 className="text-sm font-semibold text-gray-800 mb-2">Your poster so far</h4>
+        <dl className="space-y-2 text-sm">
+          {[
+            ['Title', a.step1.title],
+            ['Research explanation', a.step2.oneLineExplanation],
+            ['Procedure', a.step3.procedureSummary],
+            ['Visual caption', a.step4.caption],
+            ['Results', a.step5.resultsSummary],
+            ['Conclusion', a.step6.conclusion],
+          ].map(([label, value]) => (
+            <div key={label}>
+              <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</dt>
+              <dd className={filled(value) ? 'text-gray-800 whitespace-pre-wrap' : 'text-gray-600 italic'}>
+                {filled(value) ? value : 'Not written yet'}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </div>
+  );
+
+  const posterSteps = [
+    {
+      id: 'step1',
+      title: 'Step 1: Title',
+      hint: 'A clear, descriptive title for your project.',
+      isComplete: filled(a.step1.title),
+      render: () => (
+        <>
+          <p className="text-gray-700 mb-2 text-sm">
+            Example: “BRCA-1 Gene &amp; Breast Cancer: Causes &amp; Conclusions”.
+          </p>
+          <label htmlFor="d5-title" className="block text-sm font-medium mb-1">Your project title</label>
+          <input
+            id="d5-title"
+            value={a.step1.title}
+            onChange={(e) => setField('step1.title', e.target.value)}
+            className="w-full border border-gray-300 rounded p-3"
+            placeholder='Example: “BRCA-1 Gene & Breast Cancer: Causes & Conclusions”'
+          />
+        </>
+      ),
+    },
+    {
+      id: 'step2',
+      title: 'Step 2: Research Explanation',
+      hint: 'Your main conclusion in one sentence. What does your gene do, and how does it relate to breast cancer progression?',
+      isComplete: filled(a.step2.oneLineExplanation),
+      render: () => (
+        <>
+          <label htmlFor="d5-explain" className="block text-sm font-medium mb-1">
+            One-sentence research explanation
+          </label>
+          <textarea
+            id="d5-explain"
+            value={a.step2.oneLineExplanation}
+            onChange={(e) => setField('step2.oneLineExplanation', e.target.value)}
+            className="w-full border border-gray-300 rounded p-3"
+            rows={3}
+            placeholder='Example: “Gene XYZ contributes to breast cancer through a mutation that disables ABC, which normally regulates cell growth in breast tissue.”'
+          />
+          <SentenceStarters
+            starters={[
+              'My gene normally…',
+              'In breast cancer it…',
+              'which means that as the cancer progresses…',
+            ]}
+            onInsert={(t) => appendTo('step2.oneLineExplanation', a.step2.oneLineExplanation, t)}
+          />
+        </>
+      ),
+    },
+    {
+      id: 'step3',
+      title: 'Step 3: Description of Procedure',
+      hint: 'A short explanation of your research process, plus the top 3–5 sources you used.',
+      isComplete: filled(a.step3.procedureSummary) && a.step3.topSources.filter(filled).length >= 3,
+      render: () => (
+        <>
+          <label htmlFor="d5-procedure" className="block text-sm font-medium mb-1">Procedure summary</label>
+          <textarea
+            id="d5-procedure"
+            value={a.step3.procedureSummary}
+            onChange={(e) => setField('step3.procedureSummary', e.target.value)}
+            className="w-full border border-gray-300 rounded p-3 mb-4"
+            rows={4}
+            placeholder="What did you look up or analyze? How did you compare expression between typical (healthy) vs cancer cells?"
+          />
+
+          <h5 className="font-medium mb-1">Top 3–5 Sources</h5>
+          <p className="text-xs text-gray-600 mb-2" aria-live="polite">
+            {a.step3.topSources.filter(filled).length} of 5 listed — three is the minimum.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {a.step3.topSources.map((src, i) => (
+              <input
+                key={i}
+                value={src}
+                onChange={(e) => {
+                  const next = [...a.step3.topSources];
+                  next[i] = e.target.value;
+                  setField('step3.topSources', next);
+                }}
+                className="w-full border border-gray-300 rounded p-2"
+                placeholder={`Source ${i + 1}`}
+                aria-label={`Source ${i + 1}`}
+              />
+            ))}
+          </div>
+        </>
+      ),
+    },
+    {
+      id: 'step4',
+      title: 'Step 4: Visual Data Representation',
+      hint: 'A bar graph, heat map, or similar showing your gene in a cancer cell and in a typical healthy cell.',
+      isComplete: filled(a.step4.visualLink) && filled(a.step4.caption),
+      render: () => (
+        <>
+          <div className="bg-gray-100 rounded-xl p-4 mb-4">
+            <p className="text-sm text-gray-700">
+              Draw or find a visual (bar graph, heat map, etc.) showing gene expression for your gene in a cancer cell AND in a
+              typical (healthy) cell. Upload the visual to your slide. Label which samples are healthy and which are cancerous.
+            </p>
+          </div>
+
+          <label htmlFor="d5-visual" className="block text-sm font-medium mb-1">
+            Link to your visual (or where it’s uploaded)
+          </label>
+          <input
+            id="d5-visual"
+            value={a.step4.visualLink}
+            onChange={(e) => setField('step4.visualLink', e.target.value)}
+            className="w-full border border-gray-300 rounded p-3 mb-3"
+            placeholder="Paste a link to your chart/heatmap (Slides/Drive/image, etc.)"
+          />
+
+          <label htmlFor="d5-caption" className="block text-sm font-medium mb-1">Caption (1–2 sentences)</label>
+          <textarea
+            id="d5-caption"
+            value={a.step4.caption}
+            onChange={(e) => setField('step4.caption', e.target.value)}
+            className="w-full border border-gray-300 rounded p-3"
+            rows={3}
+            placeholder="Explain what your visual shows (healthy vs cancer expression) and what the key takeaway is."
+          />
+        </>
+      ),
+    },
+    {
+      id: 'step5',
+      title: 'Step 5: Results',
+      hint: 'Four things belong in a results summary. Write them one at a time and the full paragraph assembles below.',
+      isComplete: RESULTS_PARTS.every(({ key }) => filled(a.step5.resultsSummaryParts?.[key])),
+      render: () => (
+        <StructuredReflection
+          parts={RESULTS_PARTS}
+          values={a.step5.resultsSummaryParts}
+          carryOver={resultsCarry}
+          onChange={(next) =>
+            setStructured('step5.resultsSummaryParts', 'step5.resultsSummary', RESULTS_PARTS, next)
+          }
+        />
+      ),
+    },
+    {
+      id: 'step6',
+      title: 'Step 6: Conclusion',
+      hint: 'What your findings mean, plus an honest look at what was hard and what you would change.',
+      isComplete: filled(a.step6.conclusion),
+      render: () => (
+        <>
+          <p className="text-gray-700 mb-3 text-sm">
+            Discuss whether what you observed was the normal function of the gene, and how changes in this gene (expression or
+            mutation) could contribute to how a cell becomes cancerous.
+          </p>
+
+          <label htmlFor="d5-conclusion" className="block text-sm font-medium mb-1">Conclusion</label>
+          <textarea
+            id="d5-conclusion"
+            value={a.step6.conclusion}
+            onChange={(e) => setField('step6.conclusion', e.target.value)}
+            className="w-full border border-gray-300 rounded p-3 mb-3"
+            rows={3}
+            placeholder="What do your results mean? How could this gene’s behavior contribute to cancer progression?"
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="d5-challenges" className="block text-sm font-medium mb-1">
+                Challenges / possible sources of error
+              </label>
+              <textarea
+                id="d5-challenges"
+                value={a.step6.challenges}
+                onChange={(e) => setField('step6.challenges', e.target.value)}
+                className="w-full border border-gray-300 rounded p-3"
+                rows={3}
+                placeholder="What was difficult? What might have limited accuracy or clarity?"
+              />
+            </div>
+            <div>
+              <label htmlFor="d5-improvements" className="block text-sm font-medium mb-1">
+                Improvements for next time
+              </label>
+              <textarea
+                id="d5-improvements"
+                value={a.step6.improvements}
+                onChange={(e) => setField('step6.improvements', e.target.value)}
+                className="w-full border border-gray-300 rounded p-3"
+                rows={3}
+                placeholder="What would you change or add to make your research/visuals stronger next time?"
+              />
+            </div>
+          </div>
+        </>
+      ),
+    },
+    {
+      id: 'step7',
+      title: 'Step 7: Assemble the Slideshow',
+      hint: 'Organize the parts above into slides, then make it visually appealing without burying the science.',
+      isComplete: filled(a.step7.assemblyNotes),
+      render: () => (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="d5-assembly" className="block text-sm font-medium mb-1">
+                Slide order &amp; structure checklist
+              </label>
+              <textarea
+                id="d5-assembly"
+                value={a.step7.assemblyNotes}
+                onChange={(e) => setField('step7.assemblyNotes', e.target.value)}
+                className="w-full border border-gray-300 rounded p-3"
+                rows={3}
+                placeholder="List your slide order (Title → Research Explanation → Procedure/Sources → Visual/Caption → Results → Conclusion → etc.)"
+              />
+              <SentenceStarters
+                label="Suggested order — tap to add:"
+                starters={[
+                  'Title →',
+                  'Research Explanation →',
+                  'Procedure & Sources →',
+                  'Visual & Caption →',
+                  'Results →',
+                  'Conclusion',
+                ]}
+                onInsert={(t) => appendTo('step7.assemblyNotes', a.step7.assemblyNotes, t)}
+              />
+            </div>
+            <div>
+              <label htmlFor="d5-design" className="block text-sm font-medium mb-1">
+                Design notes (readable + creative)
+              </label>
+              <textarea
+                id="d5-design"
+                value={a.step7.designNotes}
+                onChange={(e) => setField('step7.designNotes', e.target.value)}
+                className="w-full border border-gray-300 rounded p-3"
+                rows={3}
+                placeholder="Colors, fonts, spacing, labeling, accessibility, and what creative elements you’re adding."
+              />
+            </div>
+          </div>
+
+          <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 mt-4 text-sm">
+            Hint: Add a QR code or share link on your slides so others can view your presentation easily.
+          </div>
+        </>
+      ),
+    },
+    {
+      id: 'step8',
+      title: 'Step 8: Presentation & Peer Feedback',
+      hint: 'Present to the class, then record what you gave and what you got.',
+      isComplete: filled(a.step8.presentationNotes),
+      render: () => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label htmlFor="d5-pres" className="block text-sm font-medium mb-1">Presentation notes</label>
+            <textarea
+              id="d5-pres"
+              value={a.step8.presentationNotes}
+              onChange={(e) => setField('step8.presentationNotes', e.target.value)}
+              className="w-full border border-gray-300 rounded p-3"
+              rows={3}
+              placeholder="How did your presentation go? Timing, clarity, what you emphasized."
+            />
+          </div>
+          <div>
+            <label htmlFor="d5-fb-given" className="block text-sm font-medium mb-1">Feedback you gave others</label>
+            <textarea
+              id="d5-fb-given"
+              value={a.step8.peerFeedbackGiven}
+              onChange={(e) => setField('step8.peerFeedbackGiven', e.target.value)}
+              className="w-full border border-gray-300 rounded p-3"
+              rows={3}
+              placeholder="Write 1 positive note + 1 constructive suggestion you gave."
+            />
+          </div>
+          <div>
+            <label htmlFor="d5-fb-recv" className="block text-sm font-medium mb-1">Feedback you received</label>
+            <textarea
+              id="d5-fb-recv"
+              value={a.step8.peerFeedbackReceived}
+              onChange={(e) => setField('step8.peerFeedbackReceived', e.target.value)}
+              className="w-full border border-gray-300 rounded p-3"
+              rows={3}
+              placeholder="What feedback did you receive? What will you change based on it?"
+            />
+          </div>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="font-sans bg-gray-50 text-gray-800">
@@ -222,7 +625,7 @@ const Day5Page = () => {
               placeholder="Explain the purpose of research posters (sharing results clearly, visuals, evidence, quick communication to others, etc.)…"
             />
             <div className="flex justify-end mt-4">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg">
                 Save Section
               </button>
             </div>
@@ -265,7 +668,7 @@ const Day5Page = () => {
               ].map((item, idx) => (
                 <li key={idx} className="flex items-start">
                   <div className="bg-primary-100 rounded-full p-1 mr-3 mt-1">
-                    <i className="fa-solid fa-check text-primary-600 text-sm" />
+                    <i className="fa-solid fa-check text-primary-700 text-sm" />
                   </div>
                   <span className="text-lg">{item}</span>
                 </li>
@@ -274,267 +677,31 @@ const Day5Page = () => {
           </div>
         </section>
 
-        {/* 3) Activities */}
-        <section id="activities-section" className="space-y-10">
+        {/* 3) Activities — one guided flow instead of eight stacked cards */}
+        <section id="activities-section" className="space-y-6">
           <h2 className="text-3xl font-bold text-center">Slideshow Creation (SciTrek-Led)</h2>
+          <p className="text-center text-gray-600 max-w-3xl mx-auto text-sm">
+            Work through the eight steps in order. Your poster assembles beside you as you go, and everything is saved
+            automatically — you can jump back to any step at any time.
+          </p>
 
-          {/* Step 1: Title */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
-            <h3 className="text-2xl font-semibold mb-4">Step 1: Title</h3>
-            <p className="text-gray-700 mb-2">
-              Create a clear, descriptive title for your project (example: “BRCA-1 Gene & Breast Cancer: Causes & Conclusions”).
-            </p>
-            <label className="block text-sm font-medium mb-1">Your project title</label>
-            <input
-              value={answersData.step1.title}
-              onChange={(e) => setField('step1.title', e.target.value)}
-              className="w-full border border-gray-300 rounded p-3"
-              placeholder='Example: “BRCA-1 Gene & Breast Cancer: Causes & Conclusions”'
-            />
-            <div className="flex justify-end mt-4">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">Save</button>
-            </div>
-          </section>
+          <div className="bg-white rounded-2xl shadow-md p-6 md:p-8">
+            <StageDesk
+              media={posterPreview}
+              mediaTitle="Your poster, assembling as you write"
+            >
+              <StepFlow steps={posterSteps} />
 
-          {/* Step 2: Research Explanation (one-liner) */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
-            <h3 className="text-2xl font-semibold mb-4">Step 2: Research Explanation</h3>
-            <p className="text-gray-700 mb-2">
-              Write your main conclusion in one sentence. What does your gene do, and how does it relate to breast cancer progression?
-            </p>
-            <label className="block text-sm font-medium mb-1">One-sentence research explanation</label>
-            <textarea
-              value={answersData.step2.oneLineExplanation}
-              onChange={(e) => setField('step2.oneLineExplanation', e.target.value)}
-              className="w-full border border-gray-300 rounded p-3"
-              rows={3}
-              placeholder='Example: “Gene XYZ contributes to breast cancer through a mutation that disables ABC, which normally regulates cell growth in breast tissue.”'
-            />
-            <div className="flex justify-end mt-4">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">Save</button>
-            </div>
-          </section>
-
-          {/* Step 3: Procedure + Sources */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
-            <h3 className="text-2xl font-semibold mb-4">Step 3: Description of Procedure</h3>
-            <p className="text-gray-700 mb-2">
-              Write a short explanation of your research process. Emphasize the top 3–5 sources you used.
-            </p>
-            <label className="block text-sm font-medium mb-1">Procedure summary</label>
-            <textarea
-              value={answersData.step3.procedureSummary}
-              onChange={(e) => setField('step3.procedureSummary', e.target.value)}
-              className="w-full border border-gray-300 rounded p-3 mb-4"
-              rows={4}
-              placeholder="What did you look up or analyze? How did you compare expression between typical (healthy) vs cancer cells?"
-            />
-
-            <h4 className="font-medium mb-2">Top 3–5 Sources</h4>
-            <label className="block text-xs text-gray-600 mb-2">List titles or links to your strongest sources</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {answersData.step3.topSources.map((src, i) => (
-                <input
-                  key={i}
-                  value={src}
-                  onChange={(e) => {
-                    const next = [...answersData.step3.topSources];
-                    next[i] = e.target.value;
-                    setField('step3.topSources', next);
-                  }}
-                  className="w-full border border-gray-300 rounded p-2"
-                  placeholder={`Source ${i + 1}`}
-                />
-              ))}
-            </div>
-            <div className="flex justify-end mt-4">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">Save</button>
-            </div>
-          </section>
-
-          {/* Step 4: Visual Representation of Data */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
-            <h3 className="text-2xl font-semibold mb-4">Step 4: Visual Data Representation</h3>
-            <div className="bg-gray-100 rounded-xl p-4 mb-4">
-              <p className="text-sm text-gray-700">
-                Draw or find a visual (bar graph, heat map, etc.) showing gene expression for your gene in a cancer cell AND in a typical (healthy) cell.
-                Upload the visual to your slide. Label which samples are healthy and which are cancerous.
-              </p>
-            </div>
-
-            <label className="block text-sm font-medium mb-1">Link to your visual (or where it’s uploaded)</label>
-            <input
-              value={answersData.step4.visualLink}
-              onChange={(e) => setField('step4.visualLink', e.target.value)}
-              className="w-full border border-gray-300 rounded p-3 mb-3"
-              placeholder="Paste a link to your chart/heatmap (Slides/Drive/image, etc.)"
-            />
-
-            <label className="block text-sm font-medium mb-1">Caption (1–2 sentences)</label>
-            <textarea
-              value={answersData.step4.caption}
-              onChange={(e) => setField('step4.caption', e.target.value)}
-              className="w-full border border-gray-300 rounded p-3"
-              rows={3}
-              placeholder="Explain what your visual shows (healthy vs cancer expression) and what the key takeaway is."
-            />
-            <div className="flex justify-end mt-4">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">Save</button>
-            </div>
-          </section>
-
-          {/* Step 5: Results */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
-            <h3 className="text-2xl font-semibold mb-4">Step 5: Results</h3>
-            <p className="text-gray-700 mb-2">
-              Summarize your results. Include: the normal function of the gene, how it may behave differently in a mutated cancer cell,
-              why it matters for doctors/patients (clinical relevance), and any unexpected findings.
-            </p>
-            <label className="block text-sm font-medium mb-1">Results summary</label>
-            <textarea
-              value={answersData.step5.resultsSummary}
-              onChange={(e) => setField('step5.resultsSummary', e.target.value)}
-              className="w-full border border-gray-300 rounded p-3"
-              rows={4}
-              placeholder="Normal function → change in cancer → why it matters → any surprises."
-            />
-            <div className="flex justify-end mt-4">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">Save</button>
-            </div>
-          </section>
-
-          {/* Step 6: Conclusion */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
-            <h3 className="text-2xl font-semibold mb-4">Step 6: Conclusion</h3>
-
-            <p className="text-gray-700 mb-3">
-              Write a conclusion explaining what your findings mean. Discuss whether what you observed was the normal function of the gene,
-              and how changes in this gene (expression or mutation) could contribute to how a cell becomes cancerous.
-            </p>
-
-            <label className="block text-sm font-medium mb-1">Conclusion</label>
-            <textarea
-              value={answersData.step6.conclusion}
-              onChange={(e) => setField('step6.conclusion', e.target.value)}
-              className="w-full border border-gray-300 rounded p-3 mb-3"
-              rows={3}
-              placeholder="What do your results mean? How could this gene’s behavior contribute to cancer progression?"
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">Challenges / possible sources of error</label>
-                <textarea
-                  value={answersData.step6.challenges}
-                  onChange={(e) => setField('step6.challenges', e.target.value)}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={3}
-                  placeholder="What was difficult? What might have limited accuracy or clarity?"
-                />
+              <div className="flex justify-end">
+                <button
+                  onClick={handleSave}
+                  className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg"
+                >
+                  Save
+                </button>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Improvements for next time</label>
-                <textarea
-                  value={answersData.step6.improvements}
-                  onChange={(e) => setField('step6.improvements', e.target.value)}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={3}
-                  placeholder="What would you change or add to make your research/visuals stronger next time?"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end mt-4">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">Save</button>
-            </div>
-          </section>
-
-          {/* Step 7: Assemble the Slideshow */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
-            <h3 className="text-2xl font-semibold mb-4">Step 7: Assemble the Slideshow</h3>
-
-            <p className="text-gray-700 mb-3">
-              Use the guidelines above to assemble neat slides for each part. Organize your information logically and make sure everything is clear and easy to read.
-              Then add creative design elements (photos, transitions, animations, colors, or music) to make it visually appealing while staying focused on the science.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">Slide order & structure checklist</label>
-                <textarea
-                  value={answersData.step7.assemblyNotes}
-                  onChange={(e) => setField('step7.assemblyNotes', e.target.value)}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={3}
-                  placeholder="List your slide order (Title → Research Explanation → Procedure/Sources → Visual/Caption → Results → Conclusion → etc.)"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Design notes (readable + creative)</label>
-                <textarea
-                  value={answersData.step7.designNotes}
-                  onChange={(e) => setField('step7.designNotes', e.target.value)}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={3}
-                  placeholder="Colors, fonts, spacing, labeling, accessibility, and what creative elements you’re adding."
-                />
-              </div>
-            </div>
-
-            <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 mt-4 text-sm">
-              Hint: Add a QR code or share link on your slides so others can view your presentation easily.
-            </div>
-
-            <div className="flex justify-end mt-4">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">Save</button>
-            </div>
-          </section>
-
-          {/* Step 8: Presentation & Peer Feedback */}
-          <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
-            <h3 className="text-2xl font-semibold mb-4">Step 8: Presentation & Peer Feedback</h3>
-
-            <p className="text-gray-700 mb-3">
-              Present your finished slideshow to the class (or in groups). Everyone should respectfully review each presentation and provide
-              positive feedback and constructive comments.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">Presentation notes</label>
-                <textarea
-                  value={answersData.step8.presentationNotes}
-                  onChange={(e) => setField('step8.presentationNotes', e.target.value)}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={3}
-                  placeholder="How did your presentation go? Timing, clarity, what you emphasized."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Feedback you gave others</label>
-                <textarea
-                  value={answersData.step8.peerFeedbackGiven}
-                  onChange={(e) => setField('step8.peerFeedbackGiven', e.target.value)}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={3}
-                  placeholder="Write 1 positive note + 1 constructive suggestion you gave."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Feedback you received</label>
-                <textarea
-                  value={answersData.step8.peerFeedbackReceived}
-                  onChange={(e) => setField('step8.peerFeedbackReceived', e.target.value)}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={3}
-                  placeholder="What feedback did you receive? What will you change based on it?"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end mt-4">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">Save</button>
-            </div>
-          </section>
+            </StageDesk>
+          </div>
         </section>
 
         {/* 4) Inquiry & Discussion */}
@@ -550,18 +717,17 @@ const Day5Page = () => {
             </h2>
 
             <div className="bg-white rounded-xl p-6 shadow-sm mb-6 relative z-10 space-y-4">
-              {[
-                { q: 'What makes a scientific figure credible?', a: 'Clear labeling, appropriate axes/scales, defined controls, and sources you can cite.' },
-                { q: 'How do you present uncertainty honestly?', a: 'Show error bars or ranges, note limitations, and avoid overstating conclusions.' },
-                { q: 'What changed after peer feedback?', a: 'Summarize one edit you made to improve clarity, evidence, or design.' },
-              ].map((item, idx) => (
-                <details key={idx} className="border border-gray-200 rounded-lg transition-colors">
-                  <summary className="cursor-pointer px-4 py-3 hover:bg-primary-50 rounded-lg flex justify-between items-center">
-                    <h4 className="font-medium">{item.q}</h4>
-                    <i className="fa-solid fa-chevron-down text-gray-500" />
-                  </summary>
-                  <div className="px-4 pb-4 pt-2 text-gray-600 text-sm">{item.a}</div>
-                </details>
+              <p className="text-sm text-gray-600">
+                Answer from your own poster first, then compare. Your answers here are saved with the rest of your work.
+              </p>
+              {DAY5_INQUIRY.map((item, idx) => (
+                <PredictThenReveal
+                  key={item.q}
+                  question={item.q}
+                  expertAnswer={item.a}
+                  value={answersData.inquiry.predictions?.[idx] || ''}
+                  onChange={(v) => setField(`inquiry.predictions[${idx}]`, v)}
+                />
               ))}
             </div>
 
@@ -579,7 +745,7 @@ const Day5Page = () => {
                 placeholder="Type your response here…"
               />
               <div className="mt-4 flex justify-end">
-                <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+                <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg">
                   Submit Response
                 </button>
               </div>
@@ -633,7 +799,7 @@ const Day5Page = () => {
           </div>
 
           <div className="flex justify-end mt-6">
-            <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+            <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg">
               Save Reflection
             </button>
           </div>
@@ -642,7 +808,7 @@ const Day5Page = () => {
         <div className="flex justify-center">
           <button
             onClick={handleSave}
-            className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-lg"
+            className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-6 rounded-lg"
           >
             Save
           </button>
@@ -659,7 +825,7 @@ const Day5Page = () => {
           </Link>
           <button
             onClick={handleSave}
-            className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+            className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg"
           >
             Save All
             <i className="fa-solid fa-floppy-disk ml-2" />

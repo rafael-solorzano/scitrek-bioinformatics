@@ -153,7 +153,7 @@ const WhatYoullLearnPage = () => {
             </Link>
             <Link
               to="/sections/vocabulary"
-              className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+              className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg"
             >
               Important Vocabulary
               <i className="fa-solid fa-arrow-right ml-2" />
@@ -167,7 +167,7 @@ const WhatYoullLearnPage = () => {
         <Link to="/sections/welcome" className="text-gray-600 hover:text-primary-500 mr-4">
           
         </Link>
-        <Link to="/sections/vocabulary" className="text-primary-600 hover:text-primary-700 ml-4">
+        <Link to="/sections/vocabulary" className="text-primary-700 hover:text-primary-700 ml-4">
           
         </Link>
       </footer>

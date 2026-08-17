@@ -1,6 +1,6 @@
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import Day1Page from './Day1Page';
 import Day2Page from './Day2Page';
 import Day3Page from './Day3Page';
@@ -130,7 +130,7 @@ describe('Day page debounced autosave', () => {
     ), { timeout: 3000 });
   });
 
-  test('Day 1 trims simulation answer arrays to the fields students can edit', async () => {
+  test('Day 1 trims simulation answer arrays and preserves pre-existing free-text notes', async () => {
     getCurrentUser.mockResolvedValue(mockUser);
     getResponseDetail.mockResolvedValue({
       answers: {
@@ -146,8 +146,14 @@ describe('Day page debounced autosave', () => {
 
     renderDay(Day1Page, 1);
 
-    expect(await screen.findByDisplayValue('one')).toBeInTheDocument();
-    expect(screen.queryByDisplayValue('hidden')).not.toBeInTheDocument();
+    // Gene 1 is the first step of the flow, so its carried-over notes are on
+    // screen: the first three legacy values survive, the fourth is trimmed.
+    expect(await screen.findByText(/Your earlier notes for Gene 1/i)).toBeInTheDocument();
+    expect(screen.getByText('one, two, three')).toBeInTheDocument();
+    expect(screen.queryByText(/hidden/)).not.toBeInTheDocument();
+
+    // Reflections are still text, still trimmed to the four fields shown.
+    expect(screen.getByDisplayValue('r1')).toBeInTheDocument();
   });
 
   test('Day 2 autosaves the first cell-cycle edit after debounce', async () => {
@@ -192,17 +198,25 @@ describe('Day page debounced autosave', () => {
     vi.useFakeTimers({ shouldClearNativeTimers: true });
     await renderLoadedDay(Day3Page, 3, /Day 3: Seeing Static/i);
 
-    fireEvent.change(screen.getByPlaceholderText(/Type your hypothesis/i), {
-      target: { value: 'Cancer samples will show changed expression.' },
+    // The hypothesis builder is step B of the Gene Detective flow.
+    fireEvent.click(screen.getByRole('button', { name: /B\) Write a testable hypothesis/i }));
+
+    fireEvent.change(screen.getByLabelText(/Groups being compared/i), {
+      target: { value: 'Cancer samples vs healthy controls' },
     });
 
     await runAutosaveDebounce();
 
+    // The composed prose still lands on the key the page has always persisted,
+    // with the per-part values stored alongside it.
     await waitFor(() => expect(upsertResponse).toHaveBeenCalledWith(
       3,
       expect.objectContaining({
         detective: expect.objectContaining({
-          hypothesis: 'Cancer samples will show changed expression.',
+          hypothesis: 'Groups being compared: Cancer samples vs healthy controls',
+          hypothesisParts: expect.objectContaining({
+            hypGroups: 'Cancer samples vs healthy controls',
+          }),
         }),
       })
     ), { timeout: 3000 });
@@ -231,9 +245,23 @@ describe('Day page debounced autosave', () => {
   test('Day 4 renders scenario fields with empty defaults', async () => {
     await renderLoadedDay(Day4Page, 4, /Day 4: Levels of Expression/i);
 
-    expect(screen.getByLabelText(/Scenario 1/i)).toHaveValue('');
-    expect(screen.getByLabelText(/Scenario 2/i)).toHaveValue('');
-    expect(screen.getByLabelText(/Scenario 3/i)).toHaveValue('');
+    // Scenarios are now a step flow, so step through them one at a time. The
+    // "best method" part is a choice among three named methods, so it is a
+    // radiogroup with nothing selected rather than an empty text field.
+    const noMethodChosen = (n) => {
+      const group = screen.getByRole('radiogroup', { name: new RegExp(`Scenario ${n} — best method`, 'i') });
+      within(group)
+        .getAllByRole('radio')
+        .forEach((radio) => expect(radio).toHaveAttribute('aria-checked', 'false'));
+    };
+
+    noMethodChosen(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /^2\. Scenario 2/i }));
+    noMethodChosen(2);
+
+    fireEvent.click(screen.getByRole('button', { name: /^3\. Scenario 3/i }));
+    noMethodChosen(3);
   });
 
   test('Day 5 autosaves the first project-title edit after debounce', async () => {

@@ -3,6 +3,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import StudentProfileBanner from '../components/StudentProfileBanner';
 import Popup from '../components/Popup';
+import {
+  CategorizeItems,
+  PredictThenReveal,
+  SentenceStarters,
+  StepFlow,
+  StageDesk,
+  StructuredReflection,
+  composeParts,
+  decomposeText,
+} from '../components/interactions';
 import { getCurrentUser, getResponseDetail, upsertResponse } from '../services/api';
 
 const DEFAULT_GENES = [
@@ -23,22 +33,27 @@ const warnOnPaste = (e) => {
 };
 
 /**
- * IMPORTANT: Your images live in /public/images so they are served at /images/<filename>
- * We URL-encode filenames to safely handle spaces and commas.
+ * The card images live in /public/images and are served at /images/<filename>.
+ *
+ * They used to be named "ChatGPT Image Aug 22, 2025 at 10_16_26 AM.png". The
+ * comma is why nobody could see them: encodeURIComponent escapes it to %2C, and
+ * the static-file middleware resolves paths with decodeURI, which leaves %2C
+ * alone. The file was never found, so every card fell through to the SPA's
+ * index.html and rendered as a broken image. The files are named plainly now.
  */
 const GENE_CARD_FILES = [
-  'ChatGPT Image Aug 22, 2025 at 10_16_26 AM.png',
-  'ChatGPT Image Aug 22, 2025 at 10_16_25 AM.png',
-  'ChatGPT Image Aug 22, 2025 at 10_16_23 AM.png',
-  'ChatGPT Image Aug 22, 2025 at 10_16_21 AM.png',
-  'ChatGPT Image Aug 22, 2025 at 10_16_20 AM.png',
-  'ChatGPT Image Aug 22, 2025 at 10_16_18 AM.png',
+  'gene-card-hk1.png',
+  'gene-card-gapdh.png',
+  'gene-card-brca1.png',
+  'gene-card-brca2.png',
+  'gene-card-tp53.png',
+  'gene-card-myc.png',
 ];
 
 const SUSPECT_CARD_FILES = [
-  'ChatGPT Image Aug 22, 2025 at 10_16_01 AM.png', // HK1
-  'ChatGPT Image Aug 22, 2025 at 10_16_02 AM.png', // GAPDH
-  'ChatGPT Image Aug 22, 2025 at 10_16_05 AM.png', // BRCA1
+  'patient-card-1.png',
+  'patient-card-2.png',
+  'patient-card-3.png',
 ];
 
 const GENE_CARDS = DEFAULT_GENES.map((g, i) => ({
@@ -49,6 +64,223 @@ const GENE_CARDS = DEFAULT_GENES.map((g, i) => ({
 }));
 
 const imageUrl = (filename) => `/images/${encodeURIComponent(filename)}`;
+
+const GENE_CATEGORIES = [
+  { value: 'typical', label: 'Typical' },
+  { value: 'suspicious', label: 'Suspicious' },
+];
+
+// Parts of a good answer, named by the prompts themselves. The composed prose
+// is written back to the same answer key the page has always used; the parts
+// live under an additive sibling key so the builder can restore exactly.
+const LOUD_QUIET_PARTS = [
+  {
+    key: 'lqLoud',
+    label: 'Too loud (high expression)',
+    hint: 'Which kind of gene is dangerous when it is over-expressed, and why?',
+    placeholder: 'If an oncogene is too loud…',
+  },
+  {
+    key: 'lqQuiet',
+    label: 'Too quiet (low expression)',
+    hint: 'Which kinds of gene are dangerous when they are under-expressed, and why?',
+    placeholder: 'If a tumor suppressor or repair gene is too quiet…',
+  },
+];
+
+const GENE_SYMBOLS = ['HK1', 'GAPDH', 'BRCA1', 'BRCA2', 'TP53', 'MYC'];
+
+// The two "describe expression" prompts were blank boxes. The wording is
+// unchanged; what changed is that the parts a good answer needs are now named,
+// and the parts whose answer is a choice are tapped rather than typed.
+const HEALTHY_PARTS = [
+  {
+    key: 'healthyHousekeeping',
+    label: 'Housekeeping genes (HK1, GAPDH) look…',
+    options: ['Steady and reliable', 'Swinging up and down', 'Switched off'],
+  },
+  {
+    key: 'healthyCandidates',
+    label: 'Cancer-linked genes (BRCA1/2, TP53, MYC) look…',
+    options: ['Within their normal range', 'Far above normal', 'Far below normal'],
+  },
+  {
+    key: 'healthyWhy',
+    label: 'Why that pattern makes sense',
+    placeholder: 'In a healthy cell the signals that turn genes up and down are still working, so…',
+    starters: [
+      'The cell still controls when each gene is switched on because…',
+      'Housekeeping genes stay steady because…',
+    ],
+  },
+];
+
+const CANCER_PARTS = [
+  {
+    key: 'cancerLoud',
+    label: 'Pick a gene that is too loud (over-expressed)',
+    options: GENE_SYMBOLS,
+  },
+  {
+    key: 'cancerQuiet',
+    label: 'Pick a gene that is too quiet (under-expressed)',
+    options: GENE_SYMBOLS,
+  },
+  {
+    key: 'cancerWhy',
+    label: 'Why those two changes matter',
+    placeholder: 'A gene that is too loud can…, while a gene that is too quiet can…',
+    starters: [
+      'Too loud is dangerous because…',
+      'Too quiet is dangerous because…',
+      'Together these two changes mean…',
+    ],
+  },
+];
+
+const PATTERN_PARTS = [
+  {
+    key: 'patternPick',
+    label: 'The pattern that stood out most',
+    options: [
+      'One gene too loud while another is too quiet',
+      'Both housekeeping genes stayed steady',
+      'A repair gene (BRCA1/BRCA2) was too quiet',
+      'A growth gene (MYC) was too loud',
+    ],
+  },
+  {
+    key: 'patternWhy',
+    label: 'Which genes and cases showed it',
+    placeholder: 'Name the genes and the patient case where you saw it.',
+    starters: [
+      'The housekeeping genes were…',
+      'The cancer-linked genes were different because…',
+      'One pair that stood out was…',
+    ],
+  },
+];
+
+const SUSPICIOUS_PARTS = [
+  {
+    key: 'suspCase',
+    label: 'The case that looked most suspicious',
+    options: ['Patient Case 1', 'Patient Case 2', 'Patient Case 3'],
+  },
+  {
+    key: 'suspEvidence',
+    label: 'What you saw on that card',
+    placeholder: 'Name the genes and whether each was over-, under- or normally expressed.',
+    starters: ['In Case 1 I noticed…', 'In Case 2 I noticed…', 'In Case 3 I noticed…'],
+  },
+];
+
+const HYPOTHESIS_PARTS = [
+  {
+    key: 'hypGroups',
+    label: 'Groups being compared',
+    placeholder: 'e.g., Patient Case 3 tumor tissue vs. matched normal tissue from the same patient',
+    starters: ['Tumor tissue vs. matched normal tissue', 'Patient Case', 'Cancer samples vs. healthy controls'],
+  },
+  {
+    key: 'hypGene',
+    label: 'Gene you are focusing on',
+    placeholder: 'e.g., BRCA1',
+    rows: 1,
+    starters: ['BRCA1', 'BRCA2', 'TP53', 'MYC'],
+  },
+  {
+    key: 'hypDirection',
+    label: 'What you predict will happen',
+    placeholder: 'e.g., expression will be lower in the tumor tissue',
+    starters: ['expression will be higher in', 'expression will be lower in', 'expression will be about the same in'],
+  },
+  {
+    key: 'hypMeasurement',
+    label: 'How you would measure it',
+    placeholder: 'e.g., as measured by qPCR',
+    rows: 1,
+    starters: ['as measured by qPCR', 'as measured by RNA-seq', 'as measured by immunohistochemistry (IHC)'],
+  },
+];
+
+const EXPERIMENT_PARTS = [
+  {
+    key: 'expSamples',
+    label: 'Samples',
+    hint: 'What exactly are you comparing?',
+    placeholder: 'e.g., tumor tissue and matched normal tissue from five patients',
+  },
+  {
+    key: 'expMethod',
+    label: 'Method',
+    hint: 'How will you actually measure expression?',
+    placeholder: 'e.g., qPCR for the genes of interest',
+    rows: 1,
+    starters: ['qPCR', 'RNA-seq', 'Immunohistochemistry (IHC)'],
+  },
+  {
+    key: 'expControl',
+    label: 'Control',
+    hint: 'What steady reference do you compare against?',
+    placeholder: 'e.g., GAPDH as a housekeeping gene',
+    rows: 1,
+    starters: ['GAPDH (housekeeping gene)', 'HK1 (housekeeping gene)'],
+  },
+  {
+    key: 'expDecision',
+    label: 'Decision rule',
+    hint: 'What result would support your hypothesis — and what result would not?',
+    placeholder: 'e.g., support if BRCA1 is at least 2× lower in tumor tissue than in normal tissue',
+    starters: ['My hypothesis is supported if…', 'My hypothesis is not supported if…'],
+  },
+];
+
+const DAY3_INQUIRY = [
+  {
+    q: 'Why are housekeeping genes helpful in expression studies?',
+    a: 'Their fairly constant expression provides a baseline for comparisons with variable, cancer-linked genes.',
+  },
+  {
+    q: 'Give one reason an oncogene might look “too loud.”',
+    a: 'A mutation or amplification can increase transcription/translation, driving uncontrolled growth.',
+  },
+  {
+    q: 'Give one reason a tumor suppressor might look “too quiet.”',
+    a: 'Promoter methylation or loss-of-function mutation can reduce expression and remove growth brakes.',
+  },
+];
+
+// The wording of every wrap-up question is unchanged. Each one now offers the
+// phrases it is fishing for as tap-to-insert starters, so the answer begins from
+// a decision rather than from a blank box.
+const DAY3_WRAP = [
+  {
+    key: 'idSignals',
+    label: 'What kinds of gene behavior can help identify cancer presence/absence?',
+    starters: [
+      'A growth gene expressed far too loudly',
+      'A tumor suppressor expressed far too quietly',
+      'A repair gene that has been switched off',
+      'Housekeeping genes drifting away from steady',
+    ],
+  },
+  {
+    key: 'overUnderExamples',
+    label: 'Give one example of a gene being over-expressed (too loud) and one being under-expressed (too quiet). Why might each be concerning?',
+    starters: ['MYC over-expressed…', 'TP53 under-expressed…', 'BRCA1 under-expressed…', 'This is concerning because…'],
+  },
+  {
+    key: 'hkBaseline',
+    label: 'Why are housekeeping genes a good baseline for comparison?',
+    starters: ['They stay steady across cell types, so…', 'Without a baseline you cannot tell whether…'],
+  },
+  {
+    key: 'preBiopsyMethods',
+    label: 'Before biopsy, what other methods might detect cancer presence?',
+    starters: ['Imaging (ultrasound, MRI, PET)', 'Blood tests', 'Family history and known mutations', 'Physical examination'],
+  },
+];
 
 const Day3Page = () => {
   const { day } = useParams();
@@ -73,14 +305,18 @@ const Day3Page = () => {
 
   // Central answers model
   const [answersData, setAnswersData] = useState({
-    // Introduction
-    intro: { loudQuietMeaning: '' },
+    // Introduction. `loudQuietParts` is additive — the composed prose still
+    // lives in `loudQuietMeaning`, exactly as before.
+    intro: { loudQuietMeaning: '', loudQuietParts: {} },
 
     // Comparing gene expression
     compare: {
       healthyDesc: '',
+      healthyDescParts: {},
       cancerDesc: '',
+      cancerDescParts: {},
       patterns: '',
+      patternsParts: {},
       table: DEFAULT_GENES.map(g => ({
         gene: g.name,
         category: g.type === 'housekeeping' ? 'typical' : '',
@@ -91,13 +327,16 @@ const Day3Page = () => {
     // Gene detective
     detective: {
       suspiciousNotes: '',
+      suspiciousParts: {},
       hypothesis: '',
+      hypothesisParts: {},
       experimentPlan: '',
+      experimentPlanParts: {},
       experimentSketch: '',
     },
 
     // Inquiry & discussion
-    inquiry: { think: '' },
+    inquiry: { think: '', predictions: ['', '', ''] },
 
     // Wrap-up
     wrap: {
@@ -143,7 +382,25 @@ const Day3Page = () => {
                 notes: '',
               }));
             }
-            if (!merged.inquiry) merged.inquiry = { think: '' };
+            merged.inquiry = {
+              think: merged.inquiry?.think || '',
+              predictions: Array.isArray(merged.inquiry?.predictions)
+                ? merged.inquiry.predictions.slice(0, DAY3_INQUIRY.length)
+                : Array(DAY3_INQUIRY.length).fill(''),
+            };
+            merged.intro = { loudQuietMeaning: '', loudQuietParts: {}, ...(merged.intro || {}) };
+            merged.compare = {
+              healthyDescParts: {},
+              cancerDescParts: {},
+              patternsParts: {},
+              ...merged.compare,
+            };
+            merged.detective = {
+              hypothesisParts: {},
+              experimentPlanParts: {},
+              suspiciousParts: {},
+              ...(merged.detective || {}),
+            };
             return merged;
           });
           setDirty(false);
@@ -246,7 +503,70 @@ const Day3Page = () => {
     };
   }, []);
 
+  /**
+   * Write a response-builder's parts to their additive key AND the composed
+   * prose to the key this page has always persisted, so the teacher dashboard
+   * keeps reading a plain readable answer.
+   */
+  const setStructured = (partsPath, prosePath, parts, nextValues) => {
+    setField(partsPath, nextValues);
+    setField(prosePath, composeParts(parts, nextValues));
+  };
+
+  const appendTo = (path, current, text) => setField(path, current ? `${current} ${text}` : text);
+
   if (loading) return <div className="flex items-center justify-center h-screen">Loading…</div>;
+
+  // Anything a student wrote before these prompts became builders is shown back
+  // to them rather than silently dropped.
+  const loudQuietCarry = Object.keys(answersData.intro.loudQuietParts || {}).length
+    ? ''
+    : decomposeText(LOUD_QUIET_PARTS, answersData.intro.loudQuietMeaning).carryOver;
+  const hypothesisCarry = Object.keys(answersData.detective.hypothesisParts || {}).length
+    ? ''
+    : decomposeText(HYPOTHESIS_PARTS, answersData.detective.hypothesis).carryOver;
+  const experimentCarry = Object.keys(answersData.detective.experimentPlanParts || {}).length
+    ? ''
+    : decomposeText(EXPERIMENT_PARTS, answersData.detective.experimentPlan).carryOver;
+  const healthyCarry = Object.keys(answersData.compare.healthyDescParts || {}).length
+    ? ''
+    : decomposeText(HEALTHY_PARTS, answersData.compare.healthyDesc).carryOver;
+  const cancerCarry = Object.keys(answersData.compare.cancerDescParts || {}).length
+    ? ''
+    : decomposeText(CANCER_PARTS, answersData.compare.cancerDesc).carryOver;
+  const patternsCarry = Object.keys(answersData.compare.patternsParts || {}).length
+    ? ''
+    : decomposeText(PATTERN_PARTS, answersData.compare.patterns).carryOver;
+  const suspiciousCarry = Object.keys(answersData.detective.suspiciousParts || {}).length
+    ? ''
+    : decomposeText(SUSPICIOUS_PARTS, answersData.detective.suspiciousNotes).carryOver;
+
+  const patientCardPane = (
+    <div className="space-y-3">
+      {/* Capped, because a full-width row of three portrait cards on a laptop
+          is taller than the screen. The 2:3 box is width-driven, so the row
+          keeps its height whether it is on the stage or in the corner dock. */}
+      <div className="grid grid-cols-3 gap-2 max-w-2xl mx-auto">
+        {SUSPECT_CARD_FILES.map((file, idx) => (
+          <button
+            key={`pane-suspect-${idx}`}
+            type="button"
+            className="rounded-lg border border-gray-200 bg-white p-1 hover:border-primary-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
+            onClick={() => setLightbox({ src: imageUrl(file), alt: `Patient tissue card ${idx + 1}` })}
+          >
+            <img
+              src={imageUrl(file)}
+              alt={`Patient tissue card ${idx + 1}`}
+              className="w-full aspect-[2/3] object-contain"
+              loading="lazy"
+            />
+            <span className="block text-[11px] text-gray-600 mt-1">Case {idx + 1}</span>
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-gray-600">Tap a card to zoom. The full gallery is further up the page.</p>
+    </div>
+  );
 
   /* ---------------------------------- UI ----------------------------------- */
 
@@ -324,7 +644,7 @@ const Day3Page = () => {
               ].map((item, idx) => (
                 <li key={idx} className="flex items-start">
                   <div className="bg-primary-100 rounded-full p-1 mr-3 mt-1">
-                    <i className="fa-solid fa-check text-primary-600 text-sm" />
+                    <i className="fa-solid fa-check text-primary-700 text-sm" />
                   </div>
                   <span className="text-lg">{item}</span>
                 </li>
@@ -343,17 +663,18 @@ const Day3Page = () => {
             <p className="text-gray-700 mb-4">
               Review your Day 1 and 2 notes on oncogenes, tumor suppressors, and DNA repair genes. Then answer:
             </p>
-            <label className="block text-sm font-medium mb-2">
+            <p className="block text-sm font-medium mb-3">
               If a gene is too “loud” (high expression) or too “quiet” (low expression), what might that mean? (Connect to
               oncogenes = often dangerous when <em>too loud</em>; tumor suppressors/repair = dangerous when <em>too quiet</em>.)
-            </label>
-            <textarea
-              value={answersData.intro.loudQuietMeaning}
-              onChange={e => setField('intro.loudQuietMeaning', e.target.value)}
-              onPaste={warnOnPaste}
-              className="w-full border border-gray-300 rounded px-3 py-2"
-              rows={3}
-              placeholder="Type your answer…"
+            </p>
+            <StructuredReflection
+              parts={LOUD_QUIET_PARTS}
+              values={answersData.intro.loudQuietParts}
+              carryOver={loudQuietCarry}
+              onChange={(next) =>
+                setStructured('intro.loudQuietParts', 'intro.loudQuietMeaning', LOUD_QUIET_PARTS, next)
+              }
+              hint="Two halves to the same idea — answer them one at a time."
             />
           </section>
 
@@ -361,114 +682,78 @@ const Day3Page = () => {
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Comparing Gene Expression</h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
                 <h4 className="font-medium mb-2">Describe expression in healthy cells</h4>
-                <p className="text-xs text-gray-600 mb-1">
+                <p className="text-xs text-gray-600 mb-3">
                   Hint: housekeeping steady; cancer-linked genes within normal ranges and responding to signals.
                 </p>
-                <textarea
-                  value={answersData.compare.healthyDesc}
-                  onChange={e => setField('compare.healthyDesc', e.target.value)}
-                  onPaste={warnOnPaste}
-                  className="w-full border border-gray-300 rounded px-3 py-2"
-                  rows={3}
-                  placeholder="Type your answer…"
+                <StructuredReflection
+                  parts={HEALTHY_PARTS}
+                  values={answersData.compare.healthyDescParts}
+                  carryOver={healthyCarry}
+                  onChange={(next) =>
+                    setStructured('compare.healthyDescParts', 'compare.healthyDesc', HEALTHY_PARTS, next)
+                  }
                 />
               </div>
               <div>
                 <h4 className="font-medium mb-2">Describe expression in cancerous cells</h4>
-                <p className="text-xs text-gray-600 mb-1">
+                <p className="text-xs text-gray-600 mb-3">
                   Hint: examples of over/under-expression (e.g., MYC high; TP53 low) and why those matter.
                 </p>
-                <textarea
-                  value={answersData.compare.cancerDesc}
-                  onChange={e => setField('compare.cancerDesc', e.target.value)}
-                  onPaste={warnOnPaste}
-                  className="w-full border border-gray-300 rounded px-3 py-2"
-                  rows={3}
-                  placeholder="Type your answer…"
+                <StructuredReflection
+                  parts={CANCER_PARTS}
+                  values={answersData.compare.cancerDescParts}
+                  carryOver={cancerCarry}
+                  onChange={(next) =>
+                    setStructured('compare.cancerDescParts', 'compare.cancerDesc', CANCER_PARTS, next)
+                  }
                 />
               </div>
             </div>
 
             <h4 className="font-medium mb-2">Categorize each gene (Typical vs Suspicious)</h4>
-            <p className="text-xs text-gray-600 mb-2">Use the cards below to help your decision.</p>
-            <div className="overflow-x-auto border border-gray-200 rounded-lg">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="text-left px-4 py-2">Gene</th>
-                    <th className="text-left px-4 py-2">Category</th>
-                    <th className="text-left px-4 py-2">Notes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {answersData.compare.table.map((row, idx) => (
-                    <tr key={`${row.gene}-${idx}`} className="border-t">
-                      <td className="px-4 py-2">
-                        <input
-                          value={row.gene}
-                          onChange={e => {
-                            const next = [...answersData.compare.table];
-                            next[idx] = { ...next[idx], gene: e.target.value };
-                            setField('compare.table', next);
-                          }}
-                          onPaste={warnOnPaste}
-                          className="border border-gray-300 rounded px-2 py-1 w-56"
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <select
-                          value={row.category || ''}
-                          onChange={e => {
-                            const next = [...answersData.compare.table];
-                            next[idx] = { ...next[idx], category: e.target.value };
-                            setField('compare.table', next);
-                          }}
-                          className="border border-gray-300 rounded px-2 py-1"
-                        >
-                          <option value="">— choose —</option>
-                          <option value="typical">Typical</option>
-                          <option value="suspicious">Suspicious</option>
-                        </select>
-                      </td>
-                      <td className="px-4 py-2">
-                        <input
-                          value={row.notes || ''}
-                          onChange={e => {
-                            const next = [...answersData.compare.table];
-                            next[idx] = { ...next[idx], notes: e.target.value };
-                            setField('compare.table', next);
-                          }}
-                          onPaste={warnOnPaste}
-                          className="border border-gray-300 rounded px-2 py-1 w-full"
-                          placeholder="Why?"
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <CategorizeItems
+              hint="Each gene’s card is right here — you no longer have to scroll away to check it."
+              categories={GENE_CATEGORIES}
+              notesPlaceholder="Why?"
+              onImageClick={(item) => setLightbox({ src: item.image, alt: item.imageAlt })}
+              items={answersData.compare.table.map((row, idx) => {
+                const card = GENE_CARDS[idx];
+                return {
+                  id: `${row.gene}-${idx}`,
+                  label: row.gene,
+                  hint: card?.type === 'housekeeping' ? 'Housekeeping gene' : 'Cancer-linked candidate',
+                  image: card ? imageUrl(card.file) : undefined,
+                  imageAlt: card ? `${card.gene} gene card` : '',
+                };
+              })}
+              values={answersData.compare.table}
+              onChange={(idx, next) => {
+                const table = [...answersData.compare.table];
+                table[idx] = { ...table[idx], category: next.category, notes: next.notes ?? table[idx].notes };
+                setField('compare.table', table);
+              }}
+            />
 
-            <div className="mt-4">
+            <div className="mt-6">
               <h4 className="font-medium mb-2">Patterns you noticed</h4>
               <p className="text-xs text-gray-600 mb-1">
                 Hint: trends across healthy vs cancerous; housekeeping vs candidates; “too loud/too quiet” pairs.
               </p>
-              <textarea
-                value={answersData.compare.patterns}
-                onChange={e => setField('compare.patterns', e.target.value)}
-                onPaste={warnOnPaste}
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                rows={3}
-                placeholder="Type your answer…"
+              <StructuredReflection
+                parts={PATTERN_PARTS}
+                values={answersData.compare.patternsParts}
+                carryOver={patternsCarry}
+                onChange={(next) =>
+                  setStructured('compare.patternsParts', 'compare.patterns', PATTERN_PARTS, next)
+                }
               />
             </div>
 
             <div className="flex justify-end mt-6">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg">
                 Save Section
               </button>
             </div>
@@ -493,7 +778,7 @@ const Day3Page = () => {
                   onClick={() => setLightbox({ src: imageUrl(file), alt: `${gene} gene card` })}
                   aria-label={`Open larger view of ${gene} gene card`}
                 >
-                  <div className="w-full h-56 bg-white flex items-center justify-center p-2">
+                  <div className="w-full h-80 bg-white flex items-center justify-center p-2">
                     <img
                       src={imageUrl(file)}
                       alt={`${gene} gene card`}
@@ -527,7 +812,7 @@ const Day3Page = () => {
                   onClick={() => setLightbox({ src: imageUrl(file), alt: `Patient tissue card ${idx+1}` })}
                   aria-label={`Open larger view of patient tissue card ${idx+1}`}
                 >
-                  <div className="w-full h-56 bg-white flex items-center justify-center p-2">
+                  <div className="w-full h-80 bg-white flex items-center justify-center p-2">
                     <img
                       src={imageUrl(file)}
                       alt={`Patient tissue card ${idx+1}`}
@@ -571,9 +856,9 @@ const Day3Page = () => {
           {/* Optional teacher-swappable video */}
           <div className="mt-6">
             <h4 className="font-semibold mb-2">Short explainer</h4>
-            <div className="rounded-xl overflow-hidden">
+            <div className="w-full rounded-xl overflow-hidden ring-1 ring-gray-200 bg-black">
               <iframe
-                className="w-full h-64 md:h-80 rounded-xl"
+                className="w-full aspect-video max-h-[70vh] block"
                 src="https://www.youtube.com/embed/_NBo-GZDKOM"
                 title="Cancer detection overview (teacher-provided video)"
                 frameBorder="0"
@@ -591,58 +876,89 @@ const Day3Page = () => {
           <div className="flex items-start justify-between gap-3">
             <h3 className="text-2xl font-semibold mb-4">Gene Detective — Formulate a Hypothesis</h3>
             <div className="flex gap-3 mt-1">
-              <a href="#gene-cards" className="text-primary-600 underline text-sm">Jump to cards ↑</a>
-              <a href="#background-hypothesis" className="text-primary-600 underline text-sm">Jump to background ↑</a>
+              <a href="#gene-cards" className="text-primary-700 underline text-sm">Jump to cards ↑</a>
+              <a href="#background-hypothesis" className="text-primary-700 underline text-sm">Jump to background ↑</a>
             </div>
           </div>
 
-          <label className="block text-sm font-medium mb-1">
-            A) Which patient cards looked <b>most suspicious</b>, and why?
-          </label>
-          <p className="text-xs text-gray-600 mb-2">
-            Refer to specific genes/patterns (e.g., “MYC looks very high while TP53 looks low in Case 2”).
-          </p>
-          <textarea
-            value={answersData.detective.suspiciousNotes}
-            onChange={e => setField('detective.suspiciousNotes', e.target.value)}
-            onPaste={warnOnPaste}
-            className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-            rows={3}
-            placeholder="Type your observations…"
-          />
+          <StageDesk media={patientCardPane} mediaTitle="Patient cards stay with you">
+            <StepFlow
+              hint="Observe, then hypothesise, then design. One step at a time — your work is saved as you go."
+              steps={[
+                {
+                  id: 'observe',
+                  title: 'A) What looked suspicious?',
+                  hint: 'Refer to specific genes and patterns (e.g., “MYC looks very high while TP53 looks low in Case 2”).',
+                  isComplete: SUSPICIOUS_PARTS.every(
+                    ({ key }) => (answersData.detective.suspiciousParts?.[key] || '').trim()
+                  ),
+                  render: () => (
+                    <StructuredReflection
+                      parts={SUSPICIOUS_PARTS}
+                      values={answersData.detective.suspiciousParts}
+                      carryOver={suspiciousCarry}
+                      onChange={(next) =>
+                        setStructured(
+                          'detective.suspiciousParts',
+                          'detective.suspiciousNotes',
+                          SUSPICIOUS_PARTS,
+                          next
+                        )
+                      }
+                    />
+                  ),
+                },
+                {
+                  id: 'hypothesis',
+                  title: 'B) Write a testable hypothesis',
+                  hint: 'A hypothesis needs four things. Build them one at a time and the full sentence assembles below.',
+                  isComplete: HYPOTHESIS_PARTS.every(
+                    ({ key }) => (answersData.detective.hypothesisParts?.[key] || '').trim()
+                  ),
+                  render: () => (
+                    <StructuredReflection
+                      parts={HYPOTHESIS_PARTS}
+                      values={answersData.detective.hypothesisParts}
+                      carryOver={hypothesisCarry}
+                      onChange={(next) =>
+                        setStructured('detective.hypothesisParts', 'detective.hypothesis', HYPOTHESIS_PARTS, next)
+                      }
+                      hint="Example: “In Patient Case 3, BRCA1 expression is lower than in matched normal tissue, as measured by qPCR.”"
+                    />
+                  ),
+                },
+                {
+                  id: 'experiment',
+                  title: 'C) Design an experiment to test it',
+                  hint: 'Samples, method, control, and a decision rule — the four things a reviewer would look for.',
+                  isComplete: EXPERIMENT_PARTS.every(
+                    ({ key }) => (answersData.detective.experimentPlanParts?.[key] || '').trim()
+                  ),
+                  render: () => (
+                    <StructuredReflection
+                      parts={EXPERIMENT_PARTS}
+                      values={answersData.detective.experimentPlanParts}
+                      carryOver={experimentCarry}
+                      onChange={(next) =>
+                        setStructured(
+                          'detective.experimentPlanParts',
+                          'detective.experimentPlan',
+                          EXPERIMENT_PARTS,
+                          next
+                        )
+                      }
+                    />
+                  ),
+                },
+              ]}
+            />
 
-          <label className="block text-sm font-medium mb-1">B) Write a clear, testable hypothesis.</label>
-          <p className="text-xs text-gray-600 mb-2">
-            Include groups and measurement. Example: “In Patient Case 3, <b>BRCA1</b> expression is lower than in matched normal tissue as measured by qPCR.”
-          </p>
-          <textarea
-            value={answersData.detective.hypothesis}
-            onChange={e => setField('detective.hypothesis', e.target.value)}
-            onPaste={warnOnPaste}
-            className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-            rows={3}
-            placeholder="Type your hypothesis…"
-          />
-
-          <label className="block text-sm font-medium mb-1">C) Describe a simple experiment to test it.</label>
-          <p className="text-xs text-gray-600 mb-2">
-            Mention <em>samples</em> (e.g., tumor vs matched normal), <em>method</em> (qPCR/RNA-seq/IHC), <em>control</em> (housekeeping gene), and a
-            <em> decision rule</em> (what result would support your hypothesis?).
-          </p>
-          <textarea
-            value={answersData.detective.experimentPlan}
-            onChange={e => setField('detective.experimentPlan', e.target.value)}
-            onPaste={warnOnPaste}
-            className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-            rows={3}
-            placeholder="Type your plan…"
-          />
-
-          <div className="flex justify-end mt-6">
-            <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
-              Save Section
-            </button>
-          </div>
+            <div className="flex justify-end">
+              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg">
+                Save Section
+              </button>
+            </div>
+          </StageDesk>
         </section>
 
         {/* 4. Detection & Diagnosis (content block) */}
@@ -683,18 +999,17 @@ const Day3Page = () => {
             </h2>
 
             <div className="bg-white rounded-xl p-6 shadow-sm mb-6 relative z-10 space-y-4">
-              {[
-                { q: 'Why are housekeeping genes helpful in expression studies?', a: 'Their fairly constant expression provides a baseline for comparisons with variable, cancer-linked genes.' },
-                { q: 'Give one reason an oncogene might look “too loud.”', a: 'A mutation or amplification can increase transcription/translation, driving uncontrolled growth.' },
-                { q: 'Give one reason a tumor suppressor might look “too quiet.”', a: 'Promoter methylation or loss-of-function mutation can reduce expression and remove growth brakes.' },
-              ].map((item, idx) => (
-                <details key={idx} className="border border-gray-200 rounded-lg transition-colors">
-                  <summary className="cursor-pointer px-4 py-3 hover:bg-primary-50 rounded-lg flex justify-between items-center">
-                    <h4 className="font-medium">{item.q}</h4>
-                    <i className="fa-solid fa-chevron-down text-gray-500" />
-                  </summary>
-                  <div className="px-4 pb-4 pt-2 text-gray-600 text-sm">{item.a}</div>
-                </details>
+              <p className="text-sm text-gray-600">
+                Predict first, then compare. You will remember it far better than reading the answer straight away.
+              </p>
+              {DAY3_INQUIRY.map((item, idx) => (
+                <PredictThenReveal
+                  key={item.q}
+                  question={item.q}
+                  expertAnswer={item.a}
+                  value={answersData.inquiry.predictions?.[idx] || ''}
+                  onChange={(v) => setField(`inquiry.predictions[${idx}]`, v)}
+                />
               ))}
             </div>
 
@@ -714,8 +1029,16 @@ const Day3Page = () => {
                 rows={4}
                 placeholder="Type your response…"
               />
+              <SentenceStarters
+                starters={[
+                  'MYC is driving growth while TP53 has lost its brakes, so…',
+                  'I would measure MYC and TP53 by qPCR against GAPDH',
+                  'I would compare tumor tissue with matched normal tissue',
+                ]}
+                onInsert={(t) => appendTo('inquiry.think', answersData.inquiry.think, t)}
+              />
               <div className="mt-4 flex justify-end">
-                <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+                <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg">
                   Submit Response
                 </button>
               </div>
@@ -729,28 +1052,33 @@ const Day3Page = () => {
             <i className="fa-solid fa-flag-checkered text-primary-500 mr-3" />
             Wrap-Up & Reflection
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              { key: 'idSignals', label: 'What kinds of gene behavior can help identify cancer presence/absence?' },
-              { key: 'overUnderExamples', label: 'Give one example of a gene being over-expressed (too loud) and one being under-expressed (too quiet). Why might each be concerning?' },
-              { key: 'hkBaseline', label: 'Why are housekeeping genes a good baseline for comparison?' },
-              { key: 'preBiopsyMethods', label: 'Before biopsy, what other methods might detect cancer presence?' },
-            ].map(({ key, label }) => (
-              <div key={key} className="flex flex-col">
-                <label className="text-sm font-medium mb-1">{label}</label>
-                <textarea
-                  value={answersData.wrap[key]}
-                  onChange={e => setField(`wrap.${key}`, e.target.value)}
-                  onPaste={warnOnPaste}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={3}
-                  placeholder="Type your answer…"
-                />
-              </div>
-            ))}
-          </div>
+          <StepFlow
+            hint="Four questions, one at a time."
+            steps={DAY3_WRAP.map(({ key, label, starters }) => ({
+              id: key,
+              title: label,
+              isComplete: Boolean((answersData.wrap[key] || '').trim()),
+              render: () => (
+                <>
+                  <textarea
+                    value={answersData.wrap[key]}
+                    onChange={e => setField(`wrap.${key}`, e.target.value)}
+                    onPaste={warnOnPaste}
+                    className="w-full border border-gray-300 rounded p-3"
+                    rows={4}
+                    placeholder="Type your answer…"
+                    aria-label={label}
+                  />
+                  <SentenceStarters
+                    starters={starters}
+                    onInsert={(t) => appendTo(`wrap.${key}`, answersData.wrap[key], t)}
+                  />
+                </>
+              ),
+            }))}
+          />
           <div className="flex justify-end mt-6">
-            <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+            <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg">
               Save Reflection
             </button>
           </div>
@@ -760,7 +1088,7 @@ const Day3Page = () => {
         <div className="flex justify-center">
           <button
             onClick={handleSave}
-            className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-lg"
+            className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-6 rounded-lg"
           >
             Save
           </button>
@@ -777,7 +1105,7 @@ const Day3Page = () => {
           </Link>
           <Link
             to="/sections/day-4"
-            className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+            className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg"
           >
             Go to Day 4
             <i className="fa-solid fa-arrow-right ml-2" />
@@ -799,7 +1127,7 @@ const Day3Page = () => {
       {/* Simple lightbox for cards */}
       {lightbox && (
         <div
-          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/70 z-[1100] flex items-center justify-center p-4"
           onClick={() => setLightbox(null)}
           role="dialog"
           aria-modal="true"

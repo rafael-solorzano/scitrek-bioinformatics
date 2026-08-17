@@ -126,7 +126,7 @@ const WelcomePage = () => {
           <div className="flex justify-end mt-6">
             <Link
               to="/sections/what-youll-learn"
-              className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+              className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg"
             >
               What You’ll Learn
               <i className="fa-solid fa-arrow-right ml-2" />
@@ -138,7 +138,7 @@ const WelcomePage = () => {
       {/* Footer nav (matches Day 1 style) */}
       <footer className="module-footer bg-white border-t border-gray-200 py-6 text-center">
         {/* No previous page here; show only Next
-        <Link to="/sections/what-youll-learn" className="text-primary-600 hover:text-primary-700 ml-4">
+        <Link to="/sections/what-youll-learn" className="text-primary-700 hover:text-primary-700 ml-4">
           <i className="fa-solid fa-arrow-right" />
         </Link> */}
       </footer>

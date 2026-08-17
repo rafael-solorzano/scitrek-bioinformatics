@@ -3,7 +3,117 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import StudentProfileBanner from '../components/StudentProfileBanner';
 import Popup from '../components/Popup';
+import {
+  CardSelect,
+  CarriedOverNote,
+  MatchPairs,
+  PredictThenReveal,
+  SentenceStarters,
+  StageDesk,
+  StepFlow,
+} from '../components/interactions';
 import { getCurrentUser, getResponseDetail, upsertResponse } from '../services/api';
+
+/* ------------------------------ content data ------------------------------ */
+
+const CELL_CYCLE_PHASE_OPTIONS = [
+  { label: 'Interphase', description: 'The cell grows, copies its DNA, and prepares to divide.', icon: 'fa-solid fa-hourglass-half' },
+  { label: 'Mitosis (M phase)', description: 'The copied chromosomes are separated into two nuclei.', icon: 'fa-solid fa-arrows-split-up-and-left' },
+  { label: 'Cytokinesis', description: 'The cytoplasm pinches apart.', icon: 'fa-solid fa-scissors' },
+  { label: 'G0', description: 'A resting state outside the cycle.', icon: 'fa-solid fa-bed' },
+  { label: 'Apoptosis', description: 'Programmed cell death.', icon: 'fa-solid fa-skull' },
+];
+
+const INTERPHASE_STEPS = [
+  { key: 'interphaseG1', title: 'G1 — Gap/Growth 1', placeholder: 'G1 (Gap/Growth 1)…' },
+  { key: 'interphaseS', title: 'S — Synthesis', placeholder: 'S (Synthesis)…' },
+  { key: 'interphaseG2', title: 'G2 — Gap/Growth 2', placeholder: 'G2 (Gap/Growth 2)…' },
+];
+
+const MITOSIS_PHASES = ['prophase', 'metaphase', 'anaphase', 'telophase'];
+
+const CANCER_GENE_TERMS = [
+  { id: 'oncogenes', label: 'Oncogenes' },
+  { id: 'tumorSuppressors', label: 'Tumor suppressor genes' },
+  { id: 'dnaRepair', label: 'DNA repair genes' },
+];
+
+const CANCER_GENE_DEFINITIONS = [
+  {
+    id: 'accelerator',
+    short: 'Stuck accelerator',
+    text: 'Mutated or overactive versions push a cell to keep dividing when it should not — like an accelerator stuck down.',
+  },
+  {
+    id: 'brakes',
+    short: 'Failed brakes',
+    text: 'They normally slow or halt division and can trigger repair or apoptosis — like the brakes. Losing them removes a stop signal.',
+  },
+  {
+    id: 'proofreaders',
+    short: 'Missing proofreaders',
+    text: 'They find and fix errors in DNA before the cell divides — like proofreaders. Without them, mutations pile up.',
+  },
+];
+
+const P53_ROLE_OPTIONS = [
+  { label: 'transcription factor', description: 'It binds DNA and switches other genes on.' },
+  { label: 'kinase', description: 'It adds phosphate groups to other proteins.' },
+  { label: 'cell membrane receptor', description: 'It receives signals from outside the cell.' },
+  { label: 'DNA repair enzyme', description: 'It physically repairs damaged DNA itself.' },
+];
+
+const MDM2_OPTIONS = [
+  { label: 'Mdm2 tags p53 for degradation, so p53 levels drop' },
+  { label: 'Mdm2 activates p53, so p53 levels rise' },
+  { label: 'Mdm2 mutates the p53 gene directly' },
+  { label: 'Mdm2 has no effect on p53' },
+];
+
+const CELLS_DO_OPTIONS = [
+  { label: 'divide', description: 'Go through the cycle and make two cells.' },
+  { label: 'stop dividing (arrest)', description: 'Pause at a checkpoint or drop into G0.' },
+  { label: 'die by apoptosis', description: 'Self-destruct in a controlled way.' },
+  { label: 'grow larger without dividing', description: 'Take in material but never split.' },
+];
+
+const TOO_FEW_OPTIONS = [
+  { label: 'Wounds and injuries heal slowly or not at all' },
+  { label: 'Tissues cannot replace worn-out or damaged cells' },
+  { label: 'Blood cell counts drop, hurting oxygen delivery and immunity' },
+];
+
+const TOO_MANY_OPTIONS = [
+  { label: 'A tumor forms as cells pile up' },
+  { label: 'Growing cells crowd healthy tissue and stop it working' },
+  { label: 'Cells with damaged DNA keep dividing and can spread' },
+];
+
+const DAY2_INQUIRY = [
+  {
+    q: 'If p53 is mutated and cannot activate repair or apoptosis, what happens to the cell cycle?',
+    a: 'Cells can pass damaged DNA through checkpoints, increasing mutation load and potential tumor formation.',
+  },
+  {
+    q: 'How might overactive Mdm2 impact p53 and cancer risk?',
+    a: 'Mdm2 tags p53 for degradation; overactivity can reduce p53 levels, weakening crucial damage responses.',
+  },
+  {
+    q: 'Name one environmental factor that could increase mutation rates. How might this affect regulators?',
+    a: 'UV radiation can cause thymine dimers; checkpoint proteins and repair genes must respond or errors accumulate.',
+  },
+];
+
+const WRAP_QUESTIONS = [
+  { key: 'healthyDivision', q: 'What does healthy cellular division typically look like? What are the two main phases?' },
+  { key: 'cancerVsNormal', q: 'How does cancer differ from normal cell growth?' },
+  { key: 'threeGeneTypes', q: 'What are oncogenes, tumor suppressor genes, and DNA repair genes? Why are they important?' },
+  { key: 'p53Normal', q: 'What is the normal function of p53 in a healthy cell?' },
+  { key: 'mdm2OnP53', q: 'What is the effect of Mdm2 on p53?' },
+  { key: 'whatIfRan', q: 'Describe one “what-if” you tested. What did you observe?' },
+  { key: 'favVideo', q: 'Which video was your favorite and why?' },
+  { key: 'favSim', q: 'Which simulation was your favorite and why?' },
+];
 
 /* ------------------------------ UI helpers -------------------------------- */
 
@@ -205,7 +315,9 @@ const Day2Page = () => {
       whatIfObservation: '',
     },
 
-    inquiry: { think: '' },
+    // `predictions` is additive — it holds the answer a student commits to
+    // before revealing the expert response for each inquiry prompt.
+    inquiry: { think: '', predictions: ['', '', ''] },
 
     wrap: {
       healthyDivision: '',
@@ -239,7 +351,28 @@ const Day2Page = () => {
     setLoading(true);
 
     const normalizeAnswers = (payload) => {
-      setAnswersData((prev) => ({ ...prev, ...(payload || {}) }));
+      setAnswersData((prev) => {
+        const next = { ...prev, ...(payload || {}) };
+        // Older saves predate the prediction field and the array-valued
+        // multi-selects; fill them in without touching anything else.
+        next.inquiry = {
+          think: next.inquiry?.think || '',
+          predictions: Array.isArray(next.inquiry?.predictions)
+            ? next.inquiry.predictions.slice(0, DAY2_INQUIRY.length)
+            : Array(DAY2_INQUIRY.length).fill(''),
+        };
+        next.cellCycle = {
+          ...prev.cellCycle,
+          ...(next.cellCycle || {}),
+          phasesTwo: Array.isArray(next.cellCycle?.phasesTwo) ? next.cellCycle.phasesTwo : ['', ''],
+        };
+        next.cycleSim = {
+          ...prev.cycleSim,
+          ...(next.cycleSim || {}),
+          cellsDo: Array.isArray(next.cycleSim?.cellsDo) ? next.cycleSim.cellsDo : ['', ''],
+        };
+        return next;
+      });
     };
 
     (async () => {
@@ -372,9 +505,57 @@ const Day2Page = () => {
     });
   };
 
+  /** Append a sentence starter to an existing free-text answer. */
+  const appendTo = (path, current, text) =>
+    setField(path, current ? `${current} ${text}` : text);
+
+  /** Which value in `list` (if any) the stored string corresponds to. */
+  const isKnown = (list, stored) => list.some((o) => o.label === stored);
+
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading…</div>;
   }
+
+  // MatchPairs works in definition ids; the page still persists the definition
+  // text, so existing answers stay readable on the teacher dashboard.
+  const geneMatchValues = CANCER_GENE_TERMS.reduce((acc, term) => {
+    const stored = answersData.p53Sim[term.id];
+    const def = CANCER_GENE_DEFINITIONS.find((d) => d.text === stored);
+    if (def) acc[term.id] = def.id;
+    return acc;
+  }, {});
+
+  // Full width on the stage and sized by ratio, so the same node is large while
+  // watching and small in the corner dock without ever being remounted.
+  const cellCycleVideo = (
+    <div className="w-full rounded-xl overflow-hidden ring-1 ring-gray-200 bg-black">
+      <iframe
+        className="w-full aspect-video max-h-[70vh] block"
+        src="https://www.youtube-nocookie.com/embed/zNJJ_C2j4gk"
+        title="Cell Cycle - Osmosis / Elsevier"
+        frameBorder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerPolicy="strict-origin-when-cross-origin"
+        allowFullScreen
+        loading="lazy"
+      />
+    </div>
+  );
+
+  const cancerVideo = (
+    <div className="w-full rounded-xl overflow-hidden ring-1 ring-gray-200 bg-black">
+      <iframe
+        className="w-full aspect-video max-h-[70vh] block"
+        src="https://www.youtube-nocookie.com/embed/tsXnVu3kUnM"
+        title="What is Cancer and How Does it Start? - Cancer Research UK"
+        frameBorder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerPolicy="strict-origin-when-cross-origin"
+        allowFullScreen
+        loading="lazy"
+      />
+    </div>
+  );
 
   /* --------------------------------- UI ------------------------------------ */
 
@@ -452,7 +633,7 @@ const Day2Page = () => {
               ].map((item, idx) => (
                 <li key={idx} className="flex items-start">
                   <div className="bg-primary-100 rounded-full p-1 mr-3 mt-1">
-                    <i className="fa-solid fa-check text-primary-600 text-sm" />
+                    <i className="fa-solid fa-check text-primary-700 text-sm" />
                   </div>
                   <span className="text-lg">{item}</span>
                 </li>
@@ -471,92 +652,83 @@ const Day2Page = () => {
             Watch & Learn — Part 1: Cell Cycle
           </h3>
 
-          <div className="rounded-xl overflow-hidden mb-4">
-            <iframe
-              className="w-full h-80 rounded-xl"
-              src="https://www.youtube-nocookie.com/embed/zNJJ_C2j4gk"
-              title="Cell Cycle - Osmosis / Elsevier"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-              loading="lazy"
-            />
-          </div>
+          <p className="text-xs md:text-sm text-gray-500 flex items-center gap-2 mb-4">
+            <i className="fa-solid fa-circle-info" aria-hidden="true" />
+            <span>Watch first, then answer below. The video stays on screen while you work.</span>
+          </p>
 
-          <div className="border border-gray-200 rounded-2xl p-4 md:p-6">
-            <h4 className="text-xl font-semibold mb-4">Key Questions</h4>
-
-            <div className="space-y-6 text-sm">
+          <StageDesk media={cellCycleVideo} mediaTitle="Cell Cycle — Osmosis">
+            <div className="space-y-8 text-sm">
               <div>
                 <p className="font-medium mb-2">1) What are the two phases of the cell cycle?</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input
-                    value={answersData.cellCycle.phasesTwo[0]}
-                    onChange={(e) => setField('cellCycle.phasesTwo[0]', e.target.value)}
-                    className="border-b-2 border-primary-300 focus:border-primary-500 outline-none px-2 py-1"
-                    placeholder="Type here…"
-                  />
-                  <input
-                    value={answersData.cellCycle.phasesTwo[1]}
-                    onChange={(e) => setField('cellCycle.phasesTwo[1]', e.target.value)}
-                    className="border-b-2 border-primary-300 focus:border-primary-500 outline-none px-2 py-1"
-                    placeholder="Type here…"
-                  />
-                </div>
+                <CardSelect
+                  multi
+                  max={2}
+                  columns={2}
+                  legend="Choose exactly two"
+                  hint="The other options are real biology terms — but they are not the two phases of the cycle itself."
+                  options={CELL_CYCLE_PHASE_OPTIONS}
+                  value={answersData.cellCycle.phasesTwo.filter(Boolean)}
+                  onChange={(vals) => setField('cellCycle.phasesTwo', [vals[0] || '', vals[1] || ''])}
+                />
               </div>
 
               <div>
                 <p className="font-medium mb-2">2) Describe the three subphases of interphase.</p>
-                <AutoResizeTextarea
-                  value={answersData.cellCycle.interphaseG1}
-                  onChange={(e) => setField('cellCycle.interphaseG1', e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 mb-2"
-                  rows={2}
-                  placeholder="G1 (Gap/Growth 1)…"
-                />
-                <AutoResizeTextarea
-                  value={answersData.cellCycle.interphaseS}
-                  onChange={(e) => setField('cellCycle.interphaseS', e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 mb-2"
-                  rows={2}
-                  placeholder="S (Synthesis)…"
-                />
-                <AutoResizeTextarea
-                  value={answersData.cellCycle.interphaseG2}
-                  onChange={(e) => setField('cellCycle.interphaseG2', e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2"
-                  rows={2}
-                  placeholder="G2 (Gap/Growth 2)…"
+                <StepFlow
+                  steps={INTERPHASE_STEPS.map(({ key, title, placeholder }) => ({
+                    id: key,
+                    title,
+                    isComplete: Boolean((answersData.cellCycle[key] || '').trim()),
+                    render: () => (
+                      <AutoResizeTextarea
+                        value={answersData.cellCycle[key]}
+                        onChange={(e) => setField(`cellCycle.${key}`, e.target.value)}
+                        className="w-full border border-gray-300 rounded px-3 py-2"
+                        rows={3}
+                        placeholder={placeholder}
+                        aria-label={title}
+                      />
+                    ),
+                  }))}
                 />
               </div>
 
               <div>
                 <p className="font-medium mb-2">3) Describe the four phases of mitosis:</p>
-                {['prophase', 'metaphase', 'anaphase', 'telophase'].map((phase) => (
-                  <div key={phase} className="grid grid-cols-1 gap-3 mb-3">
-                    <AutoResizeTextarea
-                      value={answersData.cellCycle.mitosisSketch[phase].desc}
-                      onChange={(e) => setField(`cellCycle.mitosisSketch.${phase}.desc`, e.target.value)}
-                      className="border border-gray-300 rounded px-3 py-2"
-                      rows={2}
-                      placeholder={`${phase[0].toUpperCase() + phase.slice(1)} — describe what you see (chromosomes, spindle, nucleus, etc.)`}
-                    />
-                  </div>
-                ))}
+                <StepFlow
+                  hint="One phase at a time — pause the video on that phase before you write."
+                  steps={MITOSIS_PHASES.map((phase) => {
+                    const title = phase[0].toUpperCase() + phase.slice(1);
+                    return {
+                      id: phase,
+                      title,
+                      hint: 'What are the chromosomes, spindle, and nuclear membrane doing?',
+                      isComplete: Boolean((answersData.cellCycle.mitosisSketch[phase].desc || '').trim()),
+                      render: () => (
+                        <AutoResizeTextarea
+                          value={answersData.cellCycle.mitosisSketch[phase].desc}
+                          onChange={(e) => setField(`cellCycle.mitosisSketch.${phase}.desc`, e.target.value)}
+                          className="w-full border border-gray-300 rounded px-3 py-2"
+                          rows={3}
+                          placeholder={`${title} — describe what you see (chromosomes, spindle, nucleus, etc.)`}
+                          aria-label={title}
+                        />
+                      ),
+                    };
+                  })}
+                />
               </div>
 
               <div>
                 <p className="font-medium mb-2">4) Describe a cell in cytokinesis.</p>
-                <div className="grid grid-cols-1 gap-3">
-                  <AutoResizeTextarea
-                    value={answersData.cellCycle.cytokinesis.desc}
-                    onChange={(e) => setField('cellCycle.cytokinesis.desc', e.target.value)}
-                    className="border border-gray-300 rounded px-3 py-2"
-                    rows={2}
-                    placeholder="Membrane pinches; two daughter cells separate…"
-                  />
-                </div>
+                <AutoResizeTextarea
+                  value={answersData.cellCycle.cytokinesis.desc}
+                  onChange={(e) => setField('cellCycle.cytokinesis.desc', e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2"
+                  rows={2}
+                  placeholder="Membrane pinches; two daughter cells separate…"
+                />
               </div>
 
               <div>
@@ -571,17 +743,17 @@ const Day2Page = () => {
                   placeholder="e.g., G0 — quiescent/resting phase…"
                 />
               </div>
-            </div>
 
-            <div className="flex justify-end mt-6">
-              <button
-                onClick={handleSave}
-                className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
-              >
-                Save Answers
-              </button>
+              <div className="flex justify-end">
+                <button
+                  onClick={handleSave}
+                  className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg"
+                >
+                  Save Answers
+                </button>
+              </div>
             </div>
-          </div>
+          </StageDesk>
         </section>
 
         <section id="watch-part-2" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
@@ -590,79 +762,118 @@ const Day2Page = () => {
             Watch & Learn — Part 2: What is Cancer?
           </h3>
 
-          <div className="rounded-xl overflow-hidden mb-4">
-            <iframe
-              className="w-full h-80 rounded-xl"
-              src="https://www.youtube-nocookie.com/embed/tsXnVu3kUnM"
-              title="What is Cancer and How Does it Start? - Cancer Research UK"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-              loading="lazy"
+          <p className="text-xs md:text-sm text-gray-500 flex items-center gap-2 mb-4">
+            <i className="fa-solid fa-circle-info" aria-hidden="true" />
+            <span>Watch first, then answer below. The video stays on screen while you work.</span>
+          </p>
+
+          <StageDesk
+            media={cancerVideo}
+            mediaTitle="What is Cancer and How Does it Start? — Cancer Research UK"
+          >
+            <h4 className="text-xl font-semibold">After the video</h4>
+            <StepFlow
+              hint="Four questions, one at a time. Your answers are saved as you go."
+              steps={[
+                {
+                  id: 'howDiffers',
+                  title: 'Cancer vs. normal growth',
+                  hint: 'How does cancer differ from normal cell growth?',
+                  isComplete: Boolean((answersData.cancerBasics.howDiffers || '').trim()),
+                  render: () => (
+                    <>
+                      <AutoResizeTextarea
+                        value={answersData.cancerBasics.howDiffers}
+                        onChange={(e) => setField('cancerBasics.howDiffers', e.target.value)}
+                        className="w-full border border-gray-300 rounded p-3"
+                        rows={3}
+                        placeholder="Type your answer…"
+                        aria-label="How does cancer differ from normal cell growth?"
+                      />
+                      <SentenceStarters
+                        starters={[
+                          'Normal cells divide only when…',
+                          'Cancer cells ignore the signal to…',
+                          'Another difference is that cancer cells…',
+                        ]}
+                        onInsert={(t) => appendTo('cancerBasics.howDiffers', answersData.cancerBasics.howDiffers, t)}
+                      />
+                    </>
+                  ),
+                },
+                {
+                  id: 'twoHallmarks',
+                  title: 'Two hallmarks',
+                  hint: 'Name and describe two hallmarks of cancer from the video.',
+                  isComplete: Boolean((answersData.cancerBasics.twoHallmarks || '').trim()),
+                  render: () => (
+                    <>
+                      <AutoResizeTextarea
+                        value={answersData.cancerBasics.twoHallmarks}
+                        onChange={(e) => setField('cancerBasics.twoHallmarks', e.target.value)}
+                        className="w-full border border-gray-300 rounded p-3"
+                        rows={3}
+                        placeholder="Type your answer…"
+                        aria-label="Name and describe two hallmarks of cancer from the video"
+                      />
+                      <SentenceStarters
+                        label="Hallmarks mentioned in the video — tap one to start:"
+                        starters={[
+                          'Sustained growth signalling —',
+                          'Ignoring signals to stop growing —',
+                          'Avoiding cell death (apoptosis) —',
+                          'Growing new blood vessels —',
+                          'Invading nearby tissue and spreading —',
+                        ]}
+                        onInsert={(t) => appendTo('cancerBasics.twoHallmarks', answersData.cancerBasics.twoHallmarks, t)}
+                      />
+                    </>
+                  ),
+                },
+                {
+                  id: 'mutationsRole',
+                  title: 'The role of mutations',
+                  hint: 'What role do mutations play in cancer development?',
+                  isComplete: Boolean((answersData.cancerBasics.mutationsRole || '').trim()),
+                  render: () => (
+                    <AutoResizeTextarea
+                      value={answersData.cancerBasics.mutationsRole}
+                      onChange={(e) => setField('cancerBasics.mutationsRole', e.target.value)}
+                      className="w-full border border-gray-300 rounded p-3"
+                      rows={3}
+                      placeholder="Type your answer…"
+                      aria-label="What role do mutations play in cancer development?"
+                    />
+                  ),
+                },
+                {
+                  id: 'earlyDetection',
+                  title: 'Stretch: why early detection matters',
+                  hint: 'The CR-UK video doesn’t cover this directly — answer using your understanding of tumor growth and treatment outcomes.',
+                  isComplete: Boolean((answersData.cancerBasics.earlyDetection || '').trim()),
+                  render: () => (
+                    <AutoResizeTextarea
+                      value={answersData.cancerBasics.earlyDetection}
+                      onChange={(e) => setField('cancerBasics.earlyDetection', e.target.value)}
+                      className="w-full border border-gray-300 rounded p-3"
+                      rows={3}
+                      placeholder="Use your prior knowledge and today’s concepts…"
+                      aria-label="Why is early detection important?"
+                    />
+                  ),
+                },
+              ]}
             />
-          </div>
 
-          <div className="border border-gray-200 rounded-2xl p-4 md:p-6">
-            <h4 className="text-xl font-semibold mb-4">After the video</h4>
-            <div className="space-y-5 text-sm">
-              <div>
-                <p className="font-medium mb-1">1) How does cancer differ from normal cell growth?</p>
-                <AutoResizeTextarea
-                  value={answersData.cancerBasics.howDiffers}
-                  onChange={(e) => setField('cancerBasics.howDiffers', e.target.value)}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={3}
-                  placeholder="Type your answer…"
-                />
-              </div>
-              <div>
-                <p className="font-medium mb-1">2) Name & describe two hallmarks of cancer from the video.</p>
-                <AutoResizeTextarea
-                  value={answersData.cancerBasics.twoHallmarks}
-                  onChange={(e) => setField('cancerBasics.twoHallmarks', e.target.value)}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={3}
-                  placeholder="Type your answer…"
-                />
-              </div>
-              <div>
-                <p className="font-medium mb-1">3) What role do mutations play in cancer development?</p>
-                <AutoResizeTextarea
-                  value={answersData.cancerBasics.mutationsRole}
-                  onChange={(e) => setField('cancerBasics.mutationsRole', e.target.value)}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={3}
-                  placeholder="Type your answer…"
-                />
-              </div>
-              <div>
-                <p className="font-medium mb-1">
-                  4) Stretch (beyond this video): Why is <em>early detection</em> important?
-                </p>
-                <AutoResizeTextarea
-                  value={answersData.cancerBasics.earlyDetection}
-                  onChange={(e) => setField('cancerBasics.earlyDetection', e.target.value)}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={3}
-                  placeholder="Use your prior knowledge and today’s concepts…"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Note: The CR-UK video doesn’t cover this directly; answer using your understanding of tumor growth &
-                  treatment outcomes.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex justify-end mt-6">
+            <div className="flex justify-end">
               <button
                 onClick={handleSave}
-                className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+                className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg"
               >
                 Save Answers
               </button>
             </div>
-          </div>
+          </StageDesk>
         </section>
 
         <section id="sim-p53" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
@@ -683,78 +894,100 @@ const Day2Page = () => {
             </ol>
           </div>
 
-          <div>
-            <EmbedWithFallback
-              src="https://media.hhmi.org/biointeractive/click/p53/01.html?_gl=1*1pyukss*_ga*NjQ2NDY1NDE5LjE3NDc0MTYwNDE.*_ga_H0E1KHGJBH*czE3NTc2NDgyOTQkbzIkZzEkdDE3NTc2NDkzNjQkajYwJGwwJGgw"
-              title="HHMI BioInteractive — p53 Gene & Cancer"
-            />
-          </div>
+          <StageDesk
+            showTitleOnStage={false}
+            mediaTitle="HHMI BioInteractive — p53 Gene & Cancer"
+            media={
+              <EmbedWithFallback
+                src="https://media.hhmi.org/biointeractive/click/p53/01.html?_gl=1*1pyukss*_ga*NjQ2NDY1NDE5LjE3NDc0MTYwNDE.*_ga_H0E1KHGJBH*czE3NTc2NDgyOTQkbzIkZzEkdDE3NTc2NDkzNjQkajYwJGwwJGgw"
+                title="HHMI BioInteractive — p53 Gene & Cancer"
+                height="65vh"
+              />
+            }
+          >
+            <div className="space-y-8 text-sm">
+              <div>
+                <p className="font-medium mb-1">Slide 2 — Three kinds of cancer-related genes</p>
+                <MatchPairs
+                  legend="Match each kind of gene to what it does"
+                  hint="These three are easy to mix up, so they are side by side on purpose."
+                  terms={CANCER_GENE_TERMS}
+                  definitions={CANCER_GENE_DEFINITIONS}
+                  values={geneMatchValues}
+                  onChange={(termId, defId) =>
+                    setField(
+                      `p53Sim.${termId}`,
+                      defId ? CANCER_GENE_DEFINITIONS.find((d) => d.id === defId).text : ''
+                    )
+                  }
+                />
+                {CANCER_GENE_TERMS.filter((t) => answersData.p53Sim[t.id] && !geneMatchValues[t.id]).map((t) => (
+                  <CarriedOverNote
+                    key={t.id}
+                    label={`Your earlier answer for ${t.label}`}
+                    text={answersData.p53Sim[t.id]}
+                  />
+                ))}
+              </div>
 
-          <div className="border border-gray-200 rounded-2xl p-4 md:p-6 space-y-4 text-sm mt-6">
-            <div>
-              <p className="font-medium mb-1">Slide 2 — What are <b>oncogenes</b>?</p>
-              <input
-                value={answersData.p53Sim.oncogenes}
-                onChange={(e) => setField('p53Sim.oncogenes', e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                placeholder="Type your answer…"
-              />
-            </div>
-            <div>
-              <p className="font-medium mb-1">Slide 2 — What are <b>tumor suppressor genes</b>?</p>
-              <input
-                value={answersData.p53Sim.tumorSuppressors}
-                onChange={(e) => setField('p53Sim.tumorSuppressors', e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                placeholder="Type your answer…"
-              />
-            </div>
-            <div>
-              <p className="font-medium mb-1">Slide 2 — What are <b>DNA repair genes</b>?</p>
-              <input
-                value={answersData.p53Sim.dnaRepair}
-                onChange={(e) => setField('p53Sim.dnaRepair', e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                placeholder="Type your answer…"
-              />
-            </div>
-            <div>
-              <p className="font-medium mb-1">Slide 3 — Normal function of <b>p53</b> in a healthy cell?</p>
-              <input
-                value={answersData.p53Sim.p53Function}
-                onChange={(e) => setField('p53Sim.p53Function', e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                placeholder="Type your answer…"
-              />
-            </div>
-            <div>
-              <p className="font-medium mb-1">Slide 5 — “p53 functions primarily as a ________.”</p>
-              <input
-                value={answersData.p53Sim.p53TFBlank}
-                onChange={(e) => setField('p53Sim.p53TFBlank', e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                placeholder="Fill the blank (one or two words)…"
-              />
-            </div>
-            <div>
-              <p className="font-medium mb-1">Slide 6 — Effect of <b>Mdm2</b> on p53?</p>
-              <input
-                value={answersData.p53Sim.mdm2Effect}
-                onChange={(e) => setField('p53Sim.mdm2Effect', e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                placeholder="Type your answer…"
-              />
-            </div>
+              <div>
+                <p className="font-medium mb-1">Slide 3 — Normal function of <b>p53</b> in a healthy cell?</p>
+                <AutoResizeTextarea
+                  value={answersData.p53Sim.p53Function}
+                  onChange={(e) => setField('p53Sim.p53Function', e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2"
+                  rows={3}
+                  placeholder="Type your answer…"
+                  aria-label="Normal function of p53 in a healthy cell"
+                />
+                <SentenceStarters
+                  starters={[
+                    'When DNA is damaged, p53…',
+                    'If the damage can be fixed, p53…',
+                    'If the damage is too severe, p53…',
+                  ]}
+                  onInsert={(t) => appendTo('p53Sim.p53Function', answersData.p53Sim.p53Function, t)}
+                />
+              </div>
 
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={handleSave}
-                className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
-              >
-                Save Answers
-              </button>
+              <div>
+                <p className="font-medium mb-1">Slide 5 — “p53 functions primarily as a ________.”</p>
+                <CardSelect
+                  legend="Fill the blank"
+                  columns={2}
+                  options={P53_ROLE_OPTIONS}
+                  value={answersData.p53Sim.p53TFBlank}
+                  onChange={(v) => setField('p53Sim.p53TFBlank', v)}
+                />
+                {!isKnown(P53_ROLE_OPTIONS, answersData.p53Sim.p53TFBlank) ? (
+                  <CarriedOverNote text={answersData.p53Sim.p53TFBlank} />
+                ) : null}
+              </div>
+
+              <div>
+                <p className="font-medium mb-1">Slide 6 — Effect of <b>Mdm2</b> on p53?</p>
+                <CardSelect
+                  legend="Choose the effect the simulation describes"
+                  columns={1}
+                  options={MDM2_OPTIONS}
+                  value={answersData.p53Sim.mdm2Effect}
+                  onChange={(v) => setField('p53Sim.mdm2Effect', v)}
+                />
+                {!isKnown(MDM2_OPTIONS, answersData.p53Sim.mdm2Effect) ? (
+                  <CarriedOverNote text={answersData.p53Sim.mdm2Effect} />
+                ) : null}
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={handleSave}
+                  className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg"
+                >
+                  Save Answers
+                </button>
+              </div>
             </div>
-          </div>
+          </StageDesk>
         </section>
 
         <section id="sim-cycle" className="bg-white rounded-2xl shadow-md p-6 md:p-8">
@@ -777,134 +1010,174 @@ const Day2Page = () => {
             </p>
           </div>
 
-          <div>
-            <EmbedWithFallback
-              src="https://media.hhmi.org/biointeractive/click/cellcycle/?_gl=1*1e5q9o3*_ga*NjQ2NDY1NDE5LjE3NDc0MTYwNDE.*_ga_H0E1KHGJBH*czE3NTgwNzEzOTAkbzMkZzAkdDE3NTgwNzEzOTAkajYwJGwwJGgw"
-              title="HHMI BioInteractive — Eukaryotic Cell Cycle & Cancer"
-            />
-          </div>
-
-          <div className="border border-gray-200 rounded-2xl p-4 md:p-6 space-y-5 text-sm mt-6">
-            <div>
-              <p className="font-medium mb-1">
-                Overview — Molecular signals can cause cells to <b>divide</b>, ________, or ________. Fill the two blanks.
-              </p>
-              <input
-                value={answersData.cycleSim.cellsDo[0]}
-                onChange={(e) => setField('cycleSim.cellsDo[0]', e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                placeholder="First blank"
+          <StageDesk
+            showTitleOnStage={false}
+            mediaTitle="HHMI BioInteractive — Eukaryotic Cell Cycle & Cancer"
+            media={
+              <EmbedWithFallback
+                src="https://media.hhmi.org/biointeractive/click/cellcycle/?_gl=1*1e5q9o3*_ga*NjQ2NDY1NDE5LjE3NDc0MTYwNDE.*_ga_H0E1KHGJBH*czE3NTgwNzEzOTAkbzMkZzAkdDE3NTgwNzEzOTAkajYwJGwwJGgw"
+                title="HHMI BioInteractive — Eukaryotic Cell Cycle & Cancer"
+                height="65vh"
               />
-              <input
-                value={answersData.cycleSim.cellsDo[1]}
-                onChange={(e) => setField('cycleSim.cellsDo[1]', e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2 mt-2"
-                placeholder="Second blank"
-              />
-              <p className="text-xs text-gray-500 mt-1">Slide numbers are shown in the simulation sidebar.</p>
-            </div>
-
-            <div>
-              <p className="font-medium mb-1">Overview — What is <b>apoptosis</b>, and why is it beneficial?</p>
-              <AutoResizeTextarea
-                value={answersData.cycleSim.apoptosis}
-                onChange={(e) => setField('cycleSim.apoptosis', e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                rows={2}
-                placeholder="Type your answer…"
-              />
-            </div>
-
-            <div>
-              <p className="font-medium mb-1">
-                Regulators & Cancer — What happens if cell cycle regulators don’t function properly?
-              </p>
-              <AutoResizeTextarea
-                value={answersData.cycleSim.badRegulators}
-                onChange={(e) => setField('cycleSim.badRegulators', e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                rows={2}
-                placeholder="Type your answer…"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <p className="font-medium mb-1">Give one issue that arises with <b>too few</b> cells.</p>
-                <input
-                  value={answersData.cycleSim.tooFewCells}
-                  onChange={(e) => setField('cycleSim.tooFewCells', e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2"
-                  placeholder="Type your answer…"
-                />
-              </div>
-              <div>
-                <p className="font-medium mb-1">Give one issue that arises with <b>too many</b> cells.</p>
-                <input
-                  value={answersData.cycleSim.tooManyCells}
-                  onChange={(e) => setField('cycleSim.tooManyCells', e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2"
-                  placeholder="Type your answer…"
-                />
-              </div>
-            </div>
-
-            <div>
-              <p className="font-medium mb-1">Cell Cycle Phases — Notes (G1, S, G2, M + checkpoints)</p>
-              <AutoResizeTextarea
-                value={answersData.cycleSim.phasesNotes}
-                onChange={(e) => setField('cycleSim.phasesNotes', e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                rows={2}
-                placeholder="After exploring the simulation, type your notes here. This is important for Day 3 and 4"
-              />
-            </div>
-
-            <div>
-              <p className="font-medium mb-1">Regulators & Cancer — Notes</p>
-              <AutoResizeTextarea
-                value={answersData.cycleSim.regulatorsNotes}
-                onChange={(e) => setField('cycleSim.regulatorsNotes', e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                rows={2}
-                placeholder="After exploring the simulation, type your notes here. This is important for Day 3 and 4"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            }
+          >
+            <div className="space-y-8 text-sm">
               <div>
                 <p className="font-medium mb-1">
-                  What-if scenario (e.g., turn p53 off, overexpress cyclin D, disable G2/M arrest):
+                  Overview — Molecular signals can cause cells to <b>divide</b>, ________, or ________.
+                </p>
+                <CardSelect
+                  multi
+                  max={2}
+                  columns={2}
+                  legend="Choose the two missing outcomes"
+                  hint="Slide numbers are shown in the simulation sidebar."
+                  options={CELLS_DO_OPTIONS}
+                  value={answersData.cycleSim.cellsDo.filter(Boolean)}
+                  onChange={(vals) => setField('cycleSim.cellsDo', [vals[0] || '', vals[1] || ''])}
+                />
+              </div>
+
+              <div>
+                <p className="font-medium mb-1">Overview — What is <b>apoptosis</b>, and why is it beneficial?</p>
+                <AutoResizeTextarea
+                  value={answersData.cycleSim.apoptosis}
+                  onChange={(e) => setField('cycleSim.apoptosis', e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2"
+                  rows={3}
+                  placeholder="Type your answer…"
+                  aria-label="What is apoptosis, and why is it beneficial?"
+                />
+              </div>
+
+              <div>
+                <p className="font-medium mb-1">
+                  Regulators &amp; Cancer — What happens if cell cycle regulators don’t function properly?
                 </p>
                 <AutoResizeTextarea
-                  value={answersData.cycleSim.whatIf}
-                  onChange={(e) => setField('cycleSim.whatIf', e.target.value)}
+                  value={answersData.cycleSim.badRegulators}
+                  onChange={(e) => setField('cycleSim.badRegulators', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2"
-                  rows={2}
-                  placeholder="Describe the setup…"
+                  rows={3}
+                  placeholder="Type your answer…"
+                  aria-label="What happens if cell cycle regulators don’t function properly?"
                 />
               </div>
-              <div>
-                <p className="font-medium mb-1">Observation — what happened?</p>
-                <AutoResizeTextarea
-                  value={answersData.cycleSim.whatIfObservation}
-                  onChange={(e) => setField('cycleSim.whatIfObservation', e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2"
-                  rows={2}
-                  placeholder="What did you see?"
-                />
-              </div>
-            </div>
 
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={handleSave}
-                className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
-              >
-                Save Answers
-              </button>
+              <div className="space-y-6">
+                <div>
+                  <p className="font-medium mb-1">Give one issue that arises with <b>too few</b> cells.</p>
+                  <CardSelect
+                    legend="Pick one"
+                    columns={1}
+                    options={TOO_FEW_OPTIONS}
+                    value={answersData.cycleSim.tooFewCells}
+                    onChange={(v) => setField('cycleSim.tooFewCells', v)}
+                  />
+                  {!isKnown(TOO_FEW_OPTIONS, answersData.cycleSim.tooFewCells) ? (
+                    <CarriedOverNote text={answersData.cycleSim.tooFewCells} />
+                  ) : null}
+                </div>
+                <div>
+                  <p className="font-medium mb-1">Give one issue that arises with <b>too many</b> cells.</p>
+                  <CardSelect
+                    legend="Pick one"
+                    columns={1}
+                    options={TOO_MANY_OPTIONS}
+                    value={answersData.cycleSim.tooManyCells}
+                    onChange={(v) => setField('cycleSim.tooManyCells', v)}
+                  />
+                  {!isKnown(TOO_MANY_OPTIONS, answersData.cycleSim.tooManyCells) ? (
+                    <CarriedOverNote text={answersData.cycleSim.tooManyCells} />
+                  ) : null}
+                </div>
+              </div>
+
+              <div>
+                <p className="font-medium mb-1">Cell Cycle Phases — Notes (G1, S, G2, M + checkpoints)</p>
+                <AutoResizeTextarea
+                  value={answersData.cycleSim.phasesNotes}
+                  onChange={(e) => setField('cycleSim.phasesNotes', e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2"
+                  rows={3}
+                  placeholder="After exploring the simulation, type your notes here. This is important for Day 3 and 4"
+                  aria-label="Cell Cycle Phases notes"
+                />
+              </div>
+
+              <div>
+                <p className="font-medium mb-1">Regulators &amp; Cancer — Notes</p>
+                <AutoResizeTextarea
+                  value={answersData.cycleSim.regulatorsNotes}
+                  onChange={(e) => setField('cycleSim.regulatorsNotes', e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2"
+                  rows={3}
+                  placeholder="After exploring the simulation, type your notes here. This is important for Day 3 and 4"
+                  aria-label="Regulators and Cancer notes"
+                />
+              </div>
+
+              <div className="rounded-xl border border-primary-200 bg-primary-50 p-4">
+                <h5 className="font-semibold mb-2">Run a what-if test</h5>
+                <StepFlow
+                  steps={[
+                    {
+                      id: 'setup',
+                      title: 'Set it up',
+                      hint: 'Use the simulation toggles to change one thing, then say what you changed.',
+                      isComplete: Boolean((answersData.cycleSim.whatIf || '').trim()),
+                      render: () => (
+                        <>
+                          <AutoResizeTextarea
+                            value={answersData.cycleSim.whatIf}
+                            onChange={(e) => setField('cycleSim.whatIf', e.target.value)}
+                            className="w-full border border-gray-300 rounded px-3 py-2"
+                            rows={2}
+                            placeholder="Describe the setup…"
+                            aria-label="What-if scenario setup"
+                          />
+                          <SentenceStarters
+                            label="Not sure what to try? Tap one:"
+                            starters={[
+                              'I turned p53 off.',
+                              'I overexpressed cyclin D.',
+                              'I disabled the G2/M checkpoint arrest.',
+                            ]}
+                            onInsert={(t) => appendTo('cycleSim.whatIf', answersData.cycleSim.whatIf, t)}
+                          />
+                        </>
+                      ),
+                    },
+                    {
+                      id: 'observe',
+                      title: 'What happened?',
+                      hint: 'Describe what you actually saw, not what you expected.',
+                      isComplete: Boolean((answersData.cycleSim.whatIfObservation || '').trim()),
+                      render: () => (
+                        <AutoResizeTextarea
+                          value={answersData.cycleSim.whatIfObservation}
+                          onChange={(e) => setField('cycleSim.whatIfObservation', e.target.value)}
+                          className="w-full border border-gray-300 rounded px-3 py-2"
+                          rows={2}
+                          placeholder="What did you see?"
+                          aria-label="What-if observation"
+                        />
+                      ),
+                    },
+                  ]}
+                />
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={handleSave}
+                  className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg"
+                >
+                  Save Answers
+                </button>
+              </div>
             </div>
-          </div>
+          </StageDesk>
 
           <p className="text-xs text-gray-500 mt-3">
             Facilitator tip: Before students begin, demo the navigation quickly (tabs, slide list, toggles) to reduce confusion.
@@ -923,27 +1196,17 @@ const Day2Page = () => {
             </h2>
 
             <div className="bg-white rounded-xl p-6 shadow-sm mb-6 relative z-10 space-y-4">
-              {[
-                {
-                  q: 'If p53 is mutated and cannot activate repair or apoptosis, what happens to the cell cycle?',
-                  a: 'Cells can pass damaged DNA through checkpoints, increasing mutation load and potential tumor formation.'
-                },
-                {
-                  q: 'How might overactive Mdm2 impact p53 and cancer risk?',
-                  a: 'Mdm2 tags p53 for degradation; overactivity can reduce p53 levels, weakening crucial damage responses.'
-                },
-                {
-                  q: 'Name one environmental factor that could increase mutation rates. How might this affect regulators?',
-                  a: 'UV radiation can cause thymine dimers; checkpoint proteins and repair genes must respond or errors accumulate.'
-                }
-              ].map((item, idx) => (
-                <details key={idx} className="border border-gray-200 rounded-lg transition-colors">
-                  <summary className="cursor-pointer px-4 py-3 hover:bg-primary-50 rounded-lg flex justify-between items-center">
-                    <h4 className="font-medium">{item.q}</h4>
-                    <i className="fa-solid fa-chevron-down text-gray-500" />
-                  </summary>
-                  <div className="px-4 pb-4 pt-2 text-gray-600 text-sm">{item.a}</div>
-                </details>
+              <p className="text-sm text-gray-600">
+                Predict first, then compare. You will remember it far better than reading the answer straight away.
+              </p>
+              {DAY2_INQUIRY.map((item, idx) => (
+                <PredictThenReveal
+                  key={item.q}
+                  question={item.q}
+                  expertAnswer={item.a}
+                  value={answersData.inquiry.predictions?.[idx] || ''}
+                  onChange={(v) => setField(`inquiry.predictions[${idx}]`, v)}
+                />
               ))}
             </div>
 
@@ -963,7 +1226,7 @@ const Day2Page = () => {
               <div className="mt-4 flex justify-end">
                 <button
                   onClick={handleSave}
-                  className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+                  className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg"
                 >
                   Submit Response
                 </button>
@@ -978,47 +1241,54 @@ const Day2Page = () => {
             Wrap-Up & Reflection
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              {
-                key: 'healthyDivision',
-                q: 'What does healthy cellular division typically look like? What are the two main phases?',
-              },
-              { key: 'cancerVsNormal', q: 'How does cancer differ from normal cell growth?' },
-              {
-                key: 'threeGeneTypes',
-                q: 'What are oncogenes, tumor suppressor genes, and DNA repair genes? Why are they important?',
-              },
-              { key: 'p53Normal', q: 'What is the normal function of p53 in a healthy cell?' },
-              { key: 'mdm2OnP53', q: 'What is the effect of Mdm2 on p53?' },
-              { key: 'whatIfRan', q: 'Describe one “what-if” you tested. What did you observe?' },
-              { key: 'favVideo', q: 'Which video was your favorite and why?' },
-              { key: 'favSim', q: 'Which simulation was your favorite and why?' },
-            ].map(({ key, q }) => {
-              const id = `wrap-${key}`;
-              return (
-                <div key={key} className="space-y-2">
-                  <label htmlFor={id} className="block text-sm font-medium text-gray-800">
-                    {q}
-                  </label>
+          <p className="text-sm text-gray-600 mb-4">
+            Eight questions, one at a time. Everything you wrote earlier today is still saved — this is where you pull it together.
+          </p>
 
-                  <AutoResizeTextarea
-                    id={id}
-                    value={answersData.wrap[key] ?? ''}
-                    onChange={(e) => setField(`wrap.${key}`, e.target.value)}
-                    className="w-full border border-gray-300 rounded p-3"
-                    rows={3}
-                    placeholder="Type your answer…"
-                  />
-                </div>
-              );
+          <StepFlow
+            steps={WRAP_QUESTIONS.map(({ key, q }) => {
+              const id = `wrap-${key}`;
+              return {
+                id: key,
+                title: q,
+                isComplete: Boolean((answersData.wrap[key] ?? '').trim()),
+                render: () => (
+                  <>
+                    <label htmlFor={id} className="sr-only">
+                      {q}
+                    </label>
+                    <AutoResizeTextarea
+                      id={id}
+                      value={answersData.wrap[key] ?? ''}
+                      onChange={(e) => setField(`wrap.${key}`, e.target.value)}
+                      className="w-full border border-gray-300 rounded p-3"
+                      rows={4}
+                      placeholder="Type your answer…"
+                    />
+                    {key === 'favVideo' ? (
+                      <SentenceStarters
+                        label="Today’s videos:"
+                        starters={['The Cell Cycle video, because…', 'The What is Cancer? video, because…']}
+                        onInsert={(t) => appendTo('wrap.favVideo', answersData.wrap.favVideo, t)}
+                      />
+                    ) : null}
+                    {key === 'favSim' ? (
+                      <SentenceStarters
+                        label="Today’s simulations:"
+                        starters={['The p53 Gene & Cancer simulation, because…', 'The Eukaryotic Cell Cycle & Cancer simulation, because…']}
+                        onInsert={(t) => appendTo('wrap.favSim', answersData.wrap.favSim, t)}
+                      />
+                    ) : null}
+                  </>
+                ),
+              };
             })}
-          </div>
+          />
 
           <div className="flex justify-end mt-6">
             <button
               onClick={handleSave}
-              className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+              className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg"
             >
               Save Reflection
             </button>
@@ -1028,7 +1298,7 @@ const Day2Page = () => {
         <div className="flex justify-center">
           <button
             onClick={handleSave}
-            className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-lg"
+            className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-6 rounded-lg"
           >
             Save
           </button>
@@ -1044,7 +1314,7 @@ const Day2Page = () => {
           </Link>
           <Link
             to="/sections/day-3"
-            className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+            className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg"
           >
             Go to Day 3
             <i className="fa-solid fa-arrow-right ml-2" />

@@ -28,6 +28,7 @@ export async function mockApi(page: Page, options: { inboxRead?: boolean; savedD
     const url = request.url();
     const isThirdPartyMediaNoise =
       url.includes('youtube.com/') ||
+      url.includes('youtube-nocookie.com/') ||
       url.includes('ytimg.com/') ||
       url.includes('googlevideo.com/') ||
       url.includes('google-analytics.com/') ||

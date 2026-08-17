@@ -5,6 +5,7 @@ import './index.css';
 import reportWebVitals from './reportWebVitals';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+import './styles/vendor-overrides.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

@@ -3,6 +3,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import StudentProfileBanner from '../components/StudentProfileBanner';
 import Popup from '../components/Popup';
+import {
+  CardSelect,
+  SentenceStarters,
+  StepFlow,
+  StageDesk,
+  StructuredReflection,
+  composeParts,
+  decomposeText,
+} from '../components/interactions';
 import { getCurrentUser, getResponseDetail, upsertResponse } from '../services/api';
 
 /* ------------------------------ Config/Data ------------------------------ */
@@ -20,6 +29,159 @@ const PROTEIN_ATLAS_URLS = {
   RAS:  'https://www.proteinatlas.org/ENSG00000133703-KRAS', // “RAS” label → KRAS link
   TDG:  'https://www.proteinatlas.org/ENSG00000139372-TDG',
 };
+
+const METHOD_STARTERS = ['qPCR', 'IHC', 'RNA-seq'];
+
+// "Gene Function Matching" was two blank boxes per gene. The first half really
+// is a matching task — the three functions below are the ones the Atlas pages
+// describe — so it is chosen from the set rather than typed from memory. The
+// stored value is still the function's wording, so saved work and the teacher
+// dashboard are unchanged.
+const GENE_FUNCTION_OPTIONS = [
+  'Receives growth signals from outside the cell',
+  'Relays growth signals inside the cell like a switch',
+  'Repairs damaged bases in DNA',
+  'Holds the cell cycle still until damage is fixed',
+];
+
+// The aggression comparison names two genes and asks for a justification.
+const AGGRESSION_PARTS = [
+  {
+    key: 'q2More',
+    label: 'The gene you think is MORE aggressive when mis-regulated',
+    options: ['EGFR', 'RAS', 'TDG'],
+  },
+  {
+    key: 'q2Less',
+    label: 'The gene you think is LESS aggressive when mis-regulated',
+    options: ['EGFR', 'RAS', 'TDG'],
+  },
+  {
+    key: 'q2Why',
+    label: 'Justify your reasoning from what you saw in the Atlas',
+    placeholder: 'Compare what each gene normally does, then say what goes wrong if it is mis-regulated.',
+    starters: ['I think ___ is more aggressive than ___ because…', 'The evidence in the Atlas showed…'],
+  },
+];
+
+const FUNCTION_AGGRESSION_PARTS = [
+  {
+    key: 'q1Risk',
+    label: 'For the gene you are looking at, which is riskier?',
+    options: ['Too loud (over-expressed)', 'Too quiet (under-expressed)'],
+  },
+  {
+    key: 'q1Why',
+    label: 'Explain how its usual job makes that risky',
+    placeholder: 'Because this gene normally…, expressing it that way would…',
+    starters: [
+      'Because this gene normally…',
+      'If it were too loud, the cell would…',
+      'If it were too quiet, the cell would…',
+    ],
+  },
+];
+
+/**
+ * Each scenario names the three things a good answer contains — the old
+ * placeholder spelled them out as an ASCII form. They are real fields now.
+ * The composed prose is still written to `methods.scenarioN`.
+ */
+const scenarioParts = (n) => [
+  {
+    key: `s${n}Method`,
+    label: `Scenario ${n} — best method`,
+    options: METHOD_STARTERS,
+  },
+  {
+    key: `s${n}Why`,
+    label: 'Why it fits this scenario',
+    placeholder: 'What about this method matches what the scenario needs?',
+  },
+  {
+    key: `s${n}Alt`,
+    label: 'Why another method is less ideal',
+    placeholder: 'Name a different method and say what it would miss or cost.',
+  },
+];
+
+const SCENARIOS = [
+  {
+    n: 1,
+    key: 'scenario1',
+    partsKey: 'scenario1Parts',
+    prompt: (
+      <>
+        You already suspect <b>Gene X</b> changes after treatment. You need a <b>fast</b>, <b>low-cost</b> check across{' '}
+        <b>20 samples</b>. What method would you use, and why?
+      </>
+    ),
+  },
+  {
+    n: 2,
+    key: 'scenario2',
+    partsKey: 'scenario2Parts',
+    prompt: (
+      <>
+        You need to know <b>where in the tissue</b> a protein is found (tumor core vs edges), not just how much RNA is
+        present. What method would you use, and why?
+      </>
+    ),
+  },
+  {
+    n: 3,
+    key: 'scenario3',
+    partsKey: 'scenario3Parts',
+    prompt: (
+      <>
+        You <b>don’t know</b> which genes change between healthy and cancer samples. You want a broad scan to discover
+        unexpected differences. What method would you use, and why?
+      </>
+    ),
+  },
+];
+
+// Question wording is unchanged throughout; each one now offers the phrases it
+// is fishing for as tap-to-insert starters, so answering begins from a decision
+// rather than from an empty box.
+const RECAP_STEPS = [
+  {
+    key: 'regWrong',
+    title: 'What might cause gene regulation to go wrong?',
+    placeholder: 'e.g., mutations, epigenetic changes, signaling errors…',
+    starters: ['A mutation in the gene itself', 'An epigenetic change such as methylation', 'A broken signalling pathway', 'A missing transcription factor'],
+  },
+  {
+    key: 'cancerVsTypical',
+    title: 'How is cancer growth different from typical cells?',
+    placeholder: 'Use the vocabulary list above as your guide.',
+    starters: ['Cancer cells ignore the signals that normally…', 'Typical cells stop dividing when…', 'Cancer cells avoid apoptosis by…'],
+  },
+  {
+    key: 'detectHousekeeping',
+    title: 'Housekeeping vs cancer-linked expression: one example of each “too loud / too quiet”.',
+    placeholder: 'Type your answer…',
+    starters: ['GAPDH stays steady, so…', 'Too loud:', 'Too quiet:'],
+  },
+];
+
+const DAY4_WRAP = [
+  {
+    key: 'patternsFromVisuals',
+    label: 'How did visuals help you notice patterns between healthy and cancerous cells?',
+    starters: ['Seeing the two side by side made it obvious that…', 'The colour differences showed…', 'I would have missed ___ in a table of numbers'],
+  },
+  {
+    key: 'functionAndAggression',
+    label: 'How does typical gene function affect progression once mutated? Which seem more “aggressive,” and why?',
+    starters: ['A gene that normally pushes growth becomes dangerous when…', 'A gene that normally repairs damage becomes dangerous when…'],
+  },
+  {
+    key: 'newThingLearned',
+    label: 'One new thing you learned about gene expression differences today',
+    starters: ['I did not realise that…', 'The Atlas showed me that…'],
+  },
+];
 
 const toSymbol = (s = '') => String(s).trim().toUpperCase();
 const getProteinAtlasUrl = (sym = '') => {
@@ -58,9 +220,9 @@ const GeneLink = ({ symbol, className }) => {
 
 /* --------------------------- Protein Atlas panel -------------------------- */
 
-function ProteinAtlasPanel() {
-  const [gene, setGene] = React.useState('EGFR');
+function ProteinAtlasPanel({ gene, onGeneChange, height = '900px' }) {
   const [loaded, setLoaded] = React.useState(false);
+  const setGene = onGeneChange;
   const [timedOut, setTimedOut] = React.useState(false);
   const src = getProteinAtlasUrl(gene);
 
@@ -93,7 +255,7 @@ function ProteinAtlasPanel() {
               href={src}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center bg-primary-500 hover:bg-primary-600 text-white font-medium px-4 py-2 rounded"
+              className="inline-flex items-center justify-center bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium px-4 py-2 rounded"
             >
               Open on Protein Atlas
             </a>
@@ -117,7 +279,8 @@ function ProteinAtlasPanel() {
           key={src}
           src={src}
           title={`Protein Atlas: ${gene}`}
-          className="w-full h-[900px] bg-white"
+          className="w-full bg-white"
+          style={{ height }}
           referrerPolicy="no-referrer"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           onLoad={() => setLoaded(true)}
@@ -149,6 +312,10 @@ const Day4Page = () => {
   const [popupVisible, setPopupVisible] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Which gene the pinned Protein Atlas panel is showing. Lifted out of the
+  // panel so moving to a gene's question also moves the evidence.
+  const [atlasGene, setAtlasGene] = useState('EGFR');
+
   // --- AUTOSAVE (Day 5 pattern) ---
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -163,9 +330,16 @@ const Day4Page = () => {
       notes: '',
       geneTable: DEFAULT_GENE_ROWS,
       q1FunctionToAggression: '',
+      q1Parts: {},
       q2AggressivenessByFunction: '',
+      q2Parts: {},
     },
-    methods: { scenario1: '', scenario2: '', scenario3: '' },
+    // `scenarioNParts` are additive; `scenarioN` still holds the readable prose.
+    methods: {
+      scenario1: '', scenario1Parts: {},
+      scenario2: '', scenario2Parts: {},
+      scenario3: '', scenario3Parts: {},
+    },
     inquiry: { think: '' },
     wrap: {
       patternsFromVisuals: '',
@@ -216,6 +390,11 @@ const Day4Page = () => {
             }));
 
             if (!merged.inquiry) merged.inquiry = { think: '' };
+            merged.viz = { q1Parts: {}, q2Parts: {}, ...merged.viz };
+            merged.methods = {
+              scenario1Parts: {}, scenario2Parts: {}, scenario3Parts: {},
+              ...(merged.methods || {}),
+            };
             return merged;
           });
           setDirty(false);
@@ -318,6 +497,22 @@ const Day4Page = () => {
     };
   }, []);
 
+  const setStructured = (partsPath, prosePath, parts, nextValues) => {
+    setField(partsPath, nextValues);
+    setField(prosePath, composeParts(parts, nextValues));
+  };
+
+  const appendTo = (path, current, text) => setField(path, current ? `${current} ${text}` : text);
+
+  // Anything written before these prompts became builders is shown back to the
+  // student rather than silently dropped.
+  const q1Carry = Object.keys(answersData.viz.q1Parts || {}).length
+    ? ''
+    : decomposeText(FUNCTION_AGGRESSION_PARTS, answersData.viz.q1FunctionToAggression).carryOver;
+  const q2Carry = Object.keys(answersData.viz.q2Parts || {}).length
+    ? ''
+    : decomposeText(AGGRESSION_PARTS, answersData.viz.q2AggressivenessByFunction).carryOver;
+
   if (loading) return <div className="flex items-center justify-center h-screen">Loading…</div>;
 
   /* ---------------------------------- UI ----------------------------------- */
@@ -381,7 +576,7 @@ const Day4Page = () => {
               ].map((item, idx) => (
                 <li key={idx} className="flex items-start">
                   <div className="bg-primary-100 rounded-full p-1 mr-3 mt-1">
-                    <i className="fa-solid fa-check text-primary-600 text-sm" />
+                    <i className="fa-solid fa-check text-primary-700 text-sm" />
                   </div>
                   <span className="text-lg">{item}</span>
                 </li>
@@ -398,34 +593,33 @@ const Day4Page = () => {
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Recap & Review</h3>
 
-            <label className="text-sm font-medium mb-1 block">What might cause gene regulation to go wrong?</label>
-            <textarea
-              value={answersData.recap.regWrong}
-              onChange={e => setField('recap.regWrong', e.target.value)}
-              className="w-full border border-gray-300 rounded p-3 mb-3"
-              rows={3}
-              placeholder="e.g., mutations, epigenetic changes, signaling errors…"
-            />
-
-            <label className="text-sm font-medium mb-1 block">How is cancer growth different from typical cells?</label>
-            <textarea
-              value={answersData.recap.cancerVsTypical}
-              onChange={e => setField('recap.cancerVsTypical', e.target.value)}
-              className="w-full border border-gray-300 rounded p-3 mb-3"
-              rows={3}
-              placeholder="Use the vocabulary list above as your guide."
-            />
-
-            <label className="text-sm font-medium mb-1 block">Housekeeping vs cancer-linked gene expression: one example of each “too loud / too quiet”.</label>
-            <textarea
-              value={answersData.recap.detectHousekeeping}
-              onChange={e => setField('recap.detectHousekeeping', e.target.value)}
-              className="w-full border border-gray-300 rounded p-3"
-              rows={3}
+            <StepFlow
+              hint="Three recall questions from Days 1–3, one at a time."
+              steps={RECAP_STEPS.map(({ key, title, placeholder, starters }) => ({
+                id: key,
+                title,
+                isComplete: Boolean((answersData.recap[key] || '').trim()),
+                render: () => (
+                  <>
+                    <textarea
+                      value={answersData.recap[key]}
+                      onChange={e => setField(`recap.${key}`, e.target.value)}
+                      className="w-full border border-gray-300 rounded p-3"
+                      rows={4}
+                      placeholder={placeholder}
+                      aria-label={title}
+                    />
+                    <SentenceStarters
+                      starters={starters}
+                      onInsert={(t) => appendTo(`recap.${key}`, answersData.recap[key], t)}
+                    />
+                  </>
+                ),
+              }))}
             />
 
             <div className="flex justify-end mt-4">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg">
                 Save Section
               </button>
             </div>
@@ -435,113 +629,131 @@ const Day4Page = () => {
           <section className="bg-white rounded-2xl shadow-md p-6 md:p-8">
             <h3 className="text-2xl font-semibold mb-4">Activity 1: Visualizing Gene Expression Patterns</h3>
 
-            <ProteinAtlasPanel />
+            <p className="text-xs md:text-sm text-gray-500 flex items-center gap-2 mb-4">
+              <i className="fa-solid fa-circle-info" aria-hidden="true" />
+              <span>
+                Explore the Atlas first, then answer below. It stays on screen while you work and follows whichever
+                gene you are on — no scrolling back and forth between the evidence and the answer.
+              </span>
+            </p>
 
-            {/* Gene function matching (table, students fill) */}
-            <h4 className="font-semibold mb-2 mt-6">Gene Function Matching</h4>
-            <div className="overflow-x-auto border border-gray-200 rounded-lg">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="text-left px-4 py-2">Gene</th>
-                    <th className="text-left px-4 py-2">Normal Function (you write)</th>
-                    <th className="text-left px-4 py-2">Why does it matter? (1 phrase)</th>
-                    <th className="text-left px-4 py-2">Protein Atlas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {answersData.viz.geneTable.map((row, idx) => {
-                    const symbol = toSymbol(remapLegacyGene(row.gene) || 'EGFR');
-                    const url = getProteinAtlasUrl(symbol);
-                    return (
-                      <tr key={`${row.gene || idx}-${idx}`} className="border-t">
-                        <td className="px-4 py-2">
-                          <input
-                            value={remapLegacyGene(row.gene)}
-                            onChange={e => {
-                              const next = [...answersData.viz.geneTable];
-                              next[idx] = { ...next[idx], gene: e.target.value };
-                              setField('viz.geneTable', next);
-                            }}
-                            className="border border-gray-300 rounded px-2 py-1 w-40"
-                            placeholder="e.g., EGFR"
-                          />
-                        </td>
-                        <td className="px-4 py-2">
-                          <input
-                            value={row.normalFunction}
-                            onChange={e => {
-                              const next = [...answersData.viz.geneTable];
-                              next[idx] = { ...next[idx], normalFunction: e.target.value };
-                              setField('viz.geneTable', next);
-                            }}
-                            className="border border-gray-300 rounded px-2 py-1 w-full"
-                            placeholder="What does this gene usually help the cell do?"
-                          />
-                        </td>
-                        <td className="px-4 py-2">
-                          <input
-                            value={row.whyMatters}
-                            onChange={e => {
-                              const next = [...answersData.viz.geneTable];
-                              next[idx] = { ...next[idx], whyMatters: e.target.value };
-                              setField('viz.geneTable', next);
-                            }}
-                            className="border border-gray-300 rounded px-2 py-1 w-full"
-                            placeholder="How could changes affect diagnosis/treatment?"
-                          />
-                        </td>
-                        <td className="px-4 py-2">
+            <StageDesk
+              showTitleOnStage={false}
+              mediaTitle="Human Protein Atlas — stays with you"
+              media={
+                <ProteinAtlasPanel gene={atlasGene} onGeneChange={setAtlasGene} height="70vh" />
+              }
+            >
+              <h4 className="font-semibold">Gene Function Matching</h4>
+              <StepFlow
+                hint="One gene at a time. Selecting a gene here also loads it in the Atlas panel."
+                steps={answersData.viz.geneTable.map((row, idx) => {
+                  const symbol = toSymbol(remapLegacyGene(row.gene) || 'EGFR');
+                  const url = getProteinAtlasUrl(symbol);
+                  const update = (patch) => {
+                    const next = [...answersData.viz.geneTable];
+                    next[idx] = { ...next[idx], gene: symbol, ...patch };
+                    setField('viz.geneTable', next);
+                  };
+                  return {
+                    id: `${symbol}-${idx}`,
+                    title: symbol,
+                    isComplete: Boolean((row.normalFunction || '').trim() && (row.whyMatters || '').trim()),
+                    render: () => (
+                      <div className="space-y-4">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setAtlasGene(symbol)}
+                            className="px-3 py-1.5 text-sm rounded-md border bg-white hover:bg-gray-50"
+                          >
+                            <i className="fa-solid fa-eye mr-1.5" aria-hidden="true" />
+                            Show {symbol} in the Atlas panel
+                          </button>
                           <a
                             href={url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-primary-700 underline"
+                            className="inline-flex items-center gap-1 text-primary-700 underline text-sm"
                             title={`${symbol} on the Human Protein Atlas`}
                           >
-                            {symbol}
+                            Open {symbol} in a new tab
                             <i className="fa-solid fa-arrow-up-right-from-square text-xs" />
                           </a>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </div>
 
-            {/* Key Questions — clarified wording */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium mb-1 block">1) Function → Aggression</label>
-                <p className="text-xs text-gray-600 mb-1">
-                  Here “aggressive” = more likely to cause fast growth or resist control if mis-regulated.
-                </p>
-                <textarea
-                  value={answersData.viz.q1FunctionToAggression}
-                  onChange={e => setField('viz.q1FunctionToAggression', e.target.value)}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={4}
-                  placeholder="Explain how a gene’s usual job could make it risky if it’s too loud or too quiet."
-                />
+                        <CardSelect
+                          legend={`${symbol} — normal function`}
+                          hint="Match it to what the Atlas page above describes."
+                          options={GENE_FUNCTION_OPTIONS}
+                          value={row.normalFunction}
+                          onChange={(v) => update({ normalFunction: v })}
+                          columns={2}
+                          name={`gene-fn-${idx}`}
+                        />
+
+                        <div>
+                          <label htmlFor={`gene-why-${idx}`} className="text-sm font-medium mb-1 block">
+                            {symbol} — why does it matter?
+                          </label>
+                          <textarea
+                            id={`gene-why-${idx}`}
+                            value={row.whyMatters}
+                            onChange={e => update({ whyMatters: e.target.value })}
+                            className="w-full border border-gray-300 rounded px-3 py-2"
+                            rows={2}
+                            placeholder="How could changes affect diagnosis/treatment?"
+                          />
+                          <SentenceStarters
+                            starters={[
+                              'If this gene is mis-regulated, a doctor could…',
+                              'It could be used as a marker for…',
+                              'A drug could target it by…',
+                            ]}
+                            onInsert={(t) => update({ whyMatters: row.whyMatters ? `${row.whyMatters} ${t}` : t })}
+                          />
+                        </div>
+                      </div>
+                    ),
+                  };
+                })}
+              />
+
+              {/* Key Questions — clarified wording */}
+              <div className="space-y-6 pt-2">
+                <div>
+                  <label htmlFor="viz-q1" className="text-sm font-medium mb-1 block">1) Function → Aggression</label>
+                  <p className="text-xs text-gray-600 mb-1">
+                    Here “aggressive” = more likely to cause fast growth or resist control if mis-regulated.
+                  </p>
+                  <StructuredReflection
+                    parts={FUNCTION_AGGRESSION_PARTS}
+                    values={answersData.viz.q1Parts}
+                    carryOver={q1Carry}
+                    onChange={(next) =>
+                      setStructured('viz.q1Parts', 'viz.q1FunctionToAggression', FUNCTION_AGGRESSION_PARTS, next)
+                    }
+                  />
+                </div>
+                <div>
+                  <label htmlFor="viz-q2" className="text-sm font-medium mb-1 block">2) More vs less “aggressive” by function</label>
+                  <p className="text-xs text-gray-600 mb-1">
+                    Compare any two genes you studied. Justify your reasoning.
+                  </p>
+                  <StructuredReflection
+                    parts={AGGRESSION_PARTS}
+                    values={answersData.viz.q2Parts}
+                    carryOver={q2Carry}
+                    onChange={(next) =>
+                      setStructured('viz.q2Parts', 'viz.q2AggressivenessByFunction', AGGRESSION_PARTS, next)
+                    }
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block">2) More vs less “aggressive” by function</label>
-                <p className="text-xs text-gray-600 mb-1">
-                  Compare any two genes you studied. Justify your reasoning.
-                </p>
-                <textarea
-                  value={answersData.viz.q2AggressivenessByFunction}
-                  onChange={e => setField('viz.q2AggressivenessByFunction', e.target.value)}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={4}
-                  placeholder="Which seems more aggressive when mis-regulated, and why?"
-                />
-              </div>
-            </div>
+            </StageDesk>
 
             <div className="flex justify-end mt-6">
-              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+              <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg">
                 Save Section
               </button>
             </div>
@@ -582,67 +794,44 @@ const Day4Page = () => {
               </div>
             </div>
 
-            {/* Scenario-based quick checks */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="methods-scenario1" className="text-sm font-medium mb-1 block">
-                  Scenario 1: You already suspect <b>Gene X</b> changes after treatment. You need a <b>fast</b>, <b>low-cost</b> check
-                  across <b>20 samples</b>. What method would you use, and why?
-                </label>
-                <textarea
-                  id="methods-scenario1"
-                  value={answersData.methods.scenario1}
-                  onChange={e => setField('methods.scenario1', e.target.value)}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={5}
-                  placeholder={`Example format:
-                  Best method: ___
-                  Why: ___
-                  Why another method is less ideal: ___`}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="methods-scenario2" className="text-sm font-medium mb-1 block">
-                  Scenario 2: You need to know <b>where in the tissue</b> a protein is found (tumor core vs edges), not just how much
-                  RNA is present. What method would you use, and why?
-                </label>
-                <textarea
-                  id="methods-scenario2"
-                  value={answersData.methods.scenario2}
-                  onChange={e => setField('methods.scenario2', e.target.value)}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={5}
-                  placeholder={`Example format:
-                  Best method: ___
-                  Why: ___
-                  Why another method is less ideal: ___`}
-                  />
-              </div>
-
-              <div>
-                <label htmlFor="methods-scenario3" className="text-sm font-medium mb-1 block">
-                  Scenario 3: You <b>don’t know</b> which genes change between healthy and cancer samples. You want a broad scan to
-                  discover unexpected differences. What method would you use, and why?
-                </label>
-                <textarea
-                  id="methods-scenario3"
-                  value={answersData.methods.scenario3}
-                  onChange={e => setField('methods.scenario3', e.target.value)}
-                  className="w-full border border-gray-300 rounded p-3"
-                  rows={5}
-                  placeholder={`Example format:
-                    Best method: ___
-                    Why: ___
-                    Why another method is less ideal: ___`}
-                />
-              </div>
+            {/* Scenario-based quick checks — the three method cards above stay
+                on screen while students answer. */}
+            <div className="mt-6">
+              <StepFlow
+                title="Three scenarios"
+                hint="The method summaries stay above. Each answer has three parts — they assemble into your full response."
+                steps={SCENARIOS.map(({ n, key, partsKey, prompt }) => {
+                  const parts = scenarioParts(n);
+                  const values = answersData.methods[partsKey] || {};
+                  const carryOver = Object.keys(values).length
+                    ? ''
+                    : decomposeText(parts, answersData.methods[key]).carryOver;
+                  return {
+                    id: key,
+                    title: `Scenario ${n}`,
+                    isComplete: parts.every(({ key: pk }) => (values[pk] || '').trim()),
+                    render: () => (
+                      <>
+                        <p className="text-sm text-gray-800 mb-3">{prompt}</p>
+                        <StructuredReflection
+                          parts={parts}
+                          values={values}
+                          carryOver={carryOver}
+                          onChange={(next) =>
+                            setStructured(`methods.${partsKey}`, `methods.${key}`, parts, next)
+                          }
+                        />
+                      </>
+                    ),
+                  };
+                })}
+              />
             </div>
 
             <div className="flex justify-end mt-6">
               <button
                 onClick={handleSave}
-                className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+                className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg"
               >
                 Save Section
               </button>
@@ -678,8 +867,17 @@ const Day4Page = () => {
                 rows={4}
                 placeholder="Type your response…"
               />
+              <SentenceStarters
+                starters={[
+                  'High RAS with low EGFR suggests…',
+                  'I would test it with qPCR against a housekeeping gene',
+                  'I would test it with IHC to see where the protein sits',
+                  'My claim is supported if…',
+                ]}
+                onInsert={(t) => appendTo('inquiry.think', answersData.inquiry.think, t)}
+              />
               <div className="mt-4 flex justify-end">
-                <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+                <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg">
                   Submit Response
                 </button>
               </div>
@@ -693,37 +891,32 @@ const Day4Page = () => {
             <i className="fa-solid fa-flag-checkered text-primary-500 mr-3" />
             Wrap-Up & Reflection
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">How did visuals help you notice patterns between healthy and cancerous cells?</label>
-              <textarea
-                value={answersData.wrap.patternsFromVisuals}
-                onChange={e => setField('wrap.patternsFromVisuals', e.target.value)}
-                className="w-full border border-gray-300 rounded p-3"
-                rows={3}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">How does typical gene function affect progression once mutated? Which seem more “aggressive,” and why?</label>
-              <textarea
-                value={answersData.wrap.functionAndAggression}
-                onChange={e => setField('wrap.functionAndAggression', e.target.value)}
-                className="w-full border border-gray-300 rounded p-3"
-                rows={3}
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium mb-1 block">One new thing you learned about gene expression differences today</label>
-              <textarea
-                value={answersData.wrap.newThingLearned}
-                onChange={e => setField('wrap.newThingLearned', e.target.value)}
-                className="w-full border border-gray-300 rounded p-3"
-                rows={3}
-              />
-            </div>
-          </div>
+          <StepFlow
+            hint="Three reflections, one at a time."
+            steps={DAY4_WRAP.map(({ key, label, starters }) => ({
+              id: key,
+              title: label,
+              isComplete: Boolean((answersData.wrap[key] || '').trim()),
+              render: () => (
+                <>
+                  <textarea
+                    value={answersData.wrap[key]}
+                    onChange={e => setField(`wrap.${key}`, e.target.value)}
+                    className="w-full border border-gray-300 rounded p-3"
+                    rows={4}
+                    placeholder="Type your answer…"
+                    aria-label={label}
+                  />
+                  <SentenceStarters
+                    starters={starters}
+                    onInsert={(t) => appendTo(`wrap.${key}`, answersData.wrap[key], t)}
+                  />
+                </>
+              ),
+            }))}
+          />
           <div className="flex justify-end mt-6">
-            <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg">
+            <button onClick={handleSave} className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg">
               Save Reflection
             </button>
           </div>
@@ -733,7 +926,7 @@ const Day4Page = () => {
         <div className="flex justify-center">
           <button
             onClick={handleSave}
-            className="bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-6 rounded-lg"
+            className="bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-6 rounded-lg"
           >
             Save
           </button>
@@ -750,7 +943,7 @@ const Day4Page = () => {
           </Link>
           <Link
             to="/sections/day-5"
-            className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+            className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg"
           >
             Go to Day 5
             <i className="fa-solid fa-arrow-right ml-2" />

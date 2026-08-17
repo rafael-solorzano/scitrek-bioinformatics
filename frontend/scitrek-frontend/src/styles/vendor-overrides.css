@@ -1,0 +1,11 @@
+/* Overrides for third-party stylesheets. Imported last in main.jsx so it wins
+   the cascade against Bootstrap's reboot. */
+
+/* Bootstrap sets `:root { scroll-behavior: smooth }`, which animates every
+   programmatic scroll — anchor jumps, scrollIntoView, focus moves. Wheel input
+   during that ~400ms animation aborts it part-way, which reads as the page
+   stalling mid-scroll. Scrolling is instant again; the one place that wants an
+   animated scroll (the "back to the media" control) asks for it per call. */
+:root {
+  scroll-behavior: auto;
+}

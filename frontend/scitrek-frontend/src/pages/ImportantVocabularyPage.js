@@ -57,7 +57,7 @@ const ImportantVocabularyPage = () => {
             </div>
             <Link
               to="/sections/day-1"
-              className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+              className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg"
             >
               Day 1 • Start
               <i className="fa-solid fa-arrow-right ml-2" />
@@ -104,7 +104,7 @@ const ImportantVocabularyPage = () => {
             </Link>
             <Link
               to="/sections/day-1"
-              className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg"
+              className="inline-flex items-center bg-primary-500 hover:bg-primary-600 text-stone-900 font-medium py-2 px-4 rounded-lg"
             >
               Go to Day 1
               <i className="fa-solid fa-arrow-right ml-2" />
@@ -118,7 +118,7 @@ const ImportantVocabularyPage = () => {
         {/* <Link to="/sections/what-youll-learn" className="text-gray-600 hover:text-primary-500 mr-4">
           <i className="fa-solid fa-arrow-left" />
         </Link>
-        <Link to="/sections/day-1" className="text-primary-600 hover:text-primary-700 ml-4">
+        <Link to="/sections/day-1" className="text-primary-700 hover:text-primary-700 ml-4">
           <i className="fa-solid fa-arrow-right" />
         </Link> */}
       </footer>
