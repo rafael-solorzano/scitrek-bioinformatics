@@ -11,13 +11,14 @@
 # Every resource here is on a free plan. Render charges for background workers
 # with no free tier, so there is no worker: the web service runs tasks inline
 # and an external scheduler drives the one task that genuinely needed a clock.
-
-databases:
-  - name: scitrek-postgres
-    databaseName: scitrek
-    user: scitrek
-    plan: free               # free Postgres is deleted 30 days after creation
-    postgresMajorVersion: "16"
+#
+# The database is deliberately NOT declared here. Render deletes a free Postgres
+# instance 30 days after creation, which makes it unusable for a deploy that has
+# to stay up, so Postgres lives on Neon instead -- its free tier has no expiry
+# and suspends the compute when idle rather than requiring a manual restore.
+# The five DATABASE_* values below are entered in the dashboard from the Neon
+# connection string. See the "Database on Neon" section of
+# docs/render-deployment.md.
 
 # Shared between every service that runs Django. Only the web service does so
 # today, but the group is what keeps a second one from drifting away from it if
@@ -87,16 +88,20 @@ services:
       - key: CSRF_TRUSTED_ORIGINS
         sync: false
 
+      # From the Neon connection string, split into the five pieces production
+      # settings ask for. Host is the pooled endpoint (the one containing
+      # `-pooler`): the web service opens a connection per gunicorn worker and
+      # the pooler is what keeps an idle Neon compute from being held awake.
       - key: DATABASE_HOST
-        fromDatabase: { name: scitrek-postgres, property: host }
+        sync: false
       - key: DATABASE_PORT
-        fromDatabase: { name: scitrek-postgres, property: port }
+        sync: false
       - key: DATABASE_NAME
-        fromDatabase: { name: scitrek-postgres, property: database }
+        sync: false
       - key: DATABASE_USER
-        fromDatabase: { name: scitrek-postgres, property: user }
+        sync: false
       - key: DATABASE_PASSWORD
-        fromDatabase: { name: scitrek-postgres, property: password }
+        sync: false
 
       # All three share logical database 0: Render exposes one connection
       # string and the blueprint cannot append a database index. See the
