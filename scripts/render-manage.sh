@@ -7,11 +7,14 @@
 # local Django at it.
 #
 # Usage:
-#   export RENDER_DATABASE_URL='postgresql://user:pass@host.oregon-postgres.render.com/dbname'
+#   export RENDER_DATABASE_URL='postgresql://user:pass@ep-xxx-pooler.us-west-2.aws.neon.tech/dbname'
 #   export DJANGO_SECRET_KEY='<the same value as the Render env group>'
 #   scripts/render-manage.sh createsuperuser
 #
-# The External Database URL is on the scitrek-postgres page under Connect.
+# The database is on Neon, not Render -- Render deletes a free Postgres instance
+# after 30 days. Copy the pooled connection string from the Neon dashboard's
+# Connect panel. The variable keeps its name because it is the Render deploy's
+# database; see the "Database on Neon" section of docs/render-deployment.md.
 #
 # This talks to production data. There is no confirmation prompt and no undo.
 set -euo pipefail
