@@ -6,6 +6,10 @@ hostname `bioinformatics-mod.sci-trek.org`. Read `deployment.md` for the
 general contract (startup ordering, health endpoints, update and rollback
 procedure); this file only covers what is AWS- and subdomain-specific.
 
+For pulling secrets from AWS Secrets Manager and for push-to-deploy on the
+`production` branch, see [`deploy-automation.md`](deploy-automation.md). Both are
+optional; the manual steps below work without them.
+
 ## Topology
 
 ```

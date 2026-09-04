@@ -1,9 +1,11 @@
+import json
 from unittest.mock import patch
 import importlib
 
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase, TestCase, override_settings
 
+from scitrek_backend import aws_secrets
 from scitrek_backend.settings.base import (
     env_bool,
     env_bool_required,
@@ -379,3 +381,119 @@ class TaskRunnerEndpointTests(TestCase):
         response = self.client.post(self.url, HTTP_X_TASK_TOKEN='anything')
 
         self.assertEqual(response.status_code, 404)
+
+
+class AwsSecretsTests(SimpleTestCase):
+    """AWS Secrets Manager loader: inert unless configured, fail-fast when broken."""
+
+    def setUp(self):
+        aws_secrets._loaded = False
+        self.addCleanup(setattr, aws_secrets, "_loaded", False)
+
+    @staticmethod
+    def _fake_boto3(secret_string=None, response=None, get_error=None):
+        """Return a patch target for boto3.client with the given behaviour."""
+        client = patch("boto3.client").start()
+        conn = client.return_value
+        if get_error is not None:
+            conn.get_secret_value.side_effect = get_error
+        elif response is not None:
+            conn.get_secret_value.return_value = response
+        else:
+            conn.get_secret_value.return_value = {"SecretString": secret_string}
+        return client
+
+    def test_noop_when_secret_id_unset(self):
+        with patch.dict("os.environ", {}, clear=True):
+            aws_secrets.load_into_environ()
+            self.assertTrue(aws_secrets._loaded)
+
+    def test_requires_region_when_secret_id_set(self):
+        with patch.dict("os.environ", {"AWS_SECRETS_MANAGER_SECRET_ID": "s"}, clear=True):
+            with self.assertRaisesMessage(RuntimeError, "AWS_REGION"):
+                aws_secrets.load_into_environ()
+
+    def test_merges_secret_without_overriding_existing_env(self):
+        self.addCleanup(patch.stopall)
+        self._fake_boto3(json.dumps({
+            "DJANGO_SECRET_KEY": "from-sm",
+            "DATABASE_USER": "from-sm",
+            "DATABASE_NAME": "scitrek",
+        }))
+        env = {
+            "AWS_SECRETS_MANAGER_SECRET_ID": "s",
+            "AWS_REGION": "us-west-2",
+            "DATABASE_USER": "already-set",
+        }
+        with patch.dict("os.environ", env, clear=True):
+            aws_secrets.load_into_environ()
+            import os
+            self.assertEqual(os.environ["DJANGO_SECRET_KEY"], "from-sm")
+            self.assertEqual(os.environ["DATABASE_NAME"], "scitrek")
+            self.assertEqual(os.environ["DATABASE_USER"], "already-set")
+
+    def test_uses_aws_default_region_as_fallback(self):
+        self.addCleanup(patch.stopall)
+        self._fake_boto3(json.dumps({"K": "v"}))
+        env = {
+            "AWS_SECRETS_MANAGER_SECRET_ID": "s",
+            "AWS_DEFAULT_REGION": "eu-west-1",
+        }
+        with patch.dict("os.environ", env, clear=True):
+            aws_secrets.load_into_environ()
+            import os
+            self.assertEqual(os.environ["K"], "v")
+
+    def test_skips_null_values(self):
+        self.addCleanup(patch.stopall)
+        self._fake_boto3(json.dumps({"SET": "yes", "SKIP": None}))
+        env = {"AWS_SECRETS_MANAGER_SECRET_ID": "s", "AWS_REGION": "us-west-2"}
+        with patch.dict("os.environ", env, clear=True):
+            aws_secrets.load_into_environ()
+            import os
+            self.assertEqual(os.environ["SET"], "yes")
+            self.assertNotIn("SKIP", os.environ)
+
+    def test_rejects_binary_only_secret(self):
+        self.addCleanup(patch.stopall)
+        self._fake_boto3(response={"SecretBinary": b"\x00"})
+        env = {"AWS_SECRETS_MANAGER_SECRET_ID": "s", "AWS_REGION": "us-west-2"}
+        with patch.dict("os.environ", env, clear=True):
+            with self.assertRaisesMessage(RuntimeError, "SecretString"):
+                aws_secrets.load_into_environ()
+
+    def test_rejects_non_json_secret(self):
+        self.addCleanup(patch.stopall)
+        self._fake_boto3("not json")
+        env = {"AWS_SECRETS_MANAGER_SECRET_ID": "s", "AWS_REGION": "us-west-2"}
+        with patch.dict("os.environ", env, clear=True):
+            with self.assertRaisesMessage(RuntimeError, "not valid JSON"):
+                aws_secrets.load_into_environ()
+
+    def test_rejects_json_that_is_not_an_object(self):
+        self.addCleanup(patch.stopall)
+        self._fake_boto3(json.dumps(["a", "b"]))
+        env = {"AWS_SECRETS_MANAGER_SECRET_ID": "s", "AWS_REGION": "us-west-2"}
+        with patch.dict("os.environ", env, clear=True):
+            with self.assertRaisesMessage(RuntimeError, "JSON object"):
+                aws_secrets.load_into_environ()
+
+    def test_wraps_boto_client_error(self):
+        self.addCleanup(patch.stopall)
+        from botocore.exceptions import ClientError
+        err = ClientError(
+            {"Error": {"Code": "AccessDenied", "Message": "nope"}}, "GetSecretValue"
+        )
+        self._fake_boto3(get_error=err)
+        env = {"AWS_SECRETS_MANAGER_SECRET_ID": "s", "AWS_REGION": "us-west-2"}
+        with patch.dict("os.environ", env, clear=True):
+            with self.assertRaisesMessage(RuntimeError, "could not read secret"):
+                aws_secrets.load_into_environ()
+
+    def test_second_call_is_a_noop(self):
+        with patch.dict("os.environ", {}, clear=True):
+            aws_secrets.load_into_environ()
+            # Even with a secret id now present, the guard short-circuits.
+            import os
+            os.environ["AWS_SECRETS_MANAGER_SECRET_ID"] = "s"
+            aws_secrets.load_into_environ()  # must not raise about AWS_REGION

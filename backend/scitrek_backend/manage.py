@@ -7,6 +7,11 @@ import sys
 def main():
     """Run administrative tasks."""
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "scitrek_backend.settings.development")
+
+    from scitrek_backend import aws_secrets
+
+    aws_secrets.load_into_environ()
+
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
