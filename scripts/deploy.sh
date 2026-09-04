@@ -8,7 +8,7 @@
 # rolls the checkout back to the previous commit if the smoke test fails.
 #
 # Environment:
-#   DEPLOY_BRANCH            branch to deploy            (default: production)
+#   DEPLOY_BRANCH            branch to deploy            (default: main)
 #   SCITREK_DIR              repo checkout on the host   (default: /opt/scitrek/scitrek-bioinformatics)
 #   RDS_SNAPSHOT_ID_PREFIX   when set AND migration files changed, take an RDS
 #                            snapshot (needs the AWS CLI and RDS_DB_INSTANCE_ID)
@@ -20,7 +20,7 @@
 # migration is not backward compatible (see docs/deployment.md).
 set -euo pipefail
 
-DEPLOY_BRANCH="${DEPLOY_BRANCH:-production}"
+DEPLOY_BRANCH="${DEPLOY_BRANCH:-main}"
 SCITREK_DIR="${SCITREK_DIR:-/opt/scitrek/scitrek-bioinformatics}"
 LOCK_FILE="${SCITREK_DEPLOY_LOCK:-/tmp/scitrek-deploy.lock}"
 

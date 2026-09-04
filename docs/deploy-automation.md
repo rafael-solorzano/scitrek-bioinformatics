@@ -108,16 +108,19 @@ docker compose --env-file backend/scitrek_backend/.env \
 
 `True True` means the fetch and merge worked.
 
-## Automated deploy on push to `production`
+## Automated deploy on push to `main`
+
+Every merge to `main` deploys. There is no separate `production` branch;
+`main`'s own branch protection (required PR review) is the go-live gate.
 
 ### Flow
 
 ```
-push to production ──► .github/workflows/deploy.yml
-                         job: ci   -> reuses .github/workflows/ci.yml (full suite)
-                         job: deploy (needs ci)
-                           assume AWS_DEPLOY_ROLE_ARN via GitHub OIDC
-                           aws ssm send-command  ->  runs scripts/deploy.sh on the box
+push to main ──► .github/workflows/deploy.yml
+                   job: ci   -> reuses .github/workflows/ci.yml (full suite)
+                   job: deploy (needs ci)
+                     assume AWS_DEPLOY_ROLE_ARN via GitHub OIDC
+                     aws ssm send-command  ->  runs scripts/deploy.sh on the box
 ```
 
 No inbound SSH: GitHub reaches the instance through SSM Send-Command, which is
@@ -128,7 +131,7 @@ instance role's `AmazonSSMManagedInstanceCore` policy.
 
 Idempotent and safe to run by hand, from SSM, or from a cron. On each run it:
 
-1. `git fetch`; exits if the checkout already matches `origin/production`.
+1. `git fetch`; exits if the checkout already matches `origin/main`.
 2. Diffs the changed paths.
    - only `docs/**`, `*.md`, `.github/**` → fast-forward the checkout, build nothing.
 3. Rebuilds images by what changed:
@@ -176,12 +179,12 @@ an RDS snapshot before `migrate` runs. The instance role then also needs
 sudo mkdir -p /opt/scitrek && sudo chown ubuntu:ubuntu /opt/scitrek
 cd /opt/scitrek
 git clone https://github.com/rafael-solorzano/scitrek-bioinformatics.git
-cd scitrek-bioinformatics && git checkout production
+cd scitrek-bioinformatics && git checkout main
 # create backend/scitrek_backend/.env per ec2-bioinformatics-mod.md
 ```
 
 **IAM role for GitHub Actions** — a role with a trust policy for the GitHub OIDC
-provider scoped to this repo and `ref:refs/heads/production`, and permissions:
+provider scoped to this repo and `ref:refs/heads/main`, and permissions:
 
 ```json
 [
@@ -202,12 +205,9 @@ provider scoped to this repo and `ref:refs/heads/production`, and permissions:
 | `AWS_REGION` | `us-west-2` |
 | `DEPLOY_INSTANCE_ID` | the EC2 instance id |
 
-**Deploy branch** — `production` is added to `ci.yml`'s triggers via
-`workflow_call`. Deploy by merging into `production`:
-
-```bash
-git checkout production && git merge --ff-only andyDeployedPost && git push origin production
-```
+**Deploy branch** — `main`, via a normal PR merge. `deploy.yml` calls `ci.yml`
+as a reusable workflow (`workflow_call`), so it re-runs the full suite on the
+merge commit regardless of what triggered `ci.yml` directly.
 
 ### Local pre-push hook
 

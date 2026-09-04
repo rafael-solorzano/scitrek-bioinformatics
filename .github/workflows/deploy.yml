@@ -1,11 +1,13 @@
 name: Deploy
 
-# Push to `production` -> run the full CI suite from that commit -> if it
-# passes, tell the EC2 instance to redeploy via AWS SSM (no inbound SSH).
+# Push to `main` -> run the full CI suite from that commit -> if it passes,
+# tell the EC2 instance to redeploy via AWS SSM (no inbound SSH). Every merge
+# to main deploys; use branch protection / required PR review on main as the
+# go-live gate instead of a separate deploy branch.
 #
 # Required repository secrets:
 #   AWS_DEPLOY_ROLE_ARN   IAM role this workflow assumes via GitHub OIDC;
-#                         trust policy scoped to this repo + the production ref;
+#                         trust policy scoped to this repo + the main ref;
 #                         permissions: ssm:SendCommand on the instance and on
 #                         document AWS-RunShellScript, plus ssm:GetCommandInvocation
 #   AWS_REGION            e.g. us-west-2
@@ -13,11 +15,11 @@ name: Deploy
 
 on:
   push:
-    branches: [production]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
-  group: deploy-production
+  group: deploy-main
   cancel-in-progress: false
 
 permissions:
@@ -52,7 +54,7 @@ jobs:
             --parameters '{
               "workingDirectory":["/opt/scitrek/scitrek-bioinformatics"],
               "executionTimeout":["1800"],
-              "commands":["sudo -u ubuntu -H DEPLOY_BRANCH=production /opt/scitrek/scitrek-bioinformatics/scripts/deploy.sh"]
+              "commands":["sudo -u ubuntu -H DEPLOY_BRANCH=main /opt/scitrek/scitrek-bioinformatics/scripts/deploy.sh"]
             }' \
             --query 'Command.CommandId' --output text)
           echo "SSM CommandId: $command_id"
