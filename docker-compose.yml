@@ -18,7 +18,7 @@ x-backend-service: &backend-service
     CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
     CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
     REDIS_CACHE_URL: ${REDIS_CACHE_URL:-redis://redis:6379/2}
-    DJANGO_HEALTHCHECK_HOST: ${DJANGO_HEALTHCHECK_HOST:-sci-trek.org}
+    DJANGO_HEALTHCHECK_HOST: ${DJANGO_HEALTHCHECK_HOST:-bioinformatics-mod.sci-trek.org}
   init: true
   logging: *default-logging
 
@@ -126,8 +126,10 @@ services:
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
     environment:
-      TLS_DOMAIN: ${TLS_DOMAIN:-sci-trek.org}
-      TLS_WWW_DOMAIN: ${TLS_WWW_DOMAIN:-www.sci-trek.org}
+      TLS_DOMAIN: ${TLS_DOMAIN:-bioinformatics-mod.sci-trek.org}
+      # Empty by default: this deployment has a single hostname. The :- form also
+      # substitutes this default when .env sets the key to an empty value.
+      TLS_WWW_DOMAIN: ${TLS_WWW_DOMAIN:-}
     ports:
       - "80:80"
       - "443:443"
