@@ -13,10 +13,10 @@ click-plugins==1.1.1
 click-repl==0.3.0
 coverage==7.6.10
 cryptography==50.0.0
-Django==5.2.16
+Django==5.2.17
 django-cors-headers==4.7.0
 django-storages==1.14.6
-djangorestframework==3.16.0
+djangorestframework==3.17.2
 djangorestframework_simplejwt==5.5.1
 drf-yasg==1.21.10
 gunicorn==23.0.0
@@ -40,7 +40,7 @@ redis==5.2.1
 s3transfer==0.19.2
 six==1.17.0
 soupsieve==2.8.4
-sqlparse==0.5.4
+sqlparse==0.6.0
 typing_extensions==4.13.2
 tzdata==2025.2
 uritemplate==4.1.1
