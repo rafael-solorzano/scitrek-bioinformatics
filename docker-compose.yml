@@ -142,7 +142,12 @@ services:
       web:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost/nginx-health"]
+      # 127.0.0.1, not localhost: the official nginx image's entrypoint adds an
+      # IPv6 listener whenever /proc/net/if_inet6 exists in the container, which
+      # it does even when the container's IPv6 loopback doesn't actually route.
+      # wget then resolves "localhost" to ::1 first and gets connection refused,
+      # even though the service is healthy over IPv4.
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1/nginx-health"]
       interval: 30s
       timeout: 5s
       retries: 3
