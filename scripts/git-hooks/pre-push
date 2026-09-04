@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Fast local guardrail before a push leaves this machine. Enable once with:
+#
+#   git config core.hooksPath scripts/git-hooks
+#
+# Deliberately cheap -- it only catches the mistakes that break a deploy before
+# CI even starts (invalid Compose interpolation, malformed YAML). The full test
+# suite, coverage gate, and `manage.py check --deploy` run in CI.
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "pre-push: docker not found; skipping Compose validation" >&2
+  exit 0
+fi
+
+echo "pre-push: validating docker-compose.yml"
+SCITREK_BACKEND_ENV_FILE=backend/scitrek_backend/.env.production.example \
+  docker compose config --quiet
+
+echo "pre-push: validating docker-compose.e2e.yml"
+docker compose -f docker-compose.e2e.yml config --quiet
+
+echo "pre-push: OK"
